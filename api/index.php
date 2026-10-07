@@ -183,22 +183,27 @@ try {
             $roleLabel = 'Student Officer';
             $assignedCourses = [];
 
-            // Check for instituteadmin role
-            $roleCheck = $mysqli->prepare("
-                SELECT r.shortname 
-                FROM mdl_role_assignments ra
-                JOIN mdl_role r ON r.id = ra.roleid
-                WHERE ra.userid = ? AND r.shortname = 'instituteadmin'
-                LIMIT 1
-            ");
-            $roleCheck->bind_param('i', $user['id']);
-            $roleCheck->execute();
-            $roleResult = $roleCheck->get_result();
-            if ($roleResult->fetch_assoc()) {
+            // Check for instituteadmin role or siteadmin
+            if ($user['username'] === 'siteadmin' || (int)$user['id'] === 2) {
                 $role = 'instituteadmin';
-                $roleLabel = 'Institute Admin';
+                $roleLabel = 'Site Administrator';
+            } else {
+                $roleCheck = $mysqli->prepare("
+                    SELECT r.shortname 
+                    FROM mdl_role_assignments ra
+                    JOIN mdl_role r ON r.id = ra.roleid
+                    WHERE ra.userid = ? AND r.shortname = 'instituteadmin'
+                    LIMIT 1
+                ");
+                $roleCheck->bind_param('i', $user['id']);
+                $roleCheck->execute();
+                $roleResult = $roleCheck->get_result();
+                if ($roleResult->fetch_assoc()) {
+                    $role = 'instituteadmin';
+                    $roleLabel = 'Institute Admin';
+                }
+                $roleCheck->close();
             }
-            $roleCheck->close();
 
             // Check for courseadmin role
             if ($role === 'student') {

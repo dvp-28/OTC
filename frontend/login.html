@@ -228,6 +228,26 @@
                         Authenticate & Enter Portal
                     </button>
                 </form>
+
+                <div class="demo-credentials">
+                    <h4>Demo Accounts (Click to Auto-fill)</h4>
+                    <div class="demo-account" onclick="fillCreds('student.officer', 'Student@2026!')">
+                        <span class="demo-role student">Student Officer</span>
+                        <span class="demo-user">student.officer</span>
+                    </div>
+                    <div class="demo-account" onclick="fillCreds('course.admin', 'CourseAdmin@2026!')">
+                        <span class="demo-role course">Course Admin</span>
+                        <span class="demo-user">course.admin</span>
+                    </div>
+                    <div class="demo-account" onclick="fillCreds('inst.admin', 'InstAdmin@2026!')">
+                        <span class="demo-role inst">Institute Admin</span>
+                        <span class="demo-user">inst.admin</span>
+                    </div>
+                    <div class="demo-account" onclick="fillCreds('siteadmin', 'Change-Me-Str0ng!Pass')">
+                        <span class="demo-role" style="color: #a78bfa;">Site Admin</span>
+                        <span class="demo-user">siteadmin</span>
+                    </div>
+                </div>
             </div>
 
             <div class="security-notice">
@@ -239,6 +259,12 @@
     </div>
 
     <script>
+        function fillCreds(u, p) {
+            document.getElementById('username').value = u;
+            document.getElementById('password').value = p;
+            const errEl = document.getElementById('login-error');
+            if (errEl) errEl.classList.remove('visible');
+        }
         // Apply saved theme preference (Dark / Light)
         const savedTheme = localStorage.getItem('ekalavya_theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
