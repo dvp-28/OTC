@@ -1,0 +1,4 @@
+.env
+moodle-src/
+certs/*.key
+certs/*.crt

@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal | Ekalavya LMS - Officers Training College</title>
+    <meta name="description" content="Ekalavya LMS Officer Portal - Role-based access to courses, classroom, and administration.">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Role-specific admin toolbar */
+        .admin-toolbar {
+            display: none;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 1.1rem 1.5rem;
+            margin-bottom: 1.75rem;
+            animation: fadeIn 0.3s ease;
+        }
+        .admin-toolbar.visible { display: block; }
+        .admin-toolbar h3 {
+            font-size: 0.92rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--text-main);
+        }
+        .admin-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+        .btn-admin {
+            padding: 0.55rem 1.1rem;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            transition: all 0.18s ease;
+        }
+        .btn-admin:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+        .btn-admin.gold {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.15);
+            color: var(--text-main);
+        }
+        .btn-admin.gold:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        /* Modal overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.visible { display: flex; }
+        .modal-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 560px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: fadeIn 0.25s ease;
+        }
+        .modal-box h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1.25rem;
+        }
+        .modal-form-group {
+            margin-bottom: 1.25rem;
+        }
+        .modal-form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.4rem;
+        }
+        .modal-form-group input,
+        .modal-form-group textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .modal-form-group select {
+            width: 100%;
+            padding: 0.75rem 2.5rem 0.75rem 1rem;
+            background-color: #0d1321;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23d4af37' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.85rem center;
+            background-size: 1.1rem;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 8px;
+            color: #f8fafc;
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            box-sizing: border-box;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            transition: all 0.18s ease;
+        }
+        .modal-form-group select option {
+            background-color: #0d1321;
+            color: #f8fafc;
+            padding: 0.75rem 1rem;
+        }
+        .modal-form-group textarea { resize: vertical; min-height: 80px; }
+        .modal-form-group input:focus,
+        .modal-form-group textarea:focus,
+        .modal-form-group select:focus {
+            border-color: var(--gold-primary);
+            box-shadow: 0 0 0 3px rgba(212,175,55,0.18);
+        }
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+        .btn-modal { flex: 1; padding: 0.75rem; border-radius: 8px; font-weight: 600; font-size: 0.88rem; cursor: pointer; border: 1px solid var(--border-subtle); }
+        .btn-modal.primary { background: linear-gradient(135deg, var(--amc-crimson), var(--amc-crimson-bright)); color: #fff; border-color: transparent; }
+        .btn-modal.cancel { background: transparent; color: var(--text-muted); }
+        .btn-modal:hover { transform: translateY(-1px); }
+
+
+        /* User management table */
+        .users-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        .users-table th { background: rgba(14,18,28,0.8); padding: 0.8rem 1rem; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); text-align: left; }
+        .users-table td { padding: 0.85rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.85rem; }
+        .users-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 0.85rem 1.5rem;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #fff;
+            z-index: 3000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: 0.3s ease;
+        }
+        .toast.visible { transform: translateY(0); opacity: 1; }
+        .toast.success { background: #10b981; }
+        .toast.error { background: #ef4444; }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation Bar -->
+    <header class="top-bar">
+        <div class="brand-wrapper">
+            <img src="OTC.png" alt="OTC Logo" class="brand-logo-badge">
+            <div class="brand-info">
+                <div class="brand-title">
+                    EKALAVYA LMS
+                    <span class="brand-badge">OTC DEFENCE PORTAL</span>
+                </div>
+                <div class="brand-sub">
+                    Officers Training College, AMC Centre and College, Lucknow
+                    <span class="brand-motto">• सर्वे सन्तु निरामयाः</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <!-- Theme Toggle Button -->
+            <button class="btn-theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme (Dark / Normal)">
+                <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                <span id="theme-label-text">Dark Mode</span>
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </button>
+
+            <!-- Administration Quick Actions Settings Button (Top-Right) -->
+            <div class="settings-dropdown-wrapper" id="admin-settings-wrapper" style="display:none;">
+                <button class="btn-settings-trigger" id="admin-settings-trigger" onclick="toggleAdminQuickActionsMenu(event)" title="Administration Quick Actions" style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.4rem 0.8rem;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--gold-primary);"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span>Settings</span>
+                    <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+
+                <div class="settings-menu-popup" id="admin-quick-actions-popup" style="width: 240px; right: 0;">
+                    <div style="padding: 0.75rem 1rem 0.5rem; font-size: 0.78rem; font-weight: 700; color: var(--gold-light); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.5rem;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                        Administration Actions
+                    </div>
+                    <div class="menu-divider"></div>
+                    <div class="menu-section">
+                        <button class="menu-item" onclick="openEditCourseModal(); closeAdminQuickActionsMenu();">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            <span>Edit Course Details</span>
+                        </button>
+                        <button class="menu-item" onclick="openAddSectionModal(); closeAdminQuickActionsMenu();">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                            <span>Add Course Section</span>
+                        </button>
+                        <button class="menu-item" id="popup-quick-manage-users" onclick="switchTab('users'); closeAdminQuickActionsMenu();" style="display:none;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
+                            <span>Manage Users & Batches</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-dropdown-wrapper">
+                <button class="btn-settings-trigger" id="settings-trigger" onclick="toggleSettingsMenu(event)" title="Settings & Profile Menu">
+                    <div class="officer-avatar" id="user-avatar">--</div>
+                    <span class="user-chip-name" id="user-display-name">Loading...</span>
+                    <svg class="dropdown-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+
+                <!-- Dropdown Popup Menu -->
+                <div class="settings-menu-popup" id="settings-menu-popup">
+                    <div class="menu-user-header">
+                        <div class="menu-avatar" id="menu-avatar">--</div>
+                        <div class="menu-user-details">
+                            <div class="menu-user-name" id="menu-user-name">Loading...</div>
+                            <div class="menu-user-role">
+                                <span class="role-badge-header" id="user-role-badge">—</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="menu-divider"></div>
+
+                    <div class="menu-section">
+                        <button class="menu-item" onclick="switchTab('dashboard'); closeSettingsMenu();">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                            <span>Dashboard Overview</span>
+                        </button>
+                        <button class="menu-item" onclick="switchTab('courses'); closeSettingsMenu();">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                            <span>My Assigned Courses</span>
+                        </button>
+                        <button class="menu-item menu-admin-only" id="menu-item-users" onclick="switchTab('users'); closeSettingsMenu();" style="display:none;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            <span>Manage Users & Batches</span>
+                        </button>
+                        <button class="menu-item" onclick="switchTab('governance'); closeSettingsMenu();">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                            <span>Security Governance & Roles</span>
+                        </button>
+                    </div>
+
+                    <div class="menu-divider"></div>
+
+                    <button class="menu-item logout" onclick="logout()">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        <span>Logout of Session</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container">
+
+        <!-- Global Page Navigation Toolbar (Back & Next) -->
+        <div class="page-nav-bar">
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn-nav-step" id="btn-global-back" onclick="goBack()" title="Go Back">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    <span>Back</span>
+                </button>
+                <button class="btn-nav-step" id="btn-global-next" onclick="goNext()" title="Go Next">
+                    <span>Next</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+            <div class="page-breadcrumb" id="page-breadcrumb-text">
+                Dashboard Overview
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <nav class="tabs-navigation">
+            <button class="tab-btn active" data-tab="dashboard">
+                <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                Dashboard
+            </button>
+            <button class="tab-btn" data-tab="courses">
+                <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                Courses
+            </button>
+            <button class="tab-btn" data-tab="classroom">
+                <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                Classroom
+            </button>
+            <button class="tab-btn tab-admin-only" data-tab="users" style="display:none;">
+                <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                User Management
+            </button>
+            <button class="tab-btn" data-tab="governance">
+                <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                Governance
+            </button>
+        </nav>
+
+        <!-- ========== DASHBOARD TAB ========== -->
+        <section id="tab-dashboard" class="tab-pane active">
+            <!-- Dashboard Batches / Courses Grid (Mockup Layout) -->
+            <div>
+                <div class="mockup-header-count">
+                    <span id="dashboard-batches-count">7 TOTAL BATCHES / COURSES REGISTERED</span>
+                </div>
+                <div class="mockup-courses-grid" id="dashboard-courses-grid">
+                    <!-- Dynamic mockup course cards rendered by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== COURSES TAB ========== -->
+        <section id="tab-courses" class="tab-pane">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+                <div class="courses-filter-bar" style="margin-bottom: 0;">
+                    <div class="filter-pills">
+                        <button class="pill-btn active" data-filter="all">All Courses</button>
+                        <button class="pill-btn" data-filter="med">Medical Officers</button>
+                        <button class="pill-btn" data-filter="nur">Nursing Officers</button>
+                        <button class="pill-btn" data-filter="nt">Non-Technical</button>
+                    </div>
+                </div>
+                <div id="inst-add-course-btn-wrapper" style="display:none;">
+                    <button class="btn-admin gold" onclick="openAddCourseModal()" style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 1rem; font-weight: 600;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                        <span>+ Add Course</span>
+                    </button>
+                </div>
+            </div>
+            <div class="courses-grid" id="courses-grid"></div>
+        </section>
+
+        <!-- ========== CLASSROOM TAB ========== -->
+        <section id="tab-classroom" class="tab-pane">
+            <div style="margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="font-size: 1.35rem; font-weight: 700;" id="classroom-course-title">Select a course</h2>
+                    <span style="font-size: 0.82rem; color: var(--gold-light);" id="classroom-section-title"></span>
+                </div>
+            </div>
+
+            <div class="classroom-layout">
+                <div class="media-player-container">
+                    <div class="video-screen">
+                        <div class="tactical-watermark">OTC • AMC LUCKNOW • RESTRICTED</div>
+                        <div class="video-placeholder-content">
+                            <div class="play-ring-btn" id="play-ring-trigger">▶</div>
+                            <div class="video-status-text" id="video-play-status">Select a course to begin</div>
+                            <div class="video-sub-text">HLS Stream • Offline Engine • En Subtitles</div>
+                        </div>
+                    </div>
+                    <div class="custom-controls-bar">
+                        <div class="timeline-scrubber" id="timeline-scrubber">
+                            <div class="timeline-progress" id="timeline-progress" style="width:0%"></div>
+                        </div>
+                        <div class="controls-row">
+                            <div class="controls-left">
+                                <button class="ctrl-btn" id="btn-play-pause">▶</button>
+                                <span class="time-display" id="video-time-display">00:00 / 30:00</span>
+                            </div>
+                            <div class="controls-right">
+                                <span class="quality-badge">720p</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="modules-sidebar">
+                    <div class="sidebar-header">
+                        <h3 class="sidebar-title">Course Sections</h3>
+                        <p class="sidebar-sub" id="sidebar-course-name">Select a course from Courses tab</p>
+                    </div>
+                    <ul class="module-list" id="classroom-section-list"></ul>
+                    <!-- Add Section button for admins -->
+                    <div id="classroom-add-section-btn" style="display:none; margin-top: 0.75rem;">
+                        <button class="btn-admin gold" style="width:100%;" onclick="openAddSectionModal()">+ Add Section</button>
+                    </div>
+                </aside>
+            </div>
+        </section>
+
+        <!-- ========== USERS TAB (Institute Admin only) ========== -->
+        <section id="tab-users" class="tab-pane">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                    <h2 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 0.25rem;">User & Batch Management</h2>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0;">Institute Admin access — manage registered officers, roles, and course assignments.</p>
+                </div>
+                <div>
+                    <button class="btn-admin gold" onclick="openCreateUserModal()" style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 1rem; font-weight: 600;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="17" y1="11" x2="23" y2="11"></line></svg>
+                        <span>+ Add New User</span>
+                    </button>
+                </div>
+            </div>
+            <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; overflow-x: auto;">
+                <table class="users-table" id="users-table">
+                    <thead>
+                        <tr>
+                            <th>Service ID / Username</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Mobile</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Assigned Courses</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 2rem;">Loading registered users...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ========== GOVERNANCE TAB ========== -->
+        <section id="tab-governance" class="tab-pane">
+            <h2 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 1rem;">Access Governance & Capability Matrix</h2>
+            <div class="governance-table-wrapper">
+                <table class="gov-table">
+                    <thead><tr><th>Role</th><th>Shortname</th><th>Archetype</th><th>Context</th><th>Permissions</th><th>Restrictions</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td><strong style="color:#ff8595;">Institute Admin</strong></td>
+                            <td><span class="role-tag inst">instituteadmin</span></td>
+                            <td>manager</td>
+                            <td>OTC Category</td>
+                            <td>Add/delete content in all 7 courses, manage users and batches.</td>
+                            <td><span style="color:#ef4444;font-weight:600;">CANNOT</span> delete courses or alter categories. IP allowlist enforced.</td>
+                        </tr>
+                        <tr>
+                            <td><strong style="color:var(--gold-light);">Course Admin</strong></td>
+                            <td><span class="role-tag course">courseadmin</span></td>
+                            <td>editingteacher</td>
+                            <td>Per-Course</td>
+                            <td>Add/update modules, quizzes, multimedia in assigned courses.</td>
+                            <td>Restricted to designated course only (e.g. MOBC).</td>
+                        </tr>
+                        <tr>
+                            <td><strong style="color:#67e8f9;">Student Officer</strong></td>
+                            <td><span class="role-tag stud">student</span></td>
+                            <td>student</td>
+                            <td>Batch Cohort</td>
+                            <td>View lessons, stream videos, attempt quizzes, track progress.</td>
+                            <td>Auto-enrolled via Batch Cohort Sync. No editing permissions.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL: Edit Course -->
+    <div class="modal-overlay" id="modal-edit-course">
+        <div class="modal-box">
+            <h2 style="display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--gold-light);"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                Edit Course Details
+            </h2>
+            <div class="modal-form-group">
+                <label>Select Course</label>
+                <select id="edit-course-select"></select>
+            </div>
+            <div class="modal-form-group">
+                <label>Full Name</label>
+                <input type="text" id="edit-course-fullname" placeholder="e.g. Medical Officers Basic Course">
+            </div>
+            <div class="modal-form-group">
+                <label>Summary / Description</label>
+                <textarea id="edit-course-summary" placeholder="Course description..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-modal cancel" onclick="closeModal('modal-edit-course')">Cancel</button>
+                <button class="btn-modal primary" onclick="submitEditCourse()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Add Section -->
+    <div class="modal-overlay" id="modal-add-section">
+        <div class="modal-box">
+            <h2 style="display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--gold-light);"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                Add Course Section / Topic
+            </h2>
+            <div class="modal-form-group">
+                <label>Course</label>
+                <select id="section-course-select"></select>
+            </div>
+            <div class="modal-form-group">
+                <label>Section Name</label>
+                <input type="text" id="section-name" placeholder="e.g. Module 8: Advanced Field Surgery">
+            </div>
+            <div class="modal-form-group">
+                <label>Summary</label>
+                <textarea id="section-summary" placeholder="What this section covers..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-modal cancel" onclick="closeModal('modal-add-section')">Cancel</button>
+                <button class="btn-modal primary" onclick="submitAddSection()">Add Section</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Create / Edit User & Course Enrolment -->
+    <div class="modal-overlay" id="modal-user-form">
+        <div class="modal-box" style="max-width: 580px; max-height: 90vh; overflow-y: auto;">
+            <h2 id="modal-user-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--gold-light);"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle></svg>
+                Add / Configure User
+            </h2>
+            <input type="hidden" id="user-form-id" value="">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div class="modal-form-group">
+                    <label>Service ID / Username *</label>
+                    <input type="text" id="user-form-username" placeholder="e.g. AMC005">
+                </div>
+                <div class="modal-form-group">
+                    <label>Password <span id="user-password-label-hint" style="font-weight: 400; font-size: 0.75rem; color: var(--text-muted);">(req for new)</span></label>
+                    <input type="password" id="user-form-password" placeholder="••••••••">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div class="modal-form-group">
+                    <label>First Name / Initials *</label>
+                    <input type="text" id="user-form-firstname" placeholder="e.g. Officer">
+                </div>
+                <div class="modal-form-group">
+                    <label>Last Name / Rank *</label>
+                    <input type="text" id="user-form-lastname" placeholder="e.g. Sharma">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div class="modal-form-group">
+                    <label>Official Email *</label>
+                    <input type="email" id="user-form-email" placeholder="officer@amc.gov.in">
+                </div>
+                <div class="modal-form-group">
+                    <label>Mobile Number</label>
+                    <input type="text" id="user-form-phone" placeholder="9876543210">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div class="modal-form-group">
+                    <label>Account Status</label>
+                    <select id="user-form-suspended">
+                        <option value="0">Active</option>
+                        <option value="1">Inactive / Suspended</option>
+                    </select>
+                </div>
+                <div class="modal-form-group">
+                    <label>Role / Permissions *</label>
+                    <select id="user-form-role">
+                        <option value="student">Student Officer</option>
+                        <option value="courseadmin">Course Admin</option>
+                        <option value="instituteadmin">Institute Admin</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="modal-form-group">
+                <label style="margin-bottom: 0.5rem; display: block; font-weight: 600;">Assigned Courses</label>
+                <div id="user-form-courses-container" class="form-courses-checklist" style="background: var(--bg-main); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.75rem; max-height: 160px; overflow-y: auto;">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-modal cancel" onclick="closeModal('modal-user-form')">Cancel</button>
+                <button class="btn-modal primary" onclick="submitUserForm()">Save User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Add Course -->
+    <div class="modal-overlay" id="modal-add-course">
+        <div class="modal-box">
+            <h2 style="display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--gold-light);"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                Add New Course
+            </h2>
+            <div class="modal-form-group">
+                <label>Course Full Name *</label>
+                <input type="text" id="add-course-fullname" placeholder="e.g. Field Anesthesia & Resuscitation">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div class="modal-form-group">
+                    <label>Short Name (Code) *</label>
+                    <input type="text" id="add-course-shortname" placeholder="e.g. FAR-2026">
+                </div>
+                <div class="modal-form-group">
+                    <label>Course Category</label>
+                    <select id="add-course-category">
+                        <option value="1">Medical Officers (OTC)</option>
+                        <option value="2">Nursing Officers</option>
+                        <option value="3">Non-Technical Officers</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-form-group">
+                <label>Summary / Description</label>
+                <textarea id="add-course-summary" placeholder="Provide course objectives and curriculum overview..."></textarea>
+            </div>
+            <div class="modal-form-group">
+                <label>Visibility Status</label>
+                <select id="add-course-visible">
+                    <option value="1">Active / Visible</option>
+                    <option value="0">Hidden / Draft</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-modal cancel" onclick="closeModal('modal-add-course')">Cancel</button>
+                <button class="btn-modal primary" onclick="submitAddCourse()">Create Course</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Delete Course Confirm -->
+    <div class="modal-overlay" id="modal-delete-course-confirm">
+        <div class="modal-box" style="max-width: 440px;">
+            <h2 style="display: flex; align-items: center; gap: 0.5rem; color: #ef4444;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                Confirm Course Deletion
+            </h2>
+            <input type="hidden" id="delete-course-id" value="">
+            <p style="font-size: 0.9rem; margin-bottom: 1rem; color: var(--text-secondary); line-height: 1.5;" id="delete-course-prompt">
+                Are you sure you want to delete this course? This action cannot be undone.
+            </p>
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 0.75rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #f87171;">
+                <strong>Warning:</strong> Deleting a course will permanently purge course sections, modules, and user enrolments associated with it.
+            </div>
+            <div class="modal-actions">
+                <button class="btn-modal cancel" onclick="closeModal('modal-delete-course-confirm')">Cancel</button>
+                <button class="btn-modal danger" onclick="submitDeleteCourse()" style="background: #dc2626; color: #ffffff;">Delete Course</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <footer class="footer-bar">
+        <div>EKALAVYA LMS • OFFICERS TRAINING COLLEGE, AMC CENTRE AND COLLEGE, LUCKNOW</div>
+        <div class="footer-compliance">RESTRICTED • FOR OFFICIAL DEFENCE USE ONLY • AIR-GAPPED ON-PREMISE</div>
+    </footer>
+
+    <script src="js/portal.js"></script>
+</body>
+</html>
