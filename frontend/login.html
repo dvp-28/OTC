@@ -7,16 +7,35 @@
     <meta name="description" content="Secure login portal for Ekalavya LMS - Air-gapped defence e-learning platform">
     <link rel="stylesheet" href="css/style.css">
     <style>
+        /* Base Page Setup */
+        html {
+            min-height: 100%;
+        }
+
         body {
             margin: 0;
             padding: 0;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            background: linear-gradient(135deg, rgba(8, 12, 20, 0.72) 0%, rgba(13, 19, 33, 0.85) 100%), url('/login-bg.jpg') no-repeat center center / cover;
-            background-attachment: fixed;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: #ffffff;
+        }
+
+        /* GUARANTEE BACKGROUND IMAGE /login-bg.jpg ON BOTH DARK AND LIGHT MODES */
+        body,
+        body.login-body,
+        .login-page,
+        [data-theme="dark"] body,
+        [data-theme="dark"] .login-page {
+            background: linear-gradient(135deg, rgba(8, 12, 20, 0.72) 0%, rgba(13, 19, 33, 0.85) 100%), url('/login-bg.jpg') no-repeat center center / cover !important;
+            background-attachment: fixed !important;
+        }
+
+        [data-theme="light"] body,
+        [data-theme="light"] .login-page {
+            background: linear-gradient(135deg, rgba(248, 250, 252, 0.42) 0%, rgba(241, 245, 249, 0.58) 100%), url('/login-bg.jpg') no-repeat center center / cover !important;
+            background-attachment: fixed !important;
         }
 
         /* Official Institutional Banner */
@@ -77,6 +96,52 @@
             text-transform: uppercase;
             text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
             margin: 0.2rem 0 0 0;
+        }
+
+        /* Banner Theme Toggle Button */
+        .login-theme-toggle {
+            position: absolute;
+            right: 1.25rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            color: #ffffff;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.76rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            z-index: 30;
+        }
+
+        .login-theme-toggle:hover {
+            background: rgba(0, 0, 0, 0.75);
+            border-color: #d4af37;
+            box-shadow: 0 0 12px rgba(212, 175, 55, 0.45);
+        }
+
+        .login-theme-toggle .icon-sun { display: none; }
+        .login-theme-toggle .icon-moon { display: inline-block; }
+        [data-theme="light"] .login-theme-toggle .icon-sun { display: inline-block; }
+        [data-theme="light"] .login-theme-toggle .icon-moon { display: none; }
+
+        @media (max-width: 1100px) {
+            .login-theme-toggle {
+                position: static;
+                transform: none;
+                margin: 0.4rem auto 0;
+            }
+            .otc-banner-header {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
         }
 
         @media (max-width: 900px) {
@@ -167,6 +232,44 @@
             padding: 2.25rem 2rem;
             box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.1);
             box-sizing: border-box;
+        }
+
+        [data-theme="light"] .login-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+        }
+
+        [data-theme="light"] .login-header h1 {
+            color: #0f172a;
+            text-shadow: 0 1px 4px rgba(255, 255, 255, 0.8);
+        }
+
+        [data-theme="light"] .login-header .motto {
+            color: #8b6508;
+            text-shadow: none;
+        }
+
+        [data-theme="light"] .login-header .subtitle {
+            color: #334155;
+            text-shadow: none;
+        }
+
+        [data-theme="light"] .form-label {
+            color: #334155;
+        }
+
+        [data-theme="light"] .form-input {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: #0f172a;
+        }
+
+        [data-theme="light"] .form-input:focus {
+            border-color: #880015;
+            box-shadow: 0 0 0 3px rgba(136, 0, 21, 0.18);
         }
 
         .form-group {
@@ -264,8 +367,20 @@
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
         }
 
+        [data-theme="light"] .security-notice {
+            background: rgba(255, 255, 255, 0.88);
+            color: #334155;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
         .security-notice strong {
             color: #f3d779;
+            font-weight: 700;
+        }
+
+        [data-theme="light"] .security-notice strong {
+            color: #880015;
             font-weight: 700;
         }
 
@@ -275,7 +390,7 @@
         }
     </style>
 </head>
-<body>
+<body class="login-body">
     <!-- Institutional Top Banner (Officers Training College / AMC Centre & College) -->
     <header class="otc-banner-header">
         <div class="otc-banner-container">
@@ -286,10 +401,17 @@
             </div>
             <img src="college-crest.png" alt="Officers Training College Crest" class="otc-banner-logo right">
         </div>
+
+        <!-- Quick Theme Switcher -->
+        <button class="login-theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme (Dark / Light)">
+            <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            <span id="theme-label-text">Dark</span>
+        </button>
     </header>
 
-    <!-- Main Login Area -->
-    <main class="login-main">
+    <!-- Main Login Area with .login-page class -->
+    <main class="login-main login-page">
         <div class="login-container">
             <div class="login-header">
                 <h1>EKALAVYA LMS</h1>
@@ -329,6 +451,22 @@
         // Apply saved theme preference (Dark / Light)
         const savedTheme = localStorage.getItem('ekalavya_theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeLabel(savedTheme);
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'dark';
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('ekalavya_theme', next);
+            updateThemeLabel(next);
+        }
+
+        function updateThemeLabel(theme) {
+            const label = document.getElementById('theme-label-text');
+            if (label) {
+                label.textContent = theme === 'dark' ? 'Dark' : 'Light';
+            }
+        }
 
         // Check if already logged in
         fetch('/api/session').then(r => r.json()).then(data => {
