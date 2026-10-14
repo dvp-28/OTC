@@ -1,5 +1,5 @@
 /**
- * EKALAVYA LMS - OTC, AMC CENTRE AND COLLEGE, LUCKNOW
+ * DRONACHARYA LMS - OTC, AMC CENTRE AND COLLEGE, LUCKNOW
  * Front-end Logic - Pure Vanilla ES6 JavaScript
  * Zero External Dependencies (Air-gapped compliant)
  */

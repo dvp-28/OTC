@@ -1,5 +1,5 @@
 <?php
-// Ekalavya LMS - Database connection + session helper
+// Dronacharya LMS - Database connection + session helper
 // Connects to Moodle's MySQL database via MySQLi
 session_start();
 

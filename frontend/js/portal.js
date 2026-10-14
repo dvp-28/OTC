@@ -1,5 +1,5 @@
 /**
- * EKALAVYA LMS - Authenticated Portal Logic
+ * DRONACHARYA LMS - Authenticated Portal Logic
  * Role-based UI: Institute Admin | Course Admin | Student Officer
  * Connected to Moodle MySQL via /api/ endpoints
  */
@@ -38,13 +38,14 @@ async function logout() {
 
 // Theme Engine (Dark / Normal Light Mode)
 function initTheme() {
-    const savedTheme = localStorage.getItem('ekalavya_theme') || 'dark';
+    const savedTheme = localStorage.getItem('dronacharya_theme') || localStorage.getItem('ekalavya_theme') || 'dark';
     applyTheme(savedTheme);
 }
 
 function toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('dronacharya_theme', newTheme);
     localStorage.setItem('ekalavya_theme', newTheme);
     applyTheme(newTheme);
 }
@@ -197,7 +198,7 @@ function applyRoleUI() {
 // ============================================================
 // TABS & GLOBAL PAGE NAVIGATION (Back / Next)
 // ============================================================
-let tabOrder = ['dashboard', 'courses', 'classroom', 'users', 'governance'];
+let tabOrder = ['dashboard', 'courses', 'classroom', 'users'];
 let navHistory = ['dashboard'];
 let currentHistoryIndex = 0;
 
@@ -258,7 +259,7 @@ function goNext() {
         if (idx < tabOrder.length - 1) {
             let nextTab = tabOrder[idx + 1];
             if (nextTab === 'users' && currentUser.role === 'student') {
-                nextTab = 'governance';
+                return;
             }
             switchTab(nextTab, false);
         }
@@ -284,8 +285,7 @@ function updateBreadcrumb(tabId) {
         'dashboard': 'Dashboard Overview',
         'courses': 'My Assigned Courses',
         'classroom': 'Classroom Player & Content',
-        'users': 'User Management & Batches',
-        'governance': 'Security Governance & Roles'
+        'users': 'User Management & Batches'
     };
     el.textContent = names[tabId] || tabId.toUpperCase();
 }
@@ -382,7 +382,6 @@ function renderDashboardMockupGrid() {
         card.innerHTML = `
             <div class="mockup-card-top">
                 <div class="mockup-card-title">${esc(c.fullname)}</div>
-                <span class="mockup-status-badge">ACTIVE</span>
             </div>
             <div class="mockup-sub-info">
                 <div class="mockup-sub-row">

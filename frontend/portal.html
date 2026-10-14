@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal | Ekalavya LMS - Officers Training College</title>
-    <meta name="description" content="Ekalavya LMS Officer Portal - Role-based access to courses, classroom, and administration.">
+    <title>Portal | Dronacharya LMS - Officers Training College</title>
+    <meta name="description" content="Dronacharya LMS Officer Portal - Role-based access to courses, classroom, and administration.">
     <link rel="stylesheet" href="css/style.css">
     <style>
         /* Role-specific admin toolbar */
@@ -180,7 +180,7 @@
             <img src="OTC.png" alt="OTC Logo" class="brand-logo-badge">
             <div class="brand-info">
                 <div class="brand-title">
-                    EKALAVYA LMS
+                    DRONACHARYA LMS
                     <span class="brand-badge">OTC DEFENCE PORTAL</span>
                 </div>
                 <div class="brand-sub">
@@ -264,10 +264,6 @@
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                             <span>Manage Users & Batches</span>
                         </button>
-                        <button class="menu-item" onclick="switchTab('governance'); closeSettingsMenu();">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                            <span>Security Governance & Roles</span>
-                        </button>
                     </div>
 
                     <div class="menu-divider"></div>
@@ -278,6 +274,9 @@
                     </button>
                 </div>
             </div>
+
+            <!-- College Crest Logo (Right Corner) -->
+            <img src="college-crest.png" alt="Officers Training College Crest" class="brand-logo-badge brand-logo-right" title="Officers Training College">
         </div>
     </header>
 
@@ -318,10 +317,6 @@
             <button class="tab-btn tab-admin-only" data-tab="users" style="display:none;">
                 <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                 User Management
-            </button>
-            <button class="tab-btn" data-tab="governance">
-                <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                Governance
             </button>
         </nav>
 
@@ -443,41 +438,6 @@
             </div>
         </section>
 
-        <!-- ========== GOVERNANCE TAB ========== -->
-        <section id="tab-governance" class="tab-pane">
-            <h2 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 1rem;">Access Governance & Capability Matrix</h2>
-            <div class="governance-table-wrapper">
-                <table class="gov-table">
-                    <thead><tr><th>Role</th><th>Shortname</th><th>Archetype</th><th>Context</th><th>Permissions</th><th>Restrictions</th></tr></thead>
-                    <tbody>
-                        <tr>
-                            <td><strong style="color:#ff8595;">Institute Admin</strong></td>
-                            <td><span class="role-tag inst">instituteadmin</span></td>
-                            <td>manager</td>
-                            <td>OTC Category</td>
-                            <td>Add/delete content in all 7 courses, manage users and batches.</td>
-                            <td><span style="color:#ef4444;font-weight:600;">CANNOT</span> delete courses or alter categories. IP allowlist enforced.</td>
-                        </tr>
-                        <tr>
-                            <td><strong style="color:var(--gold-light);">Course Admin</strong></td>
-                            <td><span class="role-tag course">courseadmin</span></td>
-                            <td>editingteacher</td>
-                            <td>Per-Course</td>
-                            <td>Add/update modules, quizzes, multimedia in assigned courses.</td>
-                            <td>Restricted to designated course only (e.g. MOBC).</td>
-                        </tr>
-                        <tr>
-                            <td><strong style="color:#67e8f9;">Student Officer</strong></td>
-                            <td><span class="role-tag stud">student</span></td>
-                            <td>student</td>
-                            <td>Batch Cohort</td>
-                            <td>View lessons, stream videos, attempt quizzes, track progress.</td>
-                            <td>Auto-enrolled via Batch Cohort Sync. No editing permissions.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
 
     </main>
 
@@ -675,7 +635,7 @@
     <div class="toast" id="toast"></div>
 
     <footer class="footer-bar">
-        <div>EKALAVYA LMS • OFFICERS TRAINING COLLEGE, AMC CENTRE AND COLLEGE, LUCKNOW</div>
+        <div>DRONACHARYA LMS • OFFICERS TRAINING COLLEGE, AMC CENTRE AND COLLEGE, LUCKNOW</div>
         <div class="footer-compliance">RESTRICTED • FOR OFFICIAL DEFENCE USE ONLY • AIR-GAPPED ON-PREMISE</div>
     </footer>
 

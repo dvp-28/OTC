@@ -1,5 +1,5 @@
 <?php
-// Ekalavya LMS - Full REST API with Authentication and Role-Based Access
+// Dronacharya LMS - Full REST API with Authentication and Role-Based Access
 // Connected to Moodle MySQL 8.4 Schema via MySQLi
 require_once __DIR__ . '/db.php';
 
@@ -326,7 +326,7 @@ try {
             echo json_encode([
                 'status' => 'success',
                 'data' => [
-                    'system' => 'Ekalavya LMS',
+                    'system' => 'Dronacharya LMS',
                     'institution' => 'Officers Training College, AMC Centre and College, Lucknow',
                     'stats' => [
                         'courses' => $courseCount,

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Ekalavya LMS - Officers Training College, AMC Centre and College</title>
-    <meta name="description" content="Secure login portal for Ekalavya LMS - Air-gapped defence e-learning platform">
+    <title>Login | Dronacharya LMS - Officers Training College, AMC Centre and College</title>
+    <meta name="description" content="Secure login portal for Dronacharya LMS - Air-gapped defence e-learning platform">
     <link rel="stylesheet" href="css/style.css">
     <style>
         /* Base Page Setup */
@@ -414,7 +414,7 @@
     <main class="login-main login-page">
         <div class="login-container">
             <div class="login-header">
-                <h1>EKALAVYA LMS</h1>
+                <h1>DRONACHARYA LMS</h1>
                 <div class="motto">सर्वे सन्तु निरामयाः — May all be free from illness</div>
                 <div class="subtitle">Officers Training College, AMC Centre and College, Lucknow</div>
             </div>
@@ -449,7 +449,7 @@
 
     <script>
         // Apply saved theme preference (Dark / Light)
-        const savedTheme = localStorage.getItem('ekalavya_theme') || 'dark';
+        const savedTheme = localStorage.getItem('dronacharya_theme') || localStorage.getItem('ekalavya_theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
         updateThemeLabel(savedTheme);
 
@@ -457,6 +457,7 @@
             const current = document.documentElement.getAttribute('data-theme') || 'dark';
             const next = current === 'dark' ? 'light' : 'dark';
             document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('dronacharya_theme', next);
             localStorage.setItem('ekalavya_theme', next);
             updateThemeLabel(next);
         }
