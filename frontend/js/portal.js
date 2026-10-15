@@ -9,6 +9,18 @@ let courses = [];
 let activeCourseId = null;
 let allUsers = [];
 
+// Video player state variables
+let activePlayingPptId = null;
+let activePlayingPptTitle = '';
+let isVideoPlaying = false;
+let videoCurrentTime = 0;
+let videoDuration = 1800; // 30 mins standard lecture duration
+let videoPlaybackTimer = null;
+let videoCanvasAnimId = null;
+let canvasAnimTime = 0;
+let currentLoadedPpts = [];
+let activeMediaMode = 'simulated'; // 'video' | 'audio' | 'simulated'
+
 document.addEventListener('DOMContentLoaded', () => {
     checkSession();
 });
@@ -89,6 +101,7 @@ function initPortal() {
     applyRoleUI();
     setupTabs();
     setupFilters();
+    setupVideoPlayerEvents();
     loadDashboardData();
     loadCourses();
 }
@@ -480,19 +493,36 @@ function renderCourses(filter) {
 // CLASSROOM
 // ============================================================
 async function openClassroom(courseId) {
-    activeCourseId = courseId;
+    activeCourseId = parseInt(courseId);
     switchTab('classroom');
 
-    const course = courses.find(c => parseInt(c.id) === courseId);
+    // Hide video player so classroom starts cleanly in PPT list mode
+    closeClassroomVideo();
+
+    let course = courses.find(c => parseInt(c.id) === activeCourseId);
+    if (!course && currentUser && currentUser.enrolled_courses) {
+        course = currentUser.enrolled_courses.find(c => parseInt(c.id) === activeCourseId);
+    }
     if (course) {
         document.getElementById('classroom-course-title').textContent =
             course.shortname + ' - ' + course.fullname;
         document.getElementById('sidebar-course-name').textContent = course.fullname;
+        const pptSub = document.getElementById('classroom-ppt-subhead');
+        if (pptSub) {
+            pptSub.textContent = `Tactical instructional slide decks and presentations for ${course.fullname}`;
+        }
     }
+
+    // Role-based upload button visibility for this specific course
+    const canUpload = (currentUser && currentUser.role === 'instituteadmin') ||
+        (currentUser && currentUser.role === 'courseadmin' && (currentUser.assigned_courses || []).map(Number).includes(activeCourseId));
+
+    const addPptInline = document.getElementById('classroom-add-ppt-inline-wrapper');
+    if (addPptInline) addPptInline.style.display = canUpload ? 'block' : 'none';
 
     // Load sections from DB
     try {
-        const res = await fetch('/api/sections?course_id=' + courseId);
+        const res = await fetch('/api/sections?course_id=' + activeCourseId);
         const data = await res.json();
         if (data.status === 'success') {
             renderSections(data.data);
@@ -500,10 +530,14 @@ async function openClassroom(courseId) {
     } catch (e) {
         console.warn('Failed to load sections:', e);
     }
+
+    // Load presentations for this specific course
+    loadCoursePpts(activeCourseId);
 }
 
 function renderSections(sections) {
     const list = document.getElementById('classroom-section-list');
+    if (!list) return;
     list.innerHTML = '';
 
     if (sections.length === 0) {
@@ -519,8 +553,12 @@ function renderSections(sections) {
         item.onclick = () => {
             document.querySelectorAll('.module-item').forEach(m => m.classList.remove('active'));
             item.classList.add('active');
-            document.getElementById('classroom-section-title').textContent = sec.name || 'Section ' + sec.section;
-            document.getElementById('video-play-status').textContent = 'Ready: ' + (sec.name || 'Section ' + sec.section);
+            const secTitle = sec.name || 'Section ' + sec.section;
+            document.getElementById('classroom-section-title').textContent = secTitle;
+            const playStatus = document.getElementById('video-play-status');
+            if (playStatus && !isVideoPlaying) {
+                playStatus.textContent = 'Ready: ' + secTitle;
+            }
         };
         item.innerHTML = `
             <div class="module-check">${idx < 2 ? '✓' : ''}</div>
@@ -531,6 +569,1042 @@ function renderSections(sections) {
         `;
         list.appendChild(item);
     });
+}
+
+// ============================================================
+// VIDEO THEATER & PLAYER CONTROLLER
+// ============================================================
+function playPptVideo(pptId, pptTitle) {
+    activePlayingPptId = parseInt(pptId);
+    activePlayingPptTitle = pptTitle || 'Course Presentation';
+
+    // Find the PPT object from loaded cache
+    const ppt = currentLoadedPpts.find(p => parseInt(p.id) === activePlayingPptId);
+
+    // Reveal the video player theater section
+    const theaterWrapper = document.getElementById('classroom-video-theater-wrapper');
+    if (theaterWrapper) {
+        theaterWrapper.style.display = 'block';
+        theaterWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Hide the PPT Library card below so ONLY the video is visible
+    const pptCard = document.getElementById('classroom-ppt-card');
+    if (pptCard) {
+        pptCard.style.display = 'none';
+    }
+
+    // Hide Add presentation button while video is active
+    const addPptInline = document.getElementById('classroom-add-ppt-inline-wrapper');
+    if (addPptInline) {
+        addPptInline.style.display = 'none';
+    }
+
+    // Update active video indicators
+    const titleEl = document.getElementById('theater-active-ppt-title');
+    if (titleEl) titleEl.textContent = activePlayingPptTitle;
+
+    const playStatus = document.getElementById('video-play-status');
+    if (playStatus) playStatus.textContent = 'STREAMING: ' + activePlayingPptTitle;
+
+    const subText = document.getElementById('video-sub-text');
+    const canvas = document.getElementById('tactical-video-canvas');
+    const videoEl = document.getElementById('classroom-html5-video');
+    const audioEl = document.getElementById('classroom-html5-audio');
+
+    // Reset previous playback timers and animations
+    if (videoPlaybackTimer) {
+        clearInterval(videoPlaybackTimer);
+        videoPlaybackTimer = null;
+    }
+    stopTacticalCanvasAnimation();
+
+    if (ppt && ppt.has_media && ppt.media_type === 'video') {
+        // Video mode: play real HTML5 video
+        activeMediaMode = 'video';
+        if (subText) subText.textContent = `Lecture Video • ${esc(ppt.media_filename || 'Video')} • ${esc(ppt.media_file_size_formatted || '720p HD')}`;
+        if (canvas) canvas.style.display = 'none';
+        if (audioEl) { audioEl.pause(); audioEl.style.display = 'none'; audioEl.removeAttribute('src'); }
+
+        if (videoEl) {
+            videoEl.style.display = 'block';
+            videoEl.src = ppt.media_stream_url || `/api/course-ppts/${activePlayingPptId}/stream`;
+            videoEl.currentTime = 0;
+            videoEl.load();
+        }
+        videoDuration = 1800; // default until loadedmetadata fires
+    } else if (ppt && ppt.has_media && ppt.media_type === 'audio') {
+        // Audio mode: play real HTML5 audio + tactical audio spectrum canvas
+        activeMediaMode = 'audio';
+        if (subText) subText.textContent = `Lecture Audio Briefing • ${esc(ppt.media_filename || 'Audio')} • ${esc(ppt.media_file_size_formatted || '')}`;
+        if (videoEl) { videoEl.pause(); videoEl.style.display = 'none'; videoEl.removeAttribute('src'); }
+        if (canvas) canvas.style.display = 'block';
+
+        if (audioEl) {
+            audioEl.src = ppt.media_stream_url || `/api/course-ppts/${activePlayingPptId}/stream`;
+            audioEl.currentTime = 0;
+            audioEl.load();
+        }
+        videoDuration = 1800;
+    } else {
+        // Simulated tactical briefing fallback
+        activeMediaMode = 'simulated';
+        if (subText) subText.textContent = 'Interactive Tactical Stream • 720p HD • En Subtitles';
+        if (videoEl) { videoEl.pause(); videoEl.style.display = 'none'; videoEl.removeAttribute('src'); }
+        if (audioEl) { audioEl.pause(); audioEl.style.display = 'none'; audioEl.removeAttribute('src'); }
+        if (canvas) canvas.style.display = 'block';
+        videoDuration = 1800;
+    }
+
+    // Reset video progress to beginning
+    videoCurrentTime = 0;
+    updateVideoTimeDisplay();
+
+    // Resize canvas if needed
+    if (canvas && canvas.parentElement) {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+    }
+
+    // Automatically start playback
+    startVideoPlayback();
+}
+
+function closeClassroomVideo() {
+    pauseVideoPlayback();
+    activePlayingPptId = null;
+    activePlayingPptTitle = '';
+
+    // Stop and reset HTML5 media elements
+    const videoEl = document.getElementById('classroom-html5-video');
+    if (videoEl) {
+        videoEl.pause();
+        videoEl.removeAttribute('src');
+        videoEl.load();
+        videoEl.style.display = 'none';
+    }
+    const audioEl = document.getElementById('classroom-html5-audio');
+    if (audioEl) {
+        audioEl.pause();
+        audioEl.removeAttribute('src');
+        audioEl.load();
+        audioEl.style.display = 'none';
+    }
+    const canvas = document.getElementById('tactical-video-canvas');
+    if (canvas) canvas.style.display = 'block';
+
+    activeMediaMode = 'simulated';
+
+    // Exit fullscreen if currently active
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+        if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        }
+    }
+
+    const theaterWrapper = document.getElementById('classroom-video-theater-wrapper');
+    if (theaterWrapper) {
+        theaterWrapper.style.display = 'none';
+    }
+
+    // Reveal the PPT Library card below
+    const pptCard = document.getElementById('classroom-ppt-card');
+    if (pptCard) {
+        pptCard.style.display = 'block';
+        pptCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Restore Add button if authorized
+    const canUpload = (currentUser && currentUser.role === 'instituteadmin') ||
+        (currentUser && currentUser.role === 'courseadmin' && (currentUser.assigned_courses || []).map(Number).includes(activeCourseId));
+    const addPptInline = document.getElementById('classroom-add-ppt-inline-wrapper');
+    if (addPptInline) {
+        addPptInline.style.display = canUpload ? 'block' : 'none';
+    }
+
+    // Re-render PPT rows to clear playing highlight
+    if (currentLoadedPpts && currentLoadedPpts.length > 0) {
+        renderCoursePpts(currentLoadedPpts, canUpload);
+    }
+}
+
+function togglePlayVideo() {
+    if (isVideoPlaying) {
+        pauseVideoPlayback();
+    } else {
+        startVideoPlayback();
+    }
+}
+
+function startVideoPlayback() {
+    isVideoPlaying = true;
+    const playBtn = document.getElementById('btn-play-pause');
+    const playStatus = document.getElementById('video-play-status');
+    const bigRing = document.getElementById('play-ring-trigger');
+
+    if (playBtn) {
+        playBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+        playBtn.title = 'Pause (Space)';
+    }
+    if (playStatus) {
+        playStatus.textContent = 'STREAMING: ' + (activePlayingPptTitle || 'Tactical Lecture');
+    }
+    if (bigRing) {
+        bigRing.style.opacity = '0';
+        bigRing.style.pointerEvents = 'none';
+    }
+
+    if (activeMediaMode === 'video') {
+        const videoEl = document.getElementById('classroom-html5-video');
+        if (videoEl && videoEl.paused) {
+            videoEl.play().catch(e => console.warn(e));
+        }
+    } else if (activeMediaMode === 'audio') {
+        const audioEl = document.getElementById('classroom-html5-audio');
+        if (audioEl && audioEl.paused) {
+            audioEl.play().catch(e => console.warn(e));
+        }
+        startTacticalCanvasAnimation();
+    } else {
+        if (videoPlaybackTimer) clearInterval(videoPlaybackTimer);
+        videoPlaybackTimer = setInterval(() => {
+            if (videoCurrentTime < videoDuration) {
+                videoCurrentTime += 1;
+                updateVideoTimeDisplay();
+            } else {
+                pauseVideoPlayback();
+            }
+        }, 1000);
+        startTacticalCanvasAnimation();
+    }
+}
+
+function pauseVideoPlayback() {
+    isVideoPlaying = false;
+    const playBtn = document.getElementById('btn-play-pause');
+    const playStatus = document.getElementById('video-play-status');
+    const bigRing = document.getElementById('play-ring-trigger');
+
+    if (playBtn) {
+        playBtn.innerHTML = '▶';
+        playBtn.title = 'Play (Space)';
+    }
+    if (playStatus) {
+        playStatus.textContent = 'PAUSED: ' + (activePlayingPptTitle || 'Lecture Paused');
+    }
+    if (bigRing) {
+        bigRing.style.opacity = '1';
+        bigRing.style.pointerEvents = 'auto';
+    }
+
+    if (activeMediaMode === 'video') {
+        const videoEl = document.getElementById('classroom-html5-video');
+        if (videoEl && !videoEl.paused) {
+            videoEl.pause();
+        }
+    } else if (activeMediaMode === 'audio') {
+        const audioEl = document.getElementById('classroom-html5-audio');
+        if (audioEl && !audioEl.paused) {
+            audioEl.pause();
+        }
+        stopTacticalCanvasAnimation();
+        drawTacticalCanvasFeed(false);
+    } else {
+        if (videoPlaybackTimer) {
+            clearInterval(videoPlaybackTimer);
+            videoPlaybackTimer = null;
+        }
+        stopTacticalCanvasAnimation();
+        drawTacticalCanvasFeed(false);
+    }
+}
+
+function updateVideoTimeDisplay() {
+    const timeEl = document.getElementById('video-time-display');
+    const progressEl = document.getElementById('timeline-progress');
+
+    const curM = String(Math.floor(videoCurrentTime / 60)).padStart(2, '0');
+    const curS = String(videoCurrentTime % 60).padStart(2, '0');
+    const durM = String(Math.floor(videoDuration / 60)).padStart(2, '0');
+    const durS = String(videoDuration % 60).padStart(2, '0');
+
+    if (timeEl) timeEl.textContent = `${curM}:${curS} / ${durM}:${durS}`;
+    if (progressEl) {
+        const pct = Math.min(100, Math.max(0, (videoCurrentTime / videoDuration) * 100));
+        progressEl.style.width = pct + '%';
+    }
+}
+
+// Fullscreen API implementation
+function toggleFullscreen() {
+    const player = document.getElementById('classroom-media-player');
+    if (!player) return;
+
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (player.requestFullscreen) {
+            player.requestFullscreen().catch(err => console.warn(err));
+        } else if (player.webkitRequestFullscreen) {
+            player.webkitRequestFullscreen();
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen().catch(err => console.warn(err));
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        }
+    }
+}
+
+function handleFullscreenChange() {
+    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    const enterIcon = document.getElementById('icon-fs-enter');
+    const exitIcon = document.getElementById('icon-fs-exit');
+    const fsBtn = document.getElementById('btn-fullscreen');
+    if (enterIcon && exitIcon) {
+        enterIcon.style.display = isFs ? 'none' : 'block';
+        exitIcon.style.display = isFs ? 'block' : 'none';
+    }
+    if (fsBtn) {
+        fsBtn.title = isFs ? 'Exit Full Screen (Esc / F)' : 'Full Screen (F)';
+    }
+
+    // Trigger canvas resize for fullscreen dimensions
+    const canvas = document.getElementById('tactical-video-canvas');
+    if (canvas && canvas.parentElement) {
+        setTimeout(() => {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                drawTacticalCanvasFeed(isVideoPlaying);
+            }
+        }, 100);
+    }
+}
+
+// Tactical video canvas drawing & simulated military lecture feed
+function drawTacticalCanvasFeed(isPlaying) {
+    const canvas = document.getElementById('tactical-video-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    if (w === 0 || h === 0) return;
+
+    // Dark sleek tactical backdrop
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+    bgGrad.addColorStop(0, '#04070e');
+    bgGrad.addColorStop(1, '#020306');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Subtle tactical grid
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.04)';
+    ctx.lineWidth = 1;
+    const gridSize = 36;
+    for (let x = 0; x < w; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+    }
+    for (let y = 0; y < h; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+    }
+
+    // Top Header readout
+    ctx.fillStyle = 'rgba(212, 175, 55, 0.75)';
+    ctx.font = '11px "Courier New", monospace';
+    const displayTitle = activePlayingPptTitle ? activePlayingPptTitle.toUpperCase() : 'TACTICAL BRIEFING';
+    ctx.fillText('OTC EKALAVYA SECURE FEED // ' + displayTitle.substring(0, 45), 20, 26);
+
+    ctx.fillStyle = isPlaying ? '#10b981' : '#f59e0b';
+    ctx.beginPath();
+    ctx.arc(w - 180, 22, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.fillText(isPlaying ? 'STREAM: LIVE [720p60]' : 'STREAM: PAUSED', w - 168, 26);
+
+    // Center display: Academy Crest Watermark
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+    ctx.font = 'bold 32px sans-serif';
+    ctx.fillText('AMC CENTRE & COLLEGE', w / 2, h / 2 - 25);
+    ctx.restore();
+
+    // Audio spectrum equalizer bars at bottom
+    const barCount = Math.min(48, Math.floor((w - 80) / 10));
+    const barWidth = Math.max(3, (w - 80) / barCount - 3);
+    const startX = 40;
+    const baseY = h - 35;
+
+    for (let i = 0; i < barCount; i++) {
+        let barHeight = 4;
+        if (isPlaying) {
+            const freq = Math.sin((canvasAnimTime * 3.5) + i * 0.45) * Math.cos(i * 0.25 + canvasAnimTime * 2);
+            barHeight = Math.max(5, Math.abs(freq) * 42 + Math.random() * 8);
+        } else {
+            barHeight = 4 + Math.sin(i * 0.3) * 2;
+        }
+
+        const barGrad = ctx.createLinearGradient(0, baseY - barHeight, 0, baseY);
+        barGrad.addColorStop(0, '#d4af37');
+        barGrad.addColorStop(1, 'rgba(139, 30, 47, 0.6)');
+        ctx.fillStyle = barGrad;
+        ctx.fillRect(startX + i * (barWidth + 3), baseY - barHeight, barWidth, barHeight);
+    }
+}
+
+function startTacticalCanvasAnimation() {
+    stopTacticalCanvasAnimation();
+    function loop() {
+        canvasAnimTime += 0.035;
+        drawTacticalCanvasFeed(true);
+        videoCanvasAnimId = requestAnimationFrame(loop);
+    }
+    loop();
+}
+
+function stopTacticalCanvasAnimation() {
+    if (videoCanvasAnimId) {
+        cancelAnimationFrame(videoCanvasAnimId);
+        videoCanvasAnimId = null;
+    }
+}
+
+function setupVideoPlayerEvents() {
+    const scrubber = document.getElementById('timeline-scrubber');
+    if (scrubber) {
+        scrubber.addEventListener('click', (e) => {
+            const rect = scrubber.getBoundingClientRect();
+            const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            videoCurrentTime = Math.floor(pos * videoDuration);
+            if (activeMediaMode === 'video') {
+                const videoEl = document.getElementById('classroom-html5-video');
+                if (videoEl && !isNaN(videoEl.duration)) {
+                    videoEl.currentTime = videoCurrentTime;
+                }
+            } else if (activeMediaMode === 'audio') {
+                const audioEl = document.getElementById('classroom-html5-audio');
+                if (audioEl && !isNaN(audioEl.duration)) {
+                    audioEl.currentTime = videoCurrentTime;
+                }
+            }
+            updateVideoTimeDisplay();
+        });
+    }
+
+    const playBtn = document.getElementById('btn-play-pause');
+    if (playBtn) {
+        playBtn.addEventListener('click', togglePlayVideo);
+    }
+
+    const playBig = document.getElementById('play-ring-trigger');
+    if (playBig) {
+        playBig.addEventListener('click', (e) => {
+            e.stopPropagation();
+            togglePlayVideo();
+        });
+    }
+
+    // Bind real HTML5 Video element events
+    const videoEl = document.getElementById('classroom-html5-video');
+    if (videoEl) {
+        videoEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            togglePlayVideo();
+        });
+        videoEl.addEventListener('loadedmetadata', () => {
+            if (activeMediaMode === 'video' && videoEl.duration && !isNaN(videoEl.duration)) {
+                videoDuration = Math.round(videoEl.duration) || 1800;
+                updateVideoTimeDisplay();
+            }
+        });
+        videoEl.addEventListener('timeupdate', () => {
+            if (activeMediaMode === 'video') {
+                videoCurrentTime = Math.round(videoEl.currentTime);
+                updateVideoTimeDisplay();
+            }
+        });
+        videoEl.addEventListener('ended', () => {
+            if (activeMediaMode === 'video') {
+                pauseVideoPlayback();
+            }
+        });
+    }
+
+    // Bind real HTML5 Audio element events
+    const audioEl = document.getElementById('classroom-html5-audio');
+    if (audioEl) {
+        audioEl.addEventListener('loadedmetadata', () => {
+            if (activeMediaMode === 'audio' && audioEl.duration && !isNaN(audioEl.duration)) {
+                videoDuration = Math.round(audioEl.duration) || 1800;
+                updateVideoTimeDisplay();
+            }
+        });
+        audioEl.addEventListener('timeupdate', () => {
+            if (activeMediaMode === 'audio') {
+                videoCurrentTime = Math.round(audioEl.currentTime);
+                updateVideoTimeDisplay();
+            }
+        });
+        audioEl.addEventListener('ended', () => {
+            if (activeMediaMode === 'audio') {
+                pauseVideoPlayback();
+            }
+        });
+    }
+
+    const videoScreen = document.getElementById('classroom-video-screen');
+    if (videoScreen) {
+        videoScreen.addEventListener('click', (e) => {
+            if (e.target.closest('#play-ring-trigger') || e.target.closest('#classroom-html5-video')) return;
+            togglePlayVideo();
+        });
+        videoScreen.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                togglePlayVideo();
+            } else if (e.code === 'KeyF') {
+                e.preventDefault();
+                toggleFullscreen();
+            }
+        });
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+    // Initial canvas dimensions
+    const canvas = document.getElementById('tactical-video-canvas');
+    if (canvas && canvas.parentElement) {
+        const resizeCanvas = () => {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                drawTacticalCanvasFeed(isVideoPlaying);
+            }
+        };
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+    }
+}
+
+// ============================================================
+// COURSE PRESENTATIONS / PPT LIBRARY
+// ============================================================
+async function loadCoursePpts(courseId) {
+    const container = document.getElementById('classroom-ppt-container');
+    const countBadge = document.getElementById('classroom-ppt-count-badge');
+    if (!container) return;
+
+    // Immediately clear stale data and show loading state
+    container.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2.5rem 1rem; color: var(--text-muted); font-size: 0.88rem; gap: 0.6rem;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-icon" style="color: var(--gold-light);"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+            <span>Loading course presentations...</span>
+        </div>
+    `;
+
+    try {
+        const res = await fetch('/api/course-ppts?course_id=' + courseId);
+        const data = await res.json();
+
+        // Prevent race conditions when user switches courses quickly
+        if (activeCourseId !== courseId) return;
+
+        if (data.status === 'success') {
+            if (data.course) {
+                const titleEl = document.getElementById('classroom-course-title');
+                const sideEl = document.getElementById('sidebar-course-name');
+                const pptSub = document.getElementById('classroom-ppt-subhead');
+                if (titleEl && (!titleEl.textContent || titleEl.textContent === 'Select a course')) {
+                    titleEl.textContent = `${data.course.shortname} - ${data.course.fullname}`;
+                }
+                if (sideEl && (!sideEl.textContent || sideEl.textContent.includes('Select a course'))) {
+                    sideEl.textContent = data.course.fullname;
+                }
+                if (pptSub) {
+                    pptSub.textContent = `Tactical instructional slide decks and presentations for ${data.course.fullname}`;
+                }
+            }
+
+            currentLoadedPpts = data.data || [];
+            if (countBadge) {
+                countBadge.textContent = `${currentLoadedPpts.length} Presentation${currentLoadedPpts.length === 1 ? '' : 's'}`;
+            }
+            renderCoursePpts(currentLoadedPpts, data.can_upload);
+        } else {
+            currentLoadedPpts = [];
+            if (countBadge) countBadge.textContent = '0 Presentations';
+            container.innerHTML = `
+                <div style="padding: 1.5rem; text-align: center; color: #ef4444; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; font-size: 0.88rem;">
+                    <div style="font-weight: 600; margin-bottom: 0.35rem;">Unable to load presentations</div>
+                    <div style="color: var(--text-muted); font-size: 0.82rem; margin-bottom: 0.75rem;">${esc(data.message || 'Server error')}</div>
+                    <button class="btn-card" style="padding: 0.35rem 0.85rem; font-size: 0.8rem;" onclick="loadCoursePpts(${courseId})">Retry</button>
+                </div>
+            `;
+        }
+    } catch (e) {
+        if (activeCourseId !== courseId) return;
+        currentLoadedPpts = [];
+        if (countBadge) countBadge.textContent = '0 Presentations';
+        container.innerHTML = `
+            <div style="padding: 1.5rem; text-align: center; color: #ef4444; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; font-size: 0.88rem;">
+                <div style="font-weight: 600; margin-bottom: 0.35rem;">Connection error</div>
+                <div style="color: var(--text-muted); font-size: 0.82rem; margin-bottom: 0.75rem;">Failed to connect to the LMS presentation repository.</div>
+                <button class="btn-card" style="padding: 0.35rem 0.85rem; font-size: 0.8rem;" onclick="loadCoursePpts(${courseId})">Retry</button>
+            </div>
+        `;
+    }
+}
+
+function renderCoursePpts(ppts, canUpload) {
+    currentLoadedPpts = ppts || [];
+    const container = document.getElementById('classroom-ppt-container');
+    if (!container) return;
+
+    // If a video lecture is currently active, ensure the PPT library remains hidden below
+    const pptCard = document.getElementById('classroom-ppt-card');
+    if (pptCard) {
+        pptCard.style.display = activePlayingPptId ? 'none' : 'block';
+    }
+
+    if (!ppts || ppts.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 2.75rem 1.5rem; background: rgba(255,255,255,0.015); border: 1px dashed var(--border-subtle); border-radius: 10px;">
+                <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="color: var(--text-dim); margin-bottom: 0.75rem;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.35rem;">
+                    No presentations have been added to this course yet.
+                </div>
+                <div style="font-size: 0.82rem; color: var(--text-muted); max-width: 440px; margin: 0 auto; line-height: 1.45;">
+                    ${canUpload ? 'Upload relevant PowerPoint training slide decks (.ppt / .pptx) for this course using the button below.' : 'Presentations and slide decks published by instructors will appear here for download.'}
+                </div>
+                ${canUpload ? `
+                    <div style="margin-top: 1rem;">
+                        <button class="btn-admin gold" onclick="openAddPptModal()" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; font-weight: 600;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            <span>Add</span>
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        return;
+    }
+
+    let html = `
+        <table class="ppt-table">
+            <thead>
+                <tr>
+                    <th style="min-width: 260px;">PPT Name</th>
+                    <th style="width: 140px;">Slides</th>
+                    <th style="min-width: 180px;">Upload Date & Time</th>
+                    <th style="min-width: ${canUpload ? '200px' : '110px'}; text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    ppts.forEach(p => {
+        const isPlayingThis = (activePlayingPptId === parseInt(p.id));
+        const safeTitle = escJs(p.title);
+        const slideCnt = parseInt(p.slide_count) || 1;
+
+        let mediaBadge = '';
+        if (p.has_media) {
+            if (p.media_type === 'video') {
+                mediaBadge = `<span class="media-tag video" title="Video Lecture Attached (${esc(p.media_file_size_formatted || '')})"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg> Video</span>`;
+            } else if (p.media_type === 'audio') {
+                mediaBadge = `<span class="media-tag audio" title="Audio Lecture Attached (${esc(p.media_file_size_formatted || '')})"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg> Audio</span>`;
+            }
+        }
+
+        html += `
+            <tr class="${isPlayingThis ? 'active-playing-row' : ''}">
+                <td>
+                    <div style="display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap;">
+                        <div class="ppt-title-link" onclick="playPptVideo(${p.id}, '${safeTitle}')" title="Click to watch lecture video">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="color: var(--amc-crimson); flex-shrink: 0;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            <span style="font-weight: 600; color: var(--text-main); font-size: 0.92rem;">${esc(p.title)}</span>
+                        </div>
+                        ${mediaBadge}
+                        ${isPlayingThis ? '<span class="playing-pulse-indicator"><span class="playing-dot"></span>PLAYING</span>' : ''}
+                    </div>
+                </td>
+                <td>
+                    <span class="slide-count-badge">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                        <span>${slideCnt} ${slideCnt === 1 ? 'Slide' : 'Slides'}</span>
+                    </span>
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 0.45rem; color: var(--text-muted); font-size: 0.84rem;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-dim); flex-shrink: 0;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        <span>${esc(p.timecreated_formatted || '-')}</span>
+                    </div>
+                </td>
+                <td style="text-align: right; white-space: nowrap;">
+                    <button class="btn-card" onclick="downloadCoursePpt(${p.id})" style="padding: 0.38rem 0.75rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem;" title="Download presentation file">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span>Download</span>
+                    </button>
+                    ${canUpload ? `
+                    <button class="btn-card danger" onclick="openDeletePptModal(${p.id}, '${safeTitle}')" style="padding: 0.38rem 0.7rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem; margin-left: 0.4rem; color: #f87171; border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.1);" title="Delete presentation">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        <span>Delete</span>
+                    </button>
+                    ` : ''}
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    container.innerHTML = html;
+}
+
+function openAddPptModal() {
+    if (!activeCourseId) {
+        showToast('Please select a course first', 'error');
+        return;
+    }
+
+    const course = courses.find(c => parseInt(c.id) === activeCourseId);
+    const courseNameEl = document.getElementById('modal-ppt-course-name');
+    if (courseNameEl && course) {
+        courseNameEl.textContent = `${course.shortname} — ${course.fullname}`;
+    }
+
+    document.getElementById('ppt-form-course-id').value = activeCourseId;
+    document.getElementById('ppt-form-title').value = '';
+    document.getElementById('ppt-form-file').value = '';
+    const mediaInput = document.getElementById('ppt-form-media-file');
+    if (mediaInput) mediaInput.value = '';
+
+    const slidesInp = document.getElementById('ppt-form-slides');
+    if (slidesInp) slidesInp.value = '';
+
+    const selInfo = document.getElementById('ppt-file-selected-info');
+    if (selInfo) selInfo.style.display = 'none';
+
+    const mediaSelInfo = document.getElementById('media-file-selected-info');
+    if (mediaSelInfo) mediaSelInfo.style.display = 'none';
+
+    const prog = document.getElementById('ppt-upload-progress-container');
+    if (prog) prog.style.display = 'none';
+
+    const errMsg = document.getElementById('ppt-upload-error-msg');
+    if (errMsg) errMsg.style.display = 'none';
+
+    const submitBtn = document.getElementById('btn-submit-ppt-upload');
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        document.getElementById('btn-submit-ppt-text').textContent = 'Upload Presentation';
+    }
+    const cancelBtn = document.getElementById('btn-cancel-ppt-upload');
+    if (cancelBtn) cancelBtn.disabled = false;
+
+    document.getElementById('modal-add-ppt').classList.add('visible');
+}
+
+function handlePptFileSelect(input) {
+    const selInfo = document.getElementById('ppt-file-selected-info');
+    const nameEl = document.getElementById('ppt-selected-filename');
+    const sizeEl = document.getElementById('ppt-selected-filesize');
+    const titleInput = document.getElementById('ppt-form-title');
+    const errMsg = document.getElementById('ppt-upload-error-msg');
+
+    if (errMsg) errMsg.style.display = 'none';
+
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const ext = file.name.split('.').pop().toLowerCase();
+
+        if (ext !== 'ppt' && ext !== 'pptx') {
+            showToast('Invalid file format. Only .ppt and .pptx files are allowed.', 'error');
+            input.value = '';
+            if (selInfo) selInfo.style.display = 'none';
+            return;
+        }
+
+        if (file.size > 50 * 1024 * 1024) {
+            showToast('File exceeds 50MB limit', 'error');
+            input.value = '';
+            if (selInfo) selInfo.style.display = 'none';
+            return;
+        }
+
+        const sizeFormatted = file.size > 1048576
+            ? (file.size / 1048576).toFixed(1) + ' MB'
+            : Math.round(file.size / 1024) + ' KB';
+
+        if (nameEl) nameEl.textContent = file.name;
+        if (sizeEl) sizeEl.textContent = `Size: ${sizeFormatted} • Type: ${ext.toUpperCase()}`;
+        if (selInfo) selInfo.style.display = 'block';
+
+        // Auto-fill presentation title if empty
+        if (titleInput && !titleInput.value.trim()) {
+            const rawBase = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+            titleInput.value = rawBase.replace(/[-_]+/g, ' ').trim();
+        }
+    } else {
+        if (selInfo) selInfo.style.display = 'none';
+    }
+}
+
+function handleMediaFileSelect(input) {
+    const selInfo = document.getElementById('media-file-selected-info');
+    const nameEl = document.getElementById('media-selected-filename');
+    const sizeEl = document.getElementById('media-selected-filesize');
+    const titleInput = document.getElementById('ppt-form-title');
+    const errMsg = document.getElementById('ppt-upload-error-msg');
+
+    if (errMsg) errMsg.style.display = 'none';
+
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const ext = file.name.split('.').pop().toLowerCase();
+        const allowedMedia = ['mp4', 'webm', 'mov', 'mkv', 'mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac'];
+
+        if (!allowedMedia.includes(ext)) {
+            showToast('Invalid media format. Supported: .mp4, .webm, .mov, .mkv, .mp3, .wav, .m4a', 'error');
+            input.value = '';
+            if (selInfo) selInfo.style.display = 'none';
+            return;
+        }
+
+        if (file.size > 256 * 1024 * 1024) {
+            showToast('Media file exceeds 250MB limit', 'error');
+            input.value = '';
+            if (selInfo) selInfo.style.display = 'none';
+            return;
+        }
+
+        const isVideo = ['mp4', 'webm', 'mov', 'mkv'].includes(ext);
+        const sizeFormatted = file.size > 1048576
+            ? (file.size / 1048576).toFixed(1) + ' MB'
+            : Math.round(file.size / 1024) + ' KB';
+
+        if (nameEl) nameEl.textContent = file.name;
+        if (sizeEl) sizeEl.textContent = `Size: ${sizeFormatted} • Type: ${isVideo ? 'VIDEO' : 'AUDIO'} (.${ext.toUpperCase()})`;
+        if (selInfo) selInfo.style.display = 'block';
+
+        // Auto-fill presentation title if still empty
+        if (titleInput && !titleInput.value.trim()) {
+            const rawBase = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+            titleInput.value = rawBase.replace(/[-_]+/g, ' ').trim();
+        }
+    } else {
+        if (selInfo) selInfo.style.display = 'none';
+    }
+}
+
+async function submitAddPpt() {
+    const courseId = parseInt(document.getElementById('ppt-form-course-id').value);
+    const title = document.getElementById('ppt-form-title').value.trim();
+    const fileInput = document.getElementById('ppt-form-file');
+    const mediaInput = document.getElementById('ppt-form-media-file');
+    const errMsg = document.getElementById('ppt-upload-error-msg');
+    const submitBtn = document.getElementById('btn-submit-ppt-upload');
+    const cancelBtn = document.getElementById('btn-cancel-ppt-upload');
+    const btnText = document.getElementById('btn-submit-ppt-text');
+    const progContainer = document.getElementById('ppt-upload-progress-container');
+    const progBar = document.getElementById('ppt-progress-bar');
+    const progPercent = document.getElementById('ppt-progress-percent');
+    const progLabel = document.getElementById('ppt-progress-label');
+
+    if (!courseId) {
+        showToast('Invalid course selection', 'error');
+        return;
+    }
+
+    const hasPpt = (fileInput && fileInput.files && fileInput.files[0]);
+    const hasMedia = (mediaInput && mediaInput.files && mediaInput.files[0]);
+
+    if (!hasPpt && !hasMedia) {
+        showToast('Please select a PowerPoint presentation (.ppt/.pptx) or lecture video/audio file', 'error');
+        return;
+    }
+
+    if (!title) {
+        showToast('Presentation title is required', 'error');
+        return;
+    }
+
+    // Prepare FormData
+    const formData = new FormData();
+    formData.append('course_id', courseId);
+    formData.append('title', title);
+
+    if (hasPpt) {
+        const file = fileInput.files[0];
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (ext !== 'ppt' && ext !== 'pptx') {
+            showToast('Invalid presentation format. Only .ppt and .pptx are supported.', 'error');
+            return;
+        }
+        formData.append('file', file);
+    }
+
+    if (hasMedia) {
+        const mediaFile = mediaInput.files[0];
+        const mExt = mediaFile.name.split('.').pop().toLowerCase();
+        const allowedMedia = ['mp4', 'webm', 'mov', 'mkv', 'mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac'];
+        if (!allowedMedia.includes(mExt)) {
+            showToast('Invalid media format. Supported formats: .mp4, .webm, .mov, .mkv, .mp3, .wav, .m4a', 'error');
+            return;
+        }
+        formData.append('media_file', mediaFile);
+    }
+
+    const slidesInp = document.getElementById('ppt-form-slides');
+    if (slidesInp && slidesInp.value.trim()) {
+        formData.append('slide_count', slidesInp.value.trim());
+    }
+
+    // Prevent duplicate submits & set loading state
+    if (submitBtn) submitBtn.disabled = true;
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (btnText) btnText.textContent = 'Uploading...';
+    if (progLabel) progLabel.textContent = (hasMedia ? 'Uploading media & presentation...' : 'Uploading presentation...');
+    if (errMsg) errMsg.style.display = 'none';
+    if (progContainer) progContainer.style.display = 'block';
+    if (progBar) progBar.style.width = '10%';
+    if (progPercent) progPercent.textContent = '10%';
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/course-ppts/upload', true);
+
+    xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+            const pct = Math.min(95, Math.round((e.loaded / e.total) * 100));
+            if (progBar) progBar.style.width = pct + '%';
+            if (progPercent) progPercent.textContent = pct + '%';
+        }
+    };
+
+    xhr.onload = () => {
+        let resp = null;
+        try {
+            resp = JSON.parse(xhr.responseText);
+        } catch (e) {
+            resp = null;
+        }
+
+        if (xhr.status >= 200 && xhr.status < 300 && resp && resp.status === 'success') {
+            if (progBar) progBar.style.width = '100%';
+            if (progPercent) progPercent.textContent = '100%';
+            showToast(resp.message || 'Presentation uploaded successfully', 'success');
+            closeModal('modal-add-ppt');
+            if (activeCourseId === courseId) {
+                loadCoursePpts(courseId);
+            }
+        } else {
+            const err = (resp && resp.message) ? resp.message : ('Upload failed (HTTP ' + xhr.status + ')');
+            if (errMsg) {
+                errMsg.textContent = err;
+                errMsg.style.display = 'block';
+            }
+            showToast(err, 'error');
+            if (submitBtn) submitBtn.disabled = false;
+            if (cancelBtn) cancelBtn.disabled = false;
+            if (btnText) btnText.textContent = 'Upload Presentation';
+            if (progContainer) progContainer.style.display = 'none';
+        }
+    };
+
+    xhr.onerror = () => {
+        const err = 'Network or connection error during upload';
+        if (errMsg) {
+            errMsg.textContent = err;
+            errMsg.style.display = 'block';
+        }
+        showToast(err, 'error');
+        if (submitBtn) submitBtn.disabled = false;
+        if (cancelBtn) cancelBtn.disabled = false;
+        if (btnText) btnText.textContent = 'Upload Presentation';
+        if (progContainer) progContainer.style.display = 'none';
+    };
+
+    xhr.send(formData);
+}
+
+function downloadCoursePpt(pptId) {
+    if (!pptId) return;
+    const downloadUrl = '/api/course-ppts/' + pptId + '/download';
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', '');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function openDeletePptModal(pptId, pptTitle) {
+    document.getElementById('delete-ppt-id').value = pptId;
+    const titleEl = document.getElementById('delete-ppt-title-display');
+    if (titleEl) titleEl.textContent = `"${pptTitle}"`;
+    document.getElementById('modal-delete-ppt-confirm').classList.add('visible');
+}
+
+async function submitDeletePpt() {
+    const pptId = parseInt(document.getElementById('delete-ppt-id').value);
+    if (!pptId) return;
+
+    const btn = document.getElementById('btn-confirm-delete-ppt');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = 'Deleting...';
+    }
+
+    try {
+        const res = await fetch(`/api/course-ppts/${pptId}/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: pptId })
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+            showToast(data.message || 'Presentation deleted', 'success');
+            closeModal('modal-delete-ppt-confirm');
+
+            // If the deleted PPT is currently playing in the video player, close the video player
+            if (activePlayingPptId === pptId) {
+                closeClassroomVideo();
+            }
+
+            // Refresh PPT library
+            if (activeCourseId) {
+                loadCoursePpts(activeCourseId);
+            }
+        } else {
+            showToast(data.message || 'Failed to delete presentation', 'error');
+        }
+    } catch (err) {
+        showToast('Connection error while deleting presentation', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg><span>Delete Presentation</span>';
+        }
+    }
 }
 
 // ============================================================
@@ -999,4 +2073,14 @@ function esc(str) {
     if (!str) return '';
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
         .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function escJs(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '&quot;')
+        .replace(/\n/g, ' ')
+        .replace(/\r/g, '');
 }
