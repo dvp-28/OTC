@@ -9,17 +9,20 @@
     <style>
         /* Base Page Setup */
         html {
-            min-height: 100%;
+            height: 100%;
         }
 
         body {
             margin: 0;
             padding: 0;
+            height: 100vh;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow-x: hidden;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: #ffffff;
+            box-sizing: border-box;
         }
 
         /* GUARANTEE BACKGROUND IMAGE /login-bg.jpg ON BOTH DARK AND LIGHT MODES */
@@ -44,7 +47,7 @@
             background: linear-gradient(180deg, #880015 0%, #700010 100%);
             border-bottom: 3px solid #d4af37;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-            padding: 0.65rem 2rem;
+            padding: 0.45rem 2rem;
             box-sizing: border-box;
             position: relative;
             z-index: 20;
@@ -60,8 +63,8 @@
         }
 
         .otc-banner-logo {
-            height: 68px;
-            width: 68px;
+            height: 60px;
+            width: 60px;
             object-fit: contain;
             flex-shrink: 0;
             filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
@@ -78,9 +81,9 @@
 
         .otc-banner-title {
             color: #ffffff;
-            font-size: 1.95rem;
+            font-size: 1.85rem;
             font-weight: 900;
-            letter-spacing: 2.2px;
+            letter-spacing: 2px;
             line-height: 1.15;
             text-transform: uppercase;
             text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 255, 255, 0.2);
@@ -89,13 +92,13 @@
 
         .otc-banner-subtitle {
             color: #ffffff;
-            font-size: 1.55rem;
+            font-size: 1.45rem;
             font-weight: 800;
-            letter-spacing: 2px;
+            letter-spacing: 1.8px;
             line-height: 1.2;
             text-transform: uppercase;
             text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
-            margin: 0.2rem 0 0 0;
+            margin: 0.15rem 0 0 0;
         }
 
         /* Banner Theme Toggle Button */
@@ -177,50 +180,64 @@
             }
         }
 
-        /* Main Content & Login Card */
+        /* Main Content & Login Card Layout */
         .login-main {
             flex: 1;
+            min-height: 0;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 2.5rem 1.5rem;
+            justify-content: space-between;
+            padding: 0.5rem 2rem 0.45rem 2rem;
             box-sizing: border-box;
             position: relative;
             z-index: 10;
-        }
-
-        .login-container {
             width: 100%;
-            max-width: 460px;
         }
 
         .login-header {
             text-align: center;
-            margin-bottom: 1.75rem;
+            margin: 0.1rem auto 0.35rem auto;
+            width: 100%;
+            max-width: 900px;
+            padding: 0 1rem;
+            box-sizing: border-box;
+            flex-shrink: 0;
         }
 
         .login-header h1 {
-            font-size: 1.85rem;
-            font-weight: 800;
-            margin: 0 0 0.35rem 0;
-            letter-spacing: 1.5px;
+            font-size: 2.2rem;
+            font-weight: 900;
+            margin: 0 0 0.2rem 0;
+            letter-spacing: 2px;
             color: #ffffff;
-            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+            text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95), 0 0 25px rgba(0, 0, 0, 0.7);
         }
 
         .login-header .motto {
             color: #f3d779;
             font-style: italic;
-            font-size: 0.92rem;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+            font-size: 0.98rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
         }
 
-        .login-header .subtitle {
-            color: #cbd5e1;
-            font-size: 0.84rem;
-            margin-top: 0.35rem;
-            font-weight: 500;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+        .login-content-wrapper {
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            padding: 0 1.5rem;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 440px;
+            margin: 0 auto;
         }
 
         .login-card {
@@ -229,7 +246,7 @@
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(212, 175, 55, 0.28);
             border-radius: 18px;
-            padding: 2.25rem 2rem;
+            padding: 1.65rem 1.75rem;
             box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.1);
             box-sizing: border-box;
         }
@@ -244,17 +261,17 @@
 
         [data-theme="light"] .login-header h1 {
             color: #0f172a;
-            text-shadow: 0 1px 4px rgba(255, 255, 255, 0.8);
+            text-shadow: 0 2px 8px rgba(255, 255, 255, 0.9), 0 0 16px rgba(255, 255, 255, 0.6);
         }
 
         [data-theme="light"] .login-header .motto {
             color: #8b6508;
-            text-shadow: none;
+            text-shadow: 0 1px 4px rgba(255, 255, 255, 0.8);
         }
 
         [data-theme="light"] .login-header .subtitle {
-            color: #334155;
-            text-shadow: none;
+            color: #1e293b;
+            text-shadow: 0 1px 4px rgba(255, 255, 255, 0.8);
         }
 
         [data-theme="light"] .form-label {
@@ -273,7 +290,7 @@
         }
 
         .form-group {
-            margin-bottom: 1.4rem;
+            margin-bottom: 1.15rem;
         }
 
         .form-label {
@@ -355,16 +372,22 @@
 
         .security-notice {
             text-align: center;
-            margin-top: 1.5rem;
+            margin: 0.25rem auto 0.45rem auto;
             font-size: 0.74rem;
-            color: #cbd5e1;
-            line-height: 1.55;
-            background: rgba(13, 18, 30, 0.75);
-            backdrop-filter: blur(10px);
-            padding: 0.75rem 1rem;
+            color: #e2e8f0;
+            line-height: 1.45;
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 0.4rem 1.75rem;
             border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.65);
+            max-width: 680px;
+            width: auto;
+            box-sizing: border-box;
+            z-index: 10;
+            flex-shrink: 0;
         }
 
         [data-theme="light"] .security-notice {
@@ -382,6 +405,31 @@
         [data-theme="light"] .security-notice strong {
             color: #880015;
             font-weight: 700;
+        }
+
+        @media (max-width: 900px) {
+            .login-content-wrapper {
+                justify-content: center;
+                padding: 0 1rem;
+            }
+            .login-header {
+                margin: 0.25rem auto 1rem auto;
+            }
+            .login-header h1 {
+                font-size: 1.65rem;
+                letter-spacing: 1.2px;
+            }
+            .login-header .motto {
+                font-size: 0.9rem;
+            }
+            .login-main {
+                padding: 1rem 1rem 1.25rem 1rem;
+            }
+            .security-notice {
+                font-size: 0.7rem;
+                padding: 0.5rem 0.75rem;
+                margin-top: 0.75rem;
+            }
         }
 
         @keyframes fadeIn {
@@ -412,38 +460,42 @@
 
     <!-- Main Login Area with .login-page class -->
     <main class="login-main login-page">
-        <div class="login-container">
-            <div class="login-header">
-                <h1>DRONACHARYA LMS</h1>
-                <div class="motto">सर्वे सन्तु निरामयाः — May all be free from illness</div>
-                <div class="subtitle">Officers Training College, AMC Centre and College, Lucknow</div>
+        <!-- Top Center Title and Motto -->
+        <div class="login-header">
+            <h1>DRONACHARYA LMS</h1>
+            <div class="motto">सर्वे सन्तु निरामयाः — May all be free from illness</div>
+        </div>
+
+        <!-- Main Content Area with Login Centered -->
+        <div class="login-content-wrapper">
+            <div class="login-container">
+                <div class="login-card">
+                    <div class="login-error" id="login-error"></div>
+
+                    <form id="login-form" autocomplete="off">
+                        <div class="form-group">
+                            <label class="form-label" for="username">Service ID / Username</label>
+                            <input type="text" class="form-input" id="username" name="username" placeholder="e.g. student.officer" required autofocus>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="password">Password</label>
+                            <input type="password" class="form-input" id="password" name="password" placeholder="Enter your password" required>
+                        </div>
+
+                        <button type="submit" class="btn-login" id="btn-login">
+                            Authenticate &amp; Enter Portal
+                        </button>
+                    </form>
+                </div>
             </div>
+        </div>
 
-            <div class="login-card">
-                <div class="login-error" id="login-error"></div>
-
-                <form id="login-form" autocomplete="off">
-                    <div class="form-group">
-                        <label class="form-label" for="username">Service ID / Username</label>
-                        <input type="text" class="form-input" id="username" name="username" placeholder="e.g. student.officer" required autofocus>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="password">Password</label>
-                        <input type="password" class="form-input" id="password" name="password" placeholder="Enter your password" required>
-                    </div>
-
-                    <button type="submit" class="btn-login" id="btn-login">
-                        Authenticate &amp; Enter Portal
-                    </button>
-                </form>
-            </div>
-
-            <div class="security-notice">
-                <strong>RESTRICTED — FOR OFFICIAL DEFENCE USE ONLY</strong><br>
-                Air-gapped on-premise platform • CERT-In &amp; ISO 27001 compliant<br>
-                Unauthorized access is a punishable offence under IT Act, 2000
-            </div>
+        <!-- Bottom of the page: Restricted Defence Section -->
+        <div class="security-notice">
+            <strong>RESTRICTED — FOR OFFICIAL DEFENCE USE ONLY</strong><br>
+            Air-gapped on-premise platform • CERT-In &amp; ISO 27001 compliant<br>
+            Unauthorized access is a punishable offence under IT Act, 2000
         </div>
     </main>
 

@@ -313,6 +313,1249 @@
         .toast.visible { transform: translateY(0); opacity: 1; }
         .toast.success { background: #10b981; }
         .toast.error { background: #ef4444; }
+
+        /* ============================================================
+           OTC HISTORY COMPONENT (Heritage & Institutional Overview)
+           ============================================================ */
+        .otc-history-card {
+            background: linear-gradient(135deg, rgba(20, 28, 44, 0.95) 0%, rgba(13, 19, 32, 0.98) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            border-left: 4px solid var(--amc-crimson, #880015);
+            border-radius: 14px;
+            padding: 1.5rem 1.85rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.25s ease;
+        }
+
+        [data-theme="light"] .otc-history-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid rgba(212, 175, 55, 0.45);
+            border-left: 4px solid #880015;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .otc-history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.15rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+            padding-bottom: 0.85rem;
+        }
+
+        [data-theme="light"] .otc-history-header {
+            border-bottom-color: rgba(0, 0, 0, 0.08);
+        }
+
+        .otc-history-title-group {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+        }
+
+        .otc-history-crest {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+            flex-shrink: 0;
+        }
+
+        .otc-history-heading {
+            margin: 0;
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            color: var(--text-main, #ffffff);
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        [data-theme="light"] .otc-history-heading {
+            color: #0f172a;
+        }
+
+        .otc-history-heading .badge-heritage {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            padding: 0.2rem 0.65rem;
+            background: rgba(212, 175, 55, 0.15);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            color: var(--gold-light, #f3d779);
+            border-radius: 999px;
+        }
+
+        [data-theme="light"] .otc-history-heading .badge-heritage {
+            background: rgba(136, 0, 21, 0.08);
+            border-color: rgba(136, 0, 21, 0.25);
+            color: #880015;
+        }
+
+        .otc-history-subtitle {
+            margin: 0.2rem 0 0 0;
+            font-size: 0.84rem;
+            color: var(--text-muted, #94a3b8);
+            font-weight: 500;
+        }
+
+        [data-theme="light"] .otc-history-subtitle {
+            color: #475569;
+        }
+
+        .otc-history-badges {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .otc-pill-tag {
+            font-size: 0.74rem;
+            font-weight: 600;
+            padding: 0.25rem 0.65rem;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main, #ffffff);
+        }
+
+        [data-theme="light"] .otc-pill-tag {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #334155;
+        }
+
+        .otc-history-body {
+            font-size: 0.94rem;
+            line-height: 1.8;
+            color: #e2e8f0;
+            text-align: justify;
+            margin: 0;
+        }
+
+        [data-theme="light"] .otc-history-body {
+            color: #1e293b;
+        }
+
+        .otc-history-timeline {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+            padding-top: 1rem;
+            border-top: 1px dashed rgba(212, 175, 55, 0.22);
+        }
+
+        [data-theme="light"] .otc-history-timeline {
+            border-top-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .timeline-step-badge {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 8px;
+            padding: 0.6rem 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            transition: all 0.2s ease;
+        }
+
+        .timeline-step-badge:hover {
+            border-color: var(--gold-primary, #d4af37);
+            transform: translateY(-2px);
+        }
+
+        [data-theme="light"] .timeline-step-badge {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        [data-theme="light"] .timeline-step-badge:hover {
+            border-color: #880015;
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .timeline-step-date {
+            font-size: 0.76rem;
+            font-weight: 800;
+            color: var(--gold-light, #f3d779);
+            letter-spacing: 0.5px;
+        }
+
+        [data-theme="light"] .timeline-step-date {
+            color: #880015;
+        }
+
+        .timeline-step-desc {
+            font-size: 0.78rem;
+            color: var(--text-muted, #94a3b8);
+            line-height: 1.35;
+        }
+
+        [data-theme="light"] .timeline-step-desc {
+            color: #475569;
+        }
+
+        /* ============================================================
+           OTC VISION & MISSION COMPONENT (Strategic Mandate & Thrust)
+           ============================================================ */
+        .otc-vision-card {
+            background: linear-gradient(135deg, rgba(20, 28, 44, 0.95) 0%, rgba(13, 19, 32, 0.98) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            border-left: 4px solid var(--amc-crimson, #880015);
+            border-radius: 14px;
+            padding: 1.5rem 1.85rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.25s ease;
+        }
+
+        [data-theme="light"] .otc-vision-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid rgba(212, 175, 55, 0.45);
+            border-left: 4px solid #880015;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .otc-vision-grid-duo {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+            margin-top: 1.15rem;
+        }
+
+        @media (min-width: 900px) {
+            .otc-vision-grid-duo {
+                grid-template-columns: 1fr 1.65fr;
+            }
+        }
+
+        .otc-directive-card {
+            background: rgba(0, 0, 0, 0.28);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            border-radius: 10px;
+            padding: 1.25rem 1.45rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .otc-directive-card:hover {
+            border-color: var(--gold-primary, #d4af37);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+        }
+
+        [data-theme="light"] .otc-directive-card {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        [data-theme="light"] .otc-directive-card:hover {
+            border-color: #880015;
+            background: #ffffff;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.07);
+        }
+
+        .directive-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            font-size: 0.82rem;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: var(--gold-light, #f3d779);
+        }
+
+        [data-theme="light"] .directive-label {
+            color: #880015;
+        }
+
+        .directive-text {
+            font-size: 0.95rem;
+            line-height: 1.75;
+            color: #e2e8f0;
+            margin: 0;
+            font-weight: 500;
+            text-align: justify;
+        }
+
+        [data-theme="light"] .directive-text {
+            color: #1e293b;
+        }
+
+        .thrust-section-header {
+            margin-top: 1.75rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.65rem;
+            border-bottom: 1px dashed rgba(212, 175, 55, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        [data-theme="light"] .thrust-section-header {
+            border-bottom-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .thrust-heading {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--gold-light, #f3d779);
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0;
+        }
+
+        [data-theme="light"] .thrust-heading {
+            color: #880015;
+        }
+
+        .thrust-pill-count {
+            color: var(--gold-light, #f3d779);
+        }
+
+        [data-theme="light"] .thrust-pill-count {
+            color: #880015;
+            font-weight: 700;
+        }
+
+        .thrust-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 0.85rem;
+        }
+
+        .thrust-item-card {
+            background: rgba(0, 0, 0, 0.22);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 0.85rem 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .thrust-item-card:hover {
+            border-color: var(--gold-primary, #d4af37);
+            background: rgba(212, 175, 55, 0.05);
+            transform: translateY(-2px);
+        }
+
+        [data-theme="light"] .thrust-item-card {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        [data-theme="light"] .thrust-item-card:hover {
+            border-color: #880015;
+            background: #fff8f8;
+            box-shadow: 0 4px 12px rgba(136, 0, 21, 0.08);
+        }
+
+        .thrust-num-badge {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: var(--gold-primary, #d4af37);
+            background: rgba(212, 175, 55, 0.12);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 6px;
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 0.1rem;
+        }
+
+        [data-theme="light"] .thrust-num-badge {
+            color: #880015;
+            background: rgba(136, 0, 21, 0.08);
+            border-color: rgba(136, 0, 21, 0.25);
+        }
+
+        .thrust-item-text {
+            font-size: 0.88rem;
+            line-height: 1.5;
+            color: var(--text-main, #e2e8f0);
+            font-weight: 500;
+        }
+
+        [data-theme="light"] .thrust-item-text {
+            color: #334155;
+        }
+
+        /* ============================================================
+           OTC HOME PAGE & PORTAL ECOSYSTEM COMPONENTS
+           ============================================================ */
+        .otc-home-hero {
+            background: linear-gradient(135deg, rgba(20, 28, 44, 0.98) 0%, rgba(13, 19, 32, 0.99) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.38);
+            border-left: 5px solid var(--amc-crimson, #880015);
+            border-radius: 14px;
+            padding: 1.85rem 2.2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        [data-theme="light"] .otc-home-hero {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid rgba(212, 175, 55, 0.45);
+            border-left: 5px solid #880015;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .home-hero-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.22);
+            padding-bottom: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        [data-theme="light"] .home-hero-header {
+            border-bottom-color: rgba(0, 0, 0, 0.08);
+        }
+
+        .home-hero-identity {
+            display: flex;
+            align-items: center;
+            gap: 1.15rem;
+        }
+
+        .home-hero-crest {
+            width: 58px;
+            height: 58px;
+            object-fit: contain;
+            filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.5));
+            flex-shrink: 0;
+        }
+
+        .home-hero-title {
+            margin: 0;
+            font-size: 1.55rem;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            color: var(--text-main, #ffffff);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        [data-theme="light"] .home-hero-title {
+            color: #0f172a;
+        }
+
+        .home-hero-subtitle {
+            margin: 0.35rem 0 0 0;
+            font-size: 0.88rem;
+            color: var(--text-muted, #94a3b8);
+            font-weight: 500;
+        }
+
+        [data-theme="light"] .home-hero-subtitle {
+            color: #475569;
+        }
+
+        .home-hero-badges {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .home-hero-desc {
+            font-size: 0.96rem;
+            line-height: 1.75;
+            color: #e2e8f0;
+            margin: 0;
+            text-align: justify;
+        }
+
+        [data-theme="light"] .home-hero-desc {
+            color: #1e293b;
+        }
+
+        .home-actions-row {
+            display: flex;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn-home-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.65rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.86rem;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.4px;
+        }
+
+        .btn-home-cta.primary {
+            background: linear-gradient(135deg, var(--gold-primary, #d4af37) 0%, #b89628 100%);
+            color: #0a0e17;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25);
+        }
+
+        .btn-home-cta.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(212, 175, 55, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .btn-home-cta.secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main, #ffffff);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+        }
+
+        [data-theme="light"] .btn-home-cta.secondary {
+            background: #ffffff;
+            color: #1e293b;
+            border-color: #cbd5e1;
+        }
+
+        .btn-home-cta.secondary:hover {
+            background: rgba(212, 175, 55, 0.12);
+            border-color: var(--gold-primary, #d4af37);
+            transform: translateY(-2px);
+        }
+
+        [data-theme="light"] .btn-home-cta.secondary:hover {
+            border-color: #880015;
+            color: #880015;
+            background: #fff8f8;
+        }
+
+        .home-features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.15rem;
+            margin-bottom: 2rem;
+        }
+
+        .home-feature-card {
+            background: linear-gradient(135deg, rgba(20, 28, 44, 0.85) 0%, rgba(13, 19, 32, 0.9) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.22);
+            border-top: 3px solid var(--gold-primary, #d4af37);
+            border-radius: 10px;
+            padding: 1.25rem 1.35rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            transition: all 0.2s ease;
+        }
+
+        .home-feature-card:hover {
+            border-color: var(--gold-primary, #d4af37);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+        }
+
+        [data-theme="light"] .home-feature-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-top: 3px solid #880015;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="light"] .home-feature-card:hover {
+            border-color: #880015;
+            box-shadow: 0 8px 20px rgba(136, 0, 21, 0.08);
+        }
+
+        .feature-icon-wrapper {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            background: rgba(212, 175, 55, 0.12);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gold-light, #f3d779);
+            margin-bottom: 0.2rem;
+        }
+
+        [data-theme="light"] .feature-icon-wrapper {
+            background: rgba(136, 0, 21, 0.07);
+            border-color: rgba(136, 0, 21, 0.2);
+            color: #880015;
+        }
+
+        .feature-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--text-main, #ffffff);
+            letter-spacing: 0.4px;
+            margin: 0;
+        }
+
+        [data-theme="light"] .feature-title {
+            color: #0f172a;
+        }
+
+        .feature-desc {
+            font-size: 0.83rem;
+            line-height: 1.55;
+            color: var(--text-muted, #94a3b8);
+            margin: 0;
+        }
+
+        [data-theme="light"] .feature-desc {
+            color: #475569;
+        }
+
+        .home-section-divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 2.25rem 0 1.25rem 0;
+        }
+
+        .home-section-divider-line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.4), transparent);
+        }
+
+        [data-theme="light"] .home-section-divider-line {
+            background: linear-gradient(90deg, rgba(136, 0, 21, 0.3), transparent);
+        }
+
+        .home-section-divider-title {
+            font-size: 0.84rem;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: var(--gold-light, #f3d779);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        [data-theme="light"] .home-section-divider-title {
+            color: #880015;
+        }
+
+        /* ============================================================ */
+        /* FORMER COMMANDERS AUTO-SLIDER SECTION                        */
+        /* ============================================================ */
+        .otc-commanders-section {
+            background: linear-gradient(135deg, rgba(16, 23, 38, 0.95) 0%, rgba(10, 15, 26, 0.98) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            border-top: 4px solid var(--gold-primary, #d4af37);
+            border-radius: 12px;
+            padding: 1.75rem 1.85rem;
+            margin-bottom: 2.25rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            position: relative;
+        }
+
+        [data-theme="light"] .otc-commanders-section {
+            background: linear-gradient(135deg, #ffffff 0%, #fbfbfc 100%);
+            border: 1px solid rgba(212, 175, 55, 0.45);
+            border-top: 4px solid #880015;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .commanders-section-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1.15rem;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.22);
+        }
+
+        [data-theme="light"] .commanders-section-header {
+            border-bottom-color: rgba(0, 0, 0, 0.08);
+        }
+
+        .commanders-title-group {
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .commanders-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 1.3px;
+            text-transform: uppercase;
+            color: var(--gold-light, #f3d779);
+            margin-bottom: 0.35rem;
+        }
+
+        [data-theme="light"] .commanders-eyebrow {
+            color: #880015;
+        }
+
+        .eyebrow-pip {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--gold-primary, #d4af37);
+            box-shadow: 0 0 8px rgba(212, 175, 55, 0.8);
+            display: inline-block;
+        }
+
+        [data-theme="light"] .eyebrow-pip {
+            background: #880015;
+            box-shadow: 0 0 8px rgba(136, 0, 21, 0.4);
+        }
+
+        .commanders-heading {
+            margin: 0;
+            font-size: 1.42rem;
+            font-weight: 800;
+            color: var(--text-main, #ffffff);
+            letter-spacing: 0.5px;
+        }
+
+        [data-theme="light"] .commanders-heading {
+            color: #0f172a;
+        }
+
+        .commanders-subtitle {
+            margin: 0.35rem 0 0 0;
+            font-size: 0.88rem;
+            color: var(--text-muted, #94a3b8);
+            line-height: 1.5;
+        }
+
+        [data-theme="light"] .commanders-subtitle {
+            color: #475569;
+        }
+
+        .commanders-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .commanders-counter-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.38rem 0.85rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            background: rgba(212, 175, 55, 0.12);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            color: var(--gold-light, #f3d779);
+            letter-spacing: 0.4px;
+        }
+
+        [data-theme="light"] .commanders-counter-pill {
+            background: rgba(136, 0, 21, 0.08);
+            border-color: rgba(136, 0, 21, 0.25);
+            color: #880015;
+        }
+
+        .btn-slider-ctrl {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.42rem 0.85rem;
+            border-radius: 7px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            color: #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-slider-ctrl:hover {
+            background: rgba(212, 175, 55, 0.18);
+            border-color: var(--gold-primary, #d4af37);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        [data-theme="light"] .btn-slider-ctrl {
+            background: #ffffff;
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+
+        [data-theme="light"] .btn-slider-ctrl:hover {
+            border-color: #880015;
+            color: #880015;
+            background: #fff5f5;
+        }
+
+        .slider-ctrl-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slider-nav-arrows {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .btn-slider-arrow {
+            width: 34px;
+            height: 34px;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            color: var(--gold-light, #f3d779);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-slider-arrow:hover {
+            background: var(--gold-primary, #d4af37);
+            color: #0b1120;
+            border-color: var(--gold-primary, #d4af37);
+            transform: translateY(-1px);
+        }
+
+        [data-theme="light"] .btn-slider-arrow {
+            background: #ffffff;
+            border-color: #cbd5e1;
+            color: #880015;
+        }
+
+        [data-theme="light"] .btn-slider-arrow:hover {
+            background: #880015;
+            color: #ffffff;
+            border-color: #880015;
+        }
+
+        /* Slider stage & track */
+        .commanders-slider-stage {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            border-radius: 10px;
+            background: rgba(5, 9, 17, 0.65);
+            border: 1px solid rgba(212, 175, 55, 0.18);
+            padding: 1.15rem 0.5rem;
+        }
+
+        [data-theme="light"] .commanders-slider-stage {
+            background: #f1f5f9;
+            border-color: rgba(0, 0, 0, 0.06);
+        }
+
+        .slider-edge-gradient {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 48px;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        .slider-edge-gradient.left {
+            left: 0;
+            background: linear-gradient(to right, rgba(5, 9, 17, 0.95), transparent);
+        }
+
+        .slider-edge-gradient.right {
+            right: 0;
+            background: linear-gradient(to left, rgba(5, 9, 17, 0.95), transparent);
+        }
+
+        [data-theme="light"] .slider-edge-gradient.left {
+            background: linear-gradient(to right, #f1f5f9, transparent);
+        }
+
+        [data-theme="light"] .slider-edge-gradient.right {
+            background: linear-gradient(to left, #f1f5f9, transparent);
+        }
+
+        .commanders-slider-viewport {
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .commanders-slider-viewport::-webkit-scrollbar {
+            display: none;
+        }
+
+        .commanders-slider-viewport:active {
+            cursor: grabbing;
+        }
+
+        .commanders-slider-track {
+            display: flex;
+            gap: 1.15rem;
+            width: max-content;
+            padding: 0.35rem 0.85rem;
+            align-items: stretch;
+        }
+
+        /* Portrait Card */
+        .commander-card {
+            flex: 0 0 175px;
+            width: 175px;
+            height: 250px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #ffffff;
+            border: 1.5px solid rgba(212, 175, 55, 0.4);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .commander-card:hover {
+            transform: translateY(-6px) scale(1.02);
+            border-color: #f3d779;
+            box-shadow: 0 14px 28px rgba(0, 0, 0, 0.55), 0 0 15px rgba(212, 175, 55, 0.4);
+            z-index: 2;
+        }
+
+        [data-theme="light"] .commander-card {
+            border-color: rgba(136, 0, 21, 0.35);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="light"] .commander-card:hover {
+            border-color: #880015;
+            box-shadow: 0 14px 28px rgba(136, 0, 21, 0.18);
+        }
+
+        .commander-img-frame {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            overflow: hidden;
+        }
+
+        .commander-portrait {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            background: #ffffff;
+            transition: transform 0.3s ease;
+        }
+
+        .commander-card:hover .commander-portrait {
+            transform: scale(1.03);
+        }
+
+        .commander-card-badge {
+            position: absolute;
+            top: 7px;
+            right: 7px;
+            background: rgba(11, 17, 32, 0.88);
+            color: var(--gold-light, #f3d779);
+            border: 1px solid rgba(212, 175, 55, 0.5);
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            backdrop-filter: blur(4px);
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="light"] .commander-card-badge {
+            background: rgba(136, 0, 21, 0.9);
+            color: #ffffff;
+            border-color: #880015;
+        }
+
+        .commanders-slider-footer {
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .slider-tip {
+            font-size: 0.8rem;
+            color: var(--text-muted, #94a3b8);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        [data-theme="light"] .slider-tip {
+            color: #64748b;
+        }
+
+        /* Lightbox Modal */
+        .commander-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .commander-modal-dialog {
+            background: #0f172a;
+            border: 1.5px solid var(--gold-primary, #d4af37);
+            border-radius: 14px;
+            width: 100%;
+            max-width: 620px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 30px rgba(212, 175, 55, 0.25);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        [data-theme="light"] .commander-modal-dialog {
+            background: #ffffff;
+            border: 1.5px solid #880015;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+        }
+
+        .commander-modal-btn-close {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            border-radius: 50%;
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.2s ease;
+        }
+
+        .commander-modal-btn-close:hover {
+            background: #dc2626;
+            border-color: #dc2626;
+            transform: scale(1.08);
+        }
+
+        [data-theme="light"] .commander-modal-btn-close {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #0f172a;
+        }
+
+        [data-theme="light"] .commander-modal-btn-close:hover {
+            background: #dc2626;
+            color: #ffffff;
+            border-color: #dc2626;
+        }
+
+        .commander-modal-header {
+            padding: 1.15rem 3.5rem 1.15rem 1.4rem;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            position: relative;
+        }
+
+        [data-theme="light"] .commander-modal-header {
+            border-bottom-color: rgba(0, 0, 0, 0.08);
+        }
+
+        .commander-modal-title {
+            display: flex;
+            align-items: center;
+            gap: 0.95rem;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .commander-modal-crest {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            flex-shrink: 0;
+            filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+        }
+
+        .commander-modal-text-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .commander-modal-title h3,
+        .commander-modal-heading {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--text-main, #ffffff);
+            letter-spacing: 0.4px;
+            white-space: nowrap;
+            line-height: 1.25;
+        }
+
+        [data-theme="light"] .commander-modal-title h3,
+        [data-theme="light"] .commander-modal-heading {
+            color: #0f172a;
+        }
+
+        .commander-modal-title p,
+        .commander-modal-subtitle {
+            margin: 0.25rem 0 0 0;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--gold-light, #f3d779);
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            line-height: 1.3;
+        }
+
+        [data-theme="light"] .commander-modal-title p,
+        [data-theme="light"] .commander-modal-subtitle {
+            color: #880015;
+            font-weight: 600;
+        }
+
+        .commander-modal-pill,
+        .commander-card-badge {
+            display: none !important;
+        }
+
+        .commander-modal-body {
+            position: relative;
+            padding: 1.25rem 1.4rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(5, 9, 17, 0.7);
+        }
+
+        [data-theme="light"] .commander-modal-body {
+            background: #f8fafc;
+        }
+
+        .commander-modal-frame {
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            border: 1.5px solid rgba(212, 175, 55, 0.4);
+            max-height: 70vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .commander-modal-photo {
+            max-height: 65vh;
+            max-width: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .btn-lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            color: var(--gold-light, #f3d779);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 5;
+            transition: all 0.2s ease;
+        }
+
+        .btn-lightbox-nav:hover {
+            background: var(--gold-primary, #d4af37);
+            color: #0b1120;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .btn-lightbox-nav.left { left: 1rem; }
+        .btn-lightbox-nav.right { right: 1rem; }
+
+        [data-theme="light"] .btn-lightbox-nav {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: #cbd5e1;
+            color: #880015;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        [data-theme="light"] .btn-lightbox-nav:hover {
+            background: #880015;
+            color: #ffffff;
+            border-color: #880015;
+        }
     </style>
 </head>
 <body>
@@ -395,6 +1638,10 @@
                     <div class="menu-divider"></div>
 
                     <div class="menu-section">
+                        <button class="menu-item" onclick="switchTab('home'); closeSettingsMenu();">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                            <span>Home Portal</span>
+                        </button>
                         <button class="menu-item" onclick="switchTab('dashboard'); closeSettingsMenu();">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                             <span>Dashboard Overview</span>
@@ -445,7 +1692,11 @@
 
         <!-- Tab Navigation -->
         <nav class="tabs-navigation">
-            <button class="tab-btn active" data-tab="dashboard">
+            <button class="tab-btn active" data-tab="home">
+                <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                Home
+            </button>
+            <button class="tab-btn" data-tab="dashboard">
                 <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 Dashboard
             </button>
@@ -463,8 +1714,244 @@
             </button>
         </nav>
 
+        <!-- ========== HOME TAB ========== -->
+        <section id="tab-home" class="tab-pane active">
+            <!-- Home Hero Banner: Website Overview -->
+            <div class="otc-home-hero">
+                <div class="home-hero-header">
+                    <div class="home-hero-identity">
+                        <img src="college-crest.png" alt="Officers Training College Crest" class="home-hero-crest">
+                        <div>
+                            <h1 class="home-hero-title">
+                                Dronacharya Learning Management System
+                                <span class="badge-heritage">Apex Tri-Service Institution</span>
+                            </h1>
+                            <p class="home-hero-subtitle">Officers Training College, AMC Centre and College, Lucknow • सर्वे सन्तु निरामयाः</p>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="home-hero-desc">
+                    Welcome to <strong>Dronacharya LMS</strong>, the official learning management portal of <strong>Officers Training College (OTC)</strong>, AMC Centre and College, Lucknow. As the premier Category 'A' military medical training institution of the Indian Armed Forces, OTC imparts military, tactical, administrative, and clinical leadership training to Medical, Dental, Military Nursing Service (MNS), and AMC Non-Technical Officers across the Army, Navy, and Air Force. This digital portal provides unified access to academic curricula, digital lecture slides, interactive classrooms, tactical medical doctrine manuals, and training administration.
+                </p>
+            </div>
+
+            <!-- Basic Information About The Website: Core Capabilities -->
+            <div class="home-features-grid">
+                <div class="home-feature-card">
+                    <div class="feature-icon-wrapper">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                    </div>
+                    <h3 class="feature-title">Tri-Service Curriculum</h3>
+                    <p class="feature-desc">Comprehensive courses formulated for Medical, Dental, Nursing, and Non-Technical Officers across foundation and senior operational cadres.</p>
+                </div>
+
+                <div class="home-feature-card">
+                    <div class="feature-icon-wrapper">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                    </div>
+                    <h3 class="feature-title">Synchronized Digital Classroom</h3>
+                    <p class="feature-desc">Interactive slide presentations, lecture videos, doctrinal case studies, and reference handbooks with responsive presentation controls.</p>
+                </div>
+
+                <div class="home-feature-card">
+                    <div class="feature-icon-wrapper">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    </div>
+                    <h3 class="feature-title">Tactical Medical Doctrine</h3>
+                    <p class="feature-desc">Official medical tactical doctrine formulation, battlefield casualty evacuation procedures, triage standards, and combat medical support.</p>
+                </div>
+
+                <div class="home-feature-card">
+                    <div class="feature-icon-wrapper">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    </div>
+                    <h3 class="feature-title">Academic Governance</h3>
+                    <p class="feature-desc">Centralized oversight for Directing Staff, Course Administrators, and Student Officers with role-based governance and progress monitoring.</p>
+                </div>
+            </div>
+
+            <!-- Home Section Divider: History & Heritage -->
+            <div class="home-section-divider">
+                <span class="home-section-divider-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                    Institutional Heritage
+                </span>
+                <div class="home-section-divider-line"></div>
+            </div>
+
+            <!-- OTC History Card (Included on Home Page) -->
+            <div class="otc-history-card">
+                <div class="otc-history-header">
+                    <div class="otc-history-title-group">
+                        <img src="college-crest.png" alt="Officers Training College Crest" class="otc-history-crest">
+                        <div>
+                            <h2 class="otc-history-heading">
+                                Officers Training College — History &amp; Heritage
+                            </h2>
+                            <p class="otc-history-subtitle">Officers Training College, AMC Centre and College, Lucknow • Established 01 Nov 1957</p>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="otc-history-body">
+                    Officers Training College (OTC) takes its origin from Officers Training Wing (OTW) that was raised on 01 Nov 1957 as part of the AMC Centre Lucknow. Another OTW was raised at AMC Centre (South), Secunderabad in 1962 after Chinese aggression, which was amalgamated into OTW at AMC Centre, Lucknow. The OTW was finally upgraded to Officers Training School (OTS) on 09 Aug 1969 and assigned the status of Category 'A' component of AMC Centre, which a was re-designated as AMC Centre and School. The OTS was assigned the responsibility of imparting military and administrative training to Medical, Dental, MNS Officers of the three services and also the AMC Non-Technical officers of the Army The nomenclature of this Category 'A' establishment from School to College was changed with effect from 16 Nov 2009. As part of cadre restructuring. the rank of Brig with appointment of Cdr OTC was upgraded to Maj Gen in 2008 &amp; appointment re-designated as Comdt. It moved to its present location on Lucknow-Rae Bareilly Road in May 2015.
+                </p>
+            </div>
+
+            <!-- Home Section Divider: Vision & Mandate -->
+            <div class="home-section-divider">
+                <span class="home-section-divider-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    Strategic Vision &amp; Directives
+                </span>
+                <div class="home-section-divider-line"></div>
+            </div>
+
+            <!-- Vision of OTC Card (Included on Home Page) -->
+            <div class="otc-vision-card">
+                <div class="otc-history-header">
+                    <div class="otc-history-title-group">
+                        <img src="college-crest.png" alt="Officers Training College Crest" class="otc-history-crest">
+                        <div>
+                            <h2 class="otc-history-heading">
+                                Officers Training College — Vision &amp; Mandate
+                            </h2>
+                            <p class="otc-history-subtitle">Officers Training College, AMC Centre and College, Lucknow • Established 01 Nov 1957</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vision and Mission Directives -->
+                <div class="otc-vision-grid-duo">
+                    <div class="otc-directive-card">
+                        <div class="directive-label">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                            VISION
+                        </div>
+                        <p class="directive-text">
+                            <strong>1.</strong> To be the Centre of Excellence in Military Medicine
+                        </p>
+                    </div>
+
+                    <div class="otc-directive-card">
+                        <div class="directive-label">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                            MISSION
+                        </div>
+                        <p class="directive-text">
+                            <strong>1.</strong> To create an environment conducive for achieving highest standards of training, formulation of Medical Tactical Doctrine, intellectual stimulation for research as the cradle of Combat Medical Support and Military Medicine to support Armed Forces in full spectrum of operations
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Thrust Areas -->
+                <div class="thrust-section-header">
+                    <h3 class="thrust-heading">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                        THRUST AREAS
+                    </h3>
+                </div>
+
+                <div class="thrust-grid">
+                    <div class="thrust-item-card">
+                        <span class="thrust-num-badge">01</span>
+                        <span class="thrust-item-text">Operation oriented practical application based training</span>
+                    </div>
+                    <div class="thrust-item-card">
+                        <span class="thrust-num-badge">02</span>
+                        <span class="thrust-item-text">Professional leadership</span>
+                    </div>
+                    <div class="thrust-item-card">
+                        <span class="thrust-num-badge">03</span>
+                        <span class="thrust-item-text">Think tank- Repository of knowledge</span>
+                    </div>
+                    <div class="thrust-item-card">
+                        <span class="thrust-num-badge">04</span>
+                        <span class="thrust-item-text">Tri service development</span>
+                    </div>
+                    <div class="thrust-item-card">
+                        <span class="thrust-num-badge">05</span>
+                        <span class="thrust-item-text">Faculty development</span>
+                    </div>
+                    <div class="thrust-item-card">
+                        <span class="thrust-num-badge">06</span>
+                        <span class="thrust-item-text">Cradle of military education for all Medical, Dental, Non-Technical &amp; Nursing Offrs</span>
+                    </div>
+                    <div class="thrust-item-card">
+                        <span class="thrust-num-badge">07</span>
+                        <span class="thrust-item-text">Build military values &amp; inculcate Corps Ethos</span>
+                    </div>
+                    <div class="thrust-item-card">
+                        <span class="thrust-num-badge">08</span>
+                        <span class="thrust-item-text">Combat Medical Support related skill development</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Former Commanders / Roll of Honour Auto-Slider Section -->
+            <div class="otc-commanders-section" id="otc-commanders-section">
+                <div class="commanders-section-header">
+                    <div class="commanders-title-group">
+                        <div class="commanders-eyebrow">
+                            <span class="eyebrow-pip"></span>
+                            <span>ROLL OF HONOUR • INSTITUTIONAL LEADERSHIP</span>
+                        </div>
+                        <h2 class="commanders-heading">
+                            Former Commanders of Officers Training College
+                        </h2>
+                        <p class="commanders-subtitle">
+                            Honouring 31 distinguished commandants and commanders whose exemplary leadership guided OTC through the decades (1969 – Present)
+                        </p>
+                    </div>
+
+                    <div class="commanders-controls">
+                        <span class="commanders-counter-pill">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            <span>31 Commanders</span>
+                        </span>
+                        <button type="button" class="btn-slider-ctrl" id="cmd-slider-toggle-btn" onclick="toggleCommanderSliderPlay()" title="Pause / Resume Auto-Scroll" aria-label="Toggle Auto-Scroll">
+                            <span id="cmd-slider-icon-pause" class="slider-ctrl-icon">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                            </span>
+                            <span id="cmd-slider-icon-play" class="slider-ctrl-icon" style="display:none;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            </span>
+                            <span id="cmd-slider-status-text">Pause</span>
+                        </button>
+                        <div class="slider-nav-arrows">
+                            <button type="button" class="btn-slider-arrow" id="cmd-slider-prev-btn" onclick="stepCommanderSlider(-1)" title="Scroll Previous" aria-label="Previous">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            </button>
+                            <button type="button" class="btn-slider-arrow" id="cmd-slider-next-btn" onclick="stepCommanderSlider(1)" title="Scroll Next" aria-label="Next">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slider Container with Left & Right Gradient Shadows -->
+                <div class="commanders-slider-stage">
+                    <div class="slider-edge-gradient left"></div>
+                    <div class="commanders-slider-viewport" id="cmd-slider-viewport">
+                        <div class="commanders-slider-track" id="cmd-slider-track">
+                            <!-- Populated dynamically with 31 commander portraits -->
+                        </div>
+                    </div>
+                    <div class="slider-edge-gradient right"></div>
+                </div>
+
+                <div class="commanders-slider-footer">
+                    <div class="slider-tip">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        <span>Hover over any portrait to pause auto-scroll • Click any portrait to view in full resolution</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- ========== DASHBOARD TAB ========== -->
-        <section id="tab-dashboard" class="tab-pane active">
+        <section id="tab-dashboard" class="tab-pane">
             <!-- Dashboard Batches / Courses Grid (Mockup Layout) -->
             <div>
                 <div class="mockup-header-count">
@@ -928,6 +2415,37 @@
                 <button type="button" class="btn-modal danger" id="btn-confirm-delete-ppt" onclick="submitDeletePpt()" style="background: #dc2626; color: #ffffff; display: inline-flex; align-items: center; gap: 0.4rem;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     <span>Delete Presentation</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox Modal for Enlarged Commander Portraits -->
+    <div id="commander-lightbox-modal" class="commander-modal-overlay" style="display:none;" onclick="handleCommanderLightboxOverlayClick(event)">
+        <div class="commander-modal-dialog">
+            <button type="button" class="commander-modal-btn-close" onclick="closeCommanderLightbox()" title="Close (Esc)" aria-label="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+
+            <div class="commander-modal-header">
+                <div class="commander-modal-title">
+                    <img src="college-crest.png" alt="Officers Training College Crest" class="commander-modal-crest">
+                    <div class="commander-modal-text-group">
+                        <h3 class="commander-modal-heading">Officers Training College — Roll of Honour</h3>
+                        <p class="commander-modal-subtitle" id="commander-modal-caption">Officers Training College, AMC Centre and College, Lucknow</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="commander-modal-body">
+                <button type="button" class="btn-lightbox-nav left" onclick="navigateCommanderLightbox(-1)" title="Previous Portrait (Left Arrow)">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <div class="commander-modal-frame">
+                    <img id="commander-modal-img" src="" alt="Commander Portrait" class="commander-modal-photo">
+                </div>
+                <button type="button" class="btn-lightbox-nav right" onclick="navigateCommanderLightbox(1)" title="Next Portrait (Right Arrow)">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
             </div>
         </div>

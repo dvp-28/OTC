@@ -104,6 +104,7 @@ function initPortal() {
     setupVideoPlayerEvents();
     loadDashboardData();
     loadCourses();
+    initCommandersSlider();
 }
 
 function renderUserHeader() {
@@ -211,8 +212,8 @@ function applyRoleUI() {
 // ============================================================
 // TABS & GLOBAL PAGE NAVIGATION (Back / Next)
 // ============================================================
-let tabOrder = ['dashboard', 'courses', 'classroom', 'users'];
-let navHistory = ['dashboard'];
+let tabOrder = ['home', 'dashboard', 'courses', 'classroom', 'users'];
+let navHistory = ['home'];
 let currentHistoryIndex = 0;
 
 function setupTabs() {
@@ -220,7 +221,7 @@ function setupTabs() {
         btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
     updateNavButtonsState();
-    updateBreadcrumb('dashboard');
+    updateBreadcrumb('home');
 }
 
 function switchTab(tabId, pushHistory = true) {
@@ -254,7 +255,7 @@ function goBack() {
         currentHistoryIndex--;
         switchTab(navHistory[currentHistoryIndex], false);
     } else {
-        const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'dashboard';
+        const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'home';
         let idx = tabOrder.indexOf(activeTab);
         if (idx > 0) {
             switchTab(tabOrder[idx - 1], false);
@@ -267,11 +268,11 @@ function goNext() {
         currentHistoryIndex++;
         switchTab(navHistory[currentHistoryIndex], false);
     } else {
-        const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'dashboard';
+        const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'home';
         let idx = tabOrder.indexOf(activeTab);
         if (idx < tabOrder.length - 1) {
             let nextTab = tabOrder[idx + 1];
-            if (nextTab === 'users' && currentUser.role === 'student') {
+            if (nextTab === 'users' && currentUser.role !== 'instituteadmin') {
                 return;
             }
             switchTab(nextTab, false);
@@ -282,10 +283,11 @@ function goNext() {
 function updateNavButtonsState() {
     const backBtn = document.getElementById('btn-global-back');
     const nextBtn = document.getElementById('btn-global-next');
-    const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'dashboard';
+    const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'home';
     
     const canGoBack = currentHistoryIndex > 0 || tabOrder.indexOf(activeTab) > 0;
-    const canGoNext = currentHistoryIndex < navHistory.length - 1 || tabOrder.indexOf(activeTab) < tabOrder.length - 1;
+    const maxIdx = (currentUser && currentUser.role !== 'instituteadmin') ? tabOrder.indexOf('classroom') : tabOrder.length - 1;
+    const canGoNext = currentHistoryIndex < navHistory.length - 1 || tabOrder.indexOf(activeTab) < maxIdx;
 
     if (backBtn) backBtn.disabled = !canGoBack;
     if (nextBtn) nextBtn.disabled = !canGoNext;
@@ -295,6 +297,7 @@ function updateBreadcrumb(tabId) {
     const el = document.getElementById('page-breadcrumb-text');
     if (!el) return;
     const names = {
+        'home': 'Home Portal Overview',
         'dashboard': 'Dashboard Overview',
         'courses': 'My Assigned Courses',
         'classroom': 'Classroom Player & Content',
@@ -2084,3 +2087,221 @@ function escJs(str) {
         .replace(/\n/g, ' ')
         .replace(/\r/g, '');
 }
+
+// ============================================================
+// FORMER COMMANDERS AUTO-SLIDER & LIGHTBOX
+// ============================================================
+let cmdSliderPlaying = true;
+let cmdSliderUserPaused = false;
+let cmdSliderRafId = null;
+const cmdSliderSpeed = 0.75; // px per frame (~45px/sec)
+let cmdLightboxIndex = 1;
+const TOTAL_COMMANDERS = 31;
+let cmdSliderInitialized = false;
+
+function initCommandersSlider() {
+    if (cmdSliderInitialized) return;
+    const track = document.getElementById('cmd-slider-track');
+    const viewport = document.getElementById('cmd-slider-viewport');
+    if (!track || !viewport) return;
+
+    cmdSliderInitialized = true;
+
+    // Render two full sets of 31 cards for seamless infinite scroll
+    let cardsHtml = '';
+    for (let set = 0; set < 2; set++) {
+        for (let i = 1; i <= TOTAL_COMMANDERS; i++) {
+            cardsHtml += `
+                <div class="commander-card" onclick="openCommanderLightbox(${i})" title="View Commander Portrait">
+                    <div class="commander-img-frame">
+                        <img src="previouscomd/${i}.jpg" alt="Former Commander of Officers Training College" loading="lazy" class="commander-portrait">
+                    </div>
+                </div>
+            `;
+        }
+    }
+    track.innerHTML = cardsHtml;
+
+    // Hover pauses auto-scroll
+    viewport.addEventListener('mouseenter', () => {
+        cmdSliderPlaying = false;
+    });
+    viewport.addEventListener('mouseleave', () => {
+        if (!cmdSliderUserPaused) {
+            cmdSliderPlaying = true;
+        }
+    });
+
+    // Mouse drag support
+    let isMouseDown = false;
+    let startX = 0;
+    let scrollLeftStart = 0;
+
+    viewport.addEventListener('mousedown', (e) => {
+        isMouseDown = true;
+        cmdSliderPlaying = false;
+        startX = e.pageX - viewport.offsetLeft;
+        scrollLeftStart = viewport.scrollLeft;
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isMouseDown) {
+            isMouseDown = false;
+            if (!cmdSliderUserPaused) {
+                cmdSliderPlaying = true;
+            }
+        }
+    });
+
+    viewport.addEventListener('mousemove', (e) => {
+        if (!isMouseDown) return;
+        e.preventDefault();
+        const x = e.pageX - viewport.offsetLeft;
+        const walk = (x - startX) * 1.4;
+        viewport.scrollLeft = scrollLeftStart - walk;
+    });
+
+    // Touch swipe support
+    let touchStartX = 0;
+    let touchScrollStart = 0;
+    viewport.addEventListener('touchstart', (e) => {
+        cmdSliderPlaying = false;
+        touchStartX = e.touches[0].pageX;
+        touchScrollStart = viewport.scrollLeft;
+    }, { passive: true });
+
+    viewport.addEventListener('touchmove', (e) => {
+        const x = e.touches[0].pageX;
+        const walk = (x - touchStartX) * 1.4;
+        viewport.scrollLeft = touchScrollStart - walk;
+    }, { passive: true });
+
+    viewport.addEventListener('touchend', () => {
+        if (!cmdSliderUserPaused) {
+            cmdSliderPlaying = true;
+        }
+    });
+
+    startCommanderSliderLoop();
+}
+
+function startCommanderSliderLoop() {
+    if (cmdSliderRafId) cancelAnimationFrame(cmdSliderRafId);
+
+    function step() {
+        const viewport = document.getElementById('cmd-slider-viewport');
+        const track = document.getElementById('cmd-slider-track');
+        if (viewport && track) {
+            const halfWidth = track.scrollWidth / 2;
+            if (cmdSliderPlaying && halfWidth > 0) {
+                viewport.scrollLeft += cmdSliderSpeed;
+                if (viewport.scrollLeft >= halfWidth) {
+                    viewport.scrollLeft -= halfWidth;
+                }
+            }
+        }
+        cmdSliderRafId = requestAnimationFrame(step);
+    }
+    cmdSliderRafId = requestAnimationFrame(step);
+}
+
+function toggleCommanderSliderPlay() {
+    cmdSliderUserPaused = !cmdSliderUserPaused;
+    cmdSliderPlaying = !cmdSliderUserPaused;
+
+    const iconPause = document.getElementById('cmd-slider-icon-pause');
+    const iconPlay = document.getElementById('cmd-slider-icon-play');
+    const statusText = document.getElementById('cmd-slider-status-text');
+
+    if (cmdSliderPlaying) {
+        if (iconPause) iconPause.style.display = 'inline';
+        if (iconPlay) iconPlay.style.display = 'none';
+        if (statusText) statusText.textContent = 'Pause';
+    } else {
+        if (iconPause) iconPause.style.display = 'none';
+        if (iconPlay) iconPlay.style.display = 'inline';
+        if (statusText) statusText.textContent = 'Play';
+    }
+}
+
+function stepCommanderSlider(direction) {
+    const viewport = document.getElementById('cmd-slider-viewport');
+    const track = document.getElementById('cmd-slider-track');
+    if (!viewport || !track) return;
+
+    const stepSize = 380; // step by approx 2 cards
+    const halfWidth = track.scrollWidth / 2;
+
+    viewport.scrollBy({ left: direction * stepSize, behavior: 'smooth' });
+
+    setTimeout(() => {
+        if (viewport.scrollLeft >= halfWidth) {
+            viewport.scrollLeft -= halfWidth;
+        } else if (viewport.scrollLeft <= 0) {
+            viewport.scrollLeft += halfWidth;
+        }
+    }, 450);
+}
+
+// Lightbox modal methods
+function openCommanderLightbox(index) {
+    cmdLightboxIndex = parseInt(index) || 1;
+    updateCommanderLightboxView();
+    const modal = document.getElementById('commander-lightbox-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeCommanderLightbox() {
+    const modal = document.getElementById('commander-lightbox-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+function handleCommanderLightboxOverlayClick(e) {
+    if (e.target.id === 'commander-lightbox-modal') {
+        closeCommanderLightbox();
+    }
+}
+
+function navigateCommanderLightbox(dir) {
+    cmdLightboxIndex += dir;
+    if (cmdLightboxIndex > TOTAL_COMMANDERS) cmdLightboxIndex = 1;
+    if (cmdLightboxIndex < 1) cmdLightboxIndex = TOTAL_COMMANDERS;
+    updateCommanderLightboxView();
+}
+
+function updateCommanderLightboxView() {
+    const img = document.getElementById('commander-modal-img');
+    const caption = document.getElementById('commander-modal-caption');
+
+    if (img) {
+        img.src = `previouscomd/${cmdLightboxIndex}.jpg`;
+        img.alt = `Former Commander of Officers Training College`;
+    }
+    if (caption) {
+        caption.textContent = 'Officers Training College, AMC Centre and College, Lucknow';
+    }
+}
+
+// Global key controls for lightbox
+window.addEventListener('keydown', (e) => {
+    const modal = document.getElementById('commander-lightbox-modal');
+    if (modal && modal.style.display === 'flex') {
+        if (e.key === 'Escape') closeCommanderLightbox();
+        else if (e.key === 'ArrowLeft') navigateCommanderLightbox(-1);
+        else if (e.key === 'ArrowRight') navigateCommanderLightbox(1);
+    }
+});
+
+// Auto-boot slider on document readiness
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCommandersSlider);
+} else {
+    initCommandersSlider();
+}
+
