@@ -1128,6 +1128,95 @@
             background: #fff5f5;
         }
 
+        .btn-slider-add {
+            background: rgba(212, 175, 55, 0.15);
+            border: 1px solid rgba(212, 175, 55, 0.45);
+            color: var(--gold-light, #f3d779);
+        }
+
+        .btn-slider-add:hover {
+            background: linear-gradient(135deg, #d4af37, #aa820a);
+            border-color: #ffd700;
+            color: #0b1120;
+            box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35);
+        }
+
+        [data-theme="light"] .btn-slider-add {
+            background: rgba(136, 0, 21, 0.08);
+            border-color: rgba(136, 0, 21, 0.3);
+            color: #880015;
+        }
+
+        [data-theme="light"] .btn-slider-add:hover {
+            background: #880015;
+            border-color: #880015;
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(136, 0, 21, 0.25);
+        }
+
+        /* Upload Dropzone & Previews */
+        .cmd-upload-dropzone {
+            border: 2px dashed rgba(212, 175, 55, 0.4);
+            border-radius: 12px;
+            padding: 1.75rem 1.25rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .cmd-upload-dropzone:hover,
+        .cmd-upload-dropzone.dragover {
+            border-color: var(--gold-primary, #d4af37);
+            background: rgba(212, 175, 55, 0.08);
+            transform: translateY(-2px);
+        }
+
+        [data-theme="light"] .cmd-upload-dropzone {
+            border-color: rgba(136, 0, 21, 0.35);
+            background: #f8fafc;
+        }
+
+        [data-theme="light"] .cmd-upload-dropzone:hover,
+        [data-theme="light"] .cmd-upload-dropzone.dragover {
+            border-color: #880015;
+            background: #fff5f5;
+        }
+
+        .cmd-preview-container {
+            display: flex;
+            align-items: center;
+            gap: 1.15rem;
+            padding: 0.85rem 1rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
+        [data-theme="light"] .cmd-preview-container {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .cmd-preview-img-frame {
+            width: 74px;
+            height: 100px;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1.5px solid var(--gold-primary, #d4af37);
+            background: #000;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .cmd-preview-img-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
         .slider-ctrl-icon {
             display: inline-flex;
             align-items: center;
@@ -1185,8 +1274,9 @@
         }
 
         [data-theme="light"] .commanders-slider-stage {
-            background: #f1f5f9;
-            border-color: rgba(0, 0, 0, 0.06);
+            background: linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%);
+            border: 1.5px solid rgba(184, 134, 11, 0.25);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.03);
         }
 
         .slider-edge-gradient {
@@ -1241,38 +1331,39 @@
             align-items: stretch;
         }
 
-        /* Portrait Card */
+        /* Portrait Card - Ceremonial Military Framing */
         .commander-card {
-            flex: 0 0 175px;
-            width: 175px;
-            height: 250px;
-            border-radius: 8px;
+            flex: 0 0 182px;
+            width: 182px;
+            height: 244px;
+            border-radius: 9px;
             overflow: hidden;
-            background: #ffffff;
-            border: 1.5px solid rgba(212, 175, 55, 0.4);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+            background: #0b1120;
+            border: 2px solid rgba(212, 175, 55, 0.45);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
             cursor: pointer;
             position: relative;
-            transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+            transition: transform 0.28s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.28s ease, border-color 0.28s ease;
             display: flex;
             flex-direction: column;
         }
 
         .commander-card:hover {
-            transform: translateY(-6px) scale(1.02);
-            border-color: #f3d779;
-            box-shadow: 0 14px 28px rgba(0, 0, 0, 0.55), 0 0 15px rgba(212, 175, 55, 0.4);
-            z-index: 2;
+            transform: translateY(-7px) scale(1.025);
+            border-color: #ffd700;
+            box-shadow: 0 18px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(212, 175, 55, 0.45);
+            z-index: 5;
         }
 
         [data-theme="light"] .commander-card {
-            border-color: rgba(136, 0, 21, 0.35);
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+            background: #111827;
+            border: 2px solid #b8860b;
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(136, 0, 21, 0.12);
         }
 
         [data-theme="light"] .commander-card:hover {
             border-color: #880015;
-            box-shadow: 0 14px 28px rgba(136, 0, 21, 0.18);
+            box-shadow: 0 18px 36px rgba(136, 0, 21, 0.25), 0 0 16px rgba(184, 134, 11, 0.35);
         }
 
         .commander-img-frame {
@@ -1281,21 +1372,26 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #ffffff;
+            background: #0b1120;
             overflow: hidden;
+            position: relative;
+        }
+
+        [data-theme="light"] .commander-img-frame {
+            background: #111827;
         }
 
         .commander-portrait {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
+            object-position: center top;
             display: block;
-            background: #ffffff;
-            transition: transform 0.3s ease;
+            transition: transform 0.35s cubic-bezier(0.2, 0, 0, 1);
         }
 
         .commander-card:hover .commander-portrait {
-            transform: scale(1.03);
+            transform: scale(1.04);
         }
 
         .commander-card-badge {
@@ -1889,7 +1985,7 @@
                 </div>
             </div>
 
-            <!-- Former Commanders / Roll of Honour Auto-Slider Section -->
+            <!-- Previous Commanders / Roll of Honour Auto-Slider Section -->
             <div class="otc-commanders-section" id="otc-commanders-section">
                 <div class="commanders-section-header">
                     <div class="commanders-title-group">
@@ -1898,18 +1994,18 @@
                             <span>ROLL OF HONOUR • INSTITUTIONAL LEADERSHIP</span>
                         </div>
                         <h2 class="commanders-heading">
-                            Former Commanders of Officers Training College
+                            Previous Commanders of Officers Training College
                         </h2>
                         <p class="commanders-subtitle">
-                            Honouring 31 distinguished commandants and commanders whose exemplary leadership guided OTC through the decades (1969 – Present)
+                            Honouring the distinguished commandants and commanders whose exemplary leadership guided Officers Training College through the decades
                         </p>
                     </div>
 
                     <div class="commanders-controls">
-                        <span class="commanders-counter-pill">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                            <span>31 Commanders</span>
-                        </span>
+                        <button type="button" class="btn-slider-ctrl btn-slider-add" id="cmd-slider-add-btn" onclick="openAddCommanderModal()" title="Add Previous Commander Image" aria-label="Add Commander Image" style="display: none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            <span>Add Image</span>
+                        </button>
                         <button type="button" class="btn-slider-ctrl" id="cmd-slider-toggle-btn" onclick="toggleCommanderSliderPlay()" title="Pause / Resume Auto-Scroll" aria-label="Toggle Auto-Scroll">
                             <span id="cmd-slider-icon-pause" class="slider-ctrl-icon">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
@@ -2448,6 +2544,87 @@
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Previous Commander Portrait -->
+    <div id="modal-add-commander" class="modal-overlay" onclick="handleCommanderModalOverlayClick(event)">
+        <div class="modal-box" style="max-width: 540px; border-color: rgba(212, 175, 55, 0.4); box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 25px rgba(212, 175, 55, 0.15);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <img src="college-crest.png" alt="OTC Crest" style="width: 36px; height: 36px; object-fit: contain;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text-main);">Add Previous Commander</h2>
+                        <p style="margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--text-muted);">Upload portrait photo for the Roll of Honour slider</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAddCommanderModal()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+
+            <form id="form-add-commander" onsubmit="submitAddCommander(event)">
+                <div id="cmd-upload-error" style="display: none; margin-bottom: 1rem; padding: 0.65rem 0.85rem; border-radius: 8px; font-size: 0.82rem; background: rgba(220, 38, 38, 0.15); border: 1px solid rgba(220, 38, 38, 0.4); color: #fca5a5;"></div>
+
+                <!-- Dropzone -->
+                <div class="cmd-upload-dropzone" id="cmd-upload-dropzone" onclick="document.getElementById('cmd-file-input').click()">
+                    <input type="file" id="cmd-file-input" name="image" accept="image/jpeg,image/png,image/webp" style="display: none;" onchange="handleCommanderFileSelect(event)">
+                    <div id="cmd-dropzone-prompt">
+                        <div style="width: 52px; height: 52px; margin: 0 auto 0.75rem; border-radius: 50%; background: rgba(212, 175, 55, 0.12); display: flex; align-items: center; justify-content: center; color: var(--gold-light, #f3d779);">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        </div>
+                        <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-main); margin-bottom: 0.35rem;">
+                            Click to browse portrait or drag &amp; drop here
+                        </div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">
+                            High-resolution portrait photo • JPG, PNG or WEBP (Max 15MB)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selected Image Preview -->
+                <div id="cmd-preview-container" class="cmd-preview-container" style="display: none;">
+                    <div class="cmd-preview-img-frame">
+                        <img id="cmd-preview-img" src="" alt="Portrait Preview">
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div id="cmd-preview-name" style="font-weight: 700; font-size: 0.88rem; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">photo.jpg</div>
+                        <div id="cmd-preview-size" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">0 KB</div>
+                        <button type="button" onclick="document.getElementById('cmd-file-input').click()" style="margin-top: 0.5rem; background: none; border: none; padding: 0; color: var(--gold-light, #f3d779); font-size: 0.78rem; font-weight: 600; cursor: pointer; text-decoration: underline;">
+                            Change portrait photo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modal-form-group" style="margin-top: 1.25rem;">
+                    <label for="cmd-input-title">Commander Title / Designation <span style="font-weight: normal; opacity: 0.7;">(Optional)</span></label>
+                    <input type="text" id="cmd-input-title" placeholder="Previous Commander of Officers Training College">
+                </div>
+
+                <div class="modal-form-group">
+                    <label for="cmd-input-subtitle">Unit / Institution Remarks <span style="font-weight: normal; opacity: 0.7;">(Optional)</span></label>
+                    <input type="text" id="cmd-input-subtitle" placeholder="Officers Training College, AMC Centre and College, Lucknow">
+                </div>
+
+                <!-- Progress Bar -->
+                <div id="cmd-upload-progress" style="display: none; margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 0.35rem; color: var(--text-muted);">
+                        <span>Uploading commander portrait...</span>
+                        <span id="cmd-upload-percent">0%</span>
+                    </div>
+                    <div style="height: 6px; width: 100%; background: rgba(255, 255, 255, 0.1); border-radius: 999px; overflow: hidden;">
+                        <div id="cmd-upload-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #d4af37, #f3d779); transition: width 0.2s ease;"></div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-modal cancel" onclick="closeAddCommanderModal()" id="cmd-modal-cancel-btn">Cancel</button>
+                    <button type="submit" class="btn-modal primary" id="cmd-modal-submit-btn" style="background: linear-gradient(135deg, #d4af37, #aa820a); border: 1px solid #d4af37; color: #0b1120; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span id="cmd-modal-submit-text">Add Commander</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 

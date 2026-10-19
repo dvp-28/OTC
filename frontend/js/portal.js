@@ -183,13 +183,19 @@ function applyRoleUI() {
         if (adminWrapper) adminWrapper.style.display = 'inline-block';
     }
 
-    // Show user management options for institute admin
+    // Show user management options and commander portrait upload exclusively for institute admin
     if (isInstAdmin) {
         document.querySelectorAll('.tab-admin-only, .menu-admin-only').forEach(el => el.style.display = '');
         const quickUsersBtn = document.getElementById('popup-quick-manage-users');
         if (quickUsersBtn) quickUsersBtn.style.display = 'flex';
         const addCourseBtnWrapper = document.getElementById('inst-add-course-btn-wrapper');
         if (addCourseBtnWrapper) addCourseBtnWrapper.style.display = 'block';
+    }
+
+    // Add Image option for Previous Commanders is visible EXCLUSIVELY to Institute Admin
+    const cmdAddBtn = document.getElementById('cmd-slider-add-btn');
+    if (cmdAddBtn) {
+        cmdAddBtn.style.display = isInstAdmin ? 'inline-flex' : 'none';
     }
 
     // Show add section button in classroom for editors
@@ -2089,17 +2095,81 @@ function escJs(str) {
 }
 
 // ============================================================
-// FORMER COMMANDERS AUTO-SLIDER & LIGHTBOX
+// PREVIOUS COMMANDERS AUTO-SLIDER, LIGHTBOX & UPLOAD
 // ============================================================
 let cmdSliderPlaying = true;
 let cmdSliderUserPaused = false;
 let cmdSliderRafId = null;
 const cmdSliderSpeed = 0.75; // px per frame (~45px/sec)
-let cmdLightboxIndex = 1;
-const TOTAL_COMMANDERS = 31;
+let cmdLightboxIndex = 0;
+let allCommanders = [];
 let cmdSliderInitialized = false;
+let selectedCommanderFile = null;
 
-function initCommandersSlider() {
+function formatCmdFileSize(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function getBaselineCommanders() {
+    const list = [];
+    for (let i = 1; i <= 31; i++) {
+        list.push({
+            id: i,
+            type: 'base',
+            image_url: `previouscomd/${i}.jpg`,
+            title: 'Previous Commander of Officers Training College',
+            sub_title: 'Officers Training College, AMC Centre and College, Lucknow'
+        });
+    }
+    return list;
+}
+
+async function fetchCommandersList() {
+    try {
+        const res = await fetch('/api/commanders');
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.status === 'success' && Array.isArray(data.commanders) && data.commanders.length > 0) {
+                allCommanders = data.commanders;
+                return;
+            }
+        }
+    } catch (e) {
+        console.warn('Could not fetch commanders list from API, using baseline:', e);
+    }
+    allCommanders = getBaselineCommanders();
+}
+
+function renderCommandersTrack() {
+    const track = document.getElementById('cmd-slider-track');
+    if (!track) return;
+
+    if (!allCommanders || allCommanders.length === 0) {
+        allCommanders = getBaselineCommanders();
+    }
+
+    // Render two full sets for seamless infinite loop
+    let cardsHtml = '';
+    for (let set = 0; set < 2; set++) {
+        allCommanders.forEach((cmd, idx) => {
+            const safeTitle = escJs(cmd.title || 'Previous Commander of Officers Training College');
+            cardsHtml += `
+                <div class="commander-card" onclick="openCommanderLightbox(${idx})" title="View Portrait">
+                    <div class="commander-img-frame">
+                        <img src="${cmd.image_url}" alt="${safeTitle}" loading="lazy" class="commander-portrait" onerror="this.src='previouscomd/1.jpg'">
+                    </div>
+                </div>
+            `;
+        });
+    }
+    track.innerHTML = cardsHtml;
+}
+
+async function initCommandersSlider() {
     if (cmdSliderInitialized) return;
     const track = document.getElementById('cmd-slider-track');
     const viewport = document.getElementById('cmd-slider-viewport');
@@ -2107,20 +2177,8 @@ function initCommandersSlider() {
 
     cmdSliderInitialized = true;
 
-    // Render two full sets of 31 cards for seamless infinite scroll
-    let cardsHtml = '';
-    for (let set = 0; set < 2; set++) {
-        for (let i = 1; i <= TOTAL_COMMANDERS; i++) {
-            cardsHtml += `
-                <div class="commander-card" onclick="openCommanderLightbox(${i})" title="View Commander Portrait">
-                    <div class="commander-img-frame">
-                        <img src="previouscomd/${i}.jpg" alt="Former Commander of Officers Training College" loading="lazy" class="commander-portrait">
-                    </div>
-                </div>
-            `;
-        }
-    }
-    track.innerHTML = cardsHtml;
+    await fetchCommandersList();
+    renderCommandersTrack();
 
     // Hover pauses auto-scroll
     viewport.addEventListener('mouseenter', () => {
@@ -2182,6 +2240,7 @@ function initCommandersSlider() {
         }
     });
 
+    initCommanderUploadDropzone();
     startCommanderSliderLoop();
 }
 
@@ -2245,7 +2304,13 @@ function stepCommanderSlider(direction) {
 
 // Lightbox modal methods
 function openCommanderLightbox(index) {
-    cmdLightboxIndex = parseInt(index) || 1;
+    if (!allCommanders || allCommanders.length === 0) {
+        allCommanders = getBaselineCommanders();
+    }
+    cmdLightboxIndex = parseInt(index) || 0;
+    if (cmdLightboxIndex < 0) cmdLightboxIndex = 0;
+    if (cmdLightboxIndex >= allCommanders.length) cmdLightboxIndex = allCommanders.length - 1;
+
     updateCommanderLightboxView();
     const modal = document.getElementById('commander-lightbox-modal');
     if (modal) {
@@ -2269,32 +2334,283 @@ function handleCommanderLightboxOverlayClick(e) {
 }
 
 function navigateCommanderLightbox(dir) {
+    if (!allCommanders || allCommanders.length === 0) return;
     cmdLightboxIndex += dir;
-    if (cmdLightboxIndex > TOTAL_COMMANDERS) cmdLightboxIndex = 1;
-    if (cmdLightboxIndex < 1) cmdLightboxIndex = TOTAL_COMMANDERS;
+    if (cmdLightboxIndex >= allCommanders.length) cmdLightboxIndex = 0;
+    if (cmdLightboxIndex < 0) cmdLightboxIndex = allCommanders.length - 1;
     updateCommanderLightboxView();
 }
 
 function updateCommanderLightboxView() {
     const img = document.getElementById('commander-modal-img');
     const caption = document.getElementById('commander-modal-caption');
+    const cmd = allCommanders[cmdLightboxIndex];
+    if (!cmd) return;
 
     if (img) {
-        img.src = `previouscomd/${cmdLightboxIndex}.jpg`;
-        img.alt = `Former Commander of Officers Training College`;
+        img.src = cmd.image_url;
+        img.alt = cmd.title || 'Previous Commander of Officers Training College';
     }
     if (caption) {
-        caption.textContent = 'Officers Training College, AMC Centre and College, Lucknow';
+        caption.textContent = cmd.sub_title || 'Officers Training College, AMC Centre and College, Lucknow';
     }
 }
 
-// Global key controls for lightbox
+// ============================================================
+// ADD COMMANDER MODAL & UPLOAD HANDLING (Institute Admin Only)
+// ============================================================
+function openAddCommanderModal() {
+    if (!currentUser || currentUser.role !== 'instituteadmin') {
+        showToast('Access restricted: Only Institute Administrators can add commander portraits.', 'error');
+        return;
+    }
+    selectedCommanderFile = null;
+    const fileInput = document.getElementById('cmd-file-input');
+    if (fileInput) fileInput.value = '';
+
+    const titleInput = document.getElementById('cmd-input-title');
+    if (titleInput) titleInput.value = '';
+
+    const subInput = document.getElementById('cmd-input-subtitle');
+    if (subInput) subInput.value = '';
+
+    const promptEl = document.getElementById('cmd-dropzone-prompt');
+    if (promptEl) promptEl.style.display = 'block';
+
+    const prevContainer = document.getElementById('cmd-preview-container');
+    if (prevContainer) prevContainer.style.display = 'none';
+
+    const errEl = document.getElementById('cmd-upload-error');
+    if (errEl) {
+        errEl.textContent = '';
+        errEl.style.display = 'none';
+    }
+
+    const progContainer = document.getElementById('cmd-upload-progress');
+    if (progContainer) progContainer.style.display = 'none';
+
+    const modal = document.getElementById('modal-add-commander');
+    if (modal) {
+        modal.classList.add('visible');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeAddCommanderModal() {
+    const modal = document.getElementById('modal-add-commander');
+    if (modal) {
+        modal.classList.remove('visible');
+        document.body.style.overflow = '';
+    }
+    selectedCommanderFile = null;
+}
+
+function handleCommanderModalOverlayClick(e) {
+    if (e.target.id === 'modal-add-commander') {
+        closeAddCommanderModal();
+    }
+}
+
+function initCommanderUploadDropzone() {
+    const dropzone = document.getElementById('cmd-upload-dropzone');
+    if (!dropzone) return;
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.add('dragover');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove('dragover');
+        }, false);
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        if (dt && dt.files && dt.files.length > 0) {
+            handleCommanderFileSelected(dt.files[0]);
+        }
+    }, false);
+}
+
+function handleCommanderFileSelect(event) {
+    if (event.target && event.target.files && event.target.files.length > 0) {
+        handleCommanderFileSelected(event.target.files[0]);
+    }
+}
+
+function handleCommanderFileSelected(file) {
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type.toLowerCase()) && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
+        const errEl = document.getElementById('cmd-upload-error');
+        if (errEl) {
+            errEl.textContent = 'Invalid file format. Please select a JPG, PNG, or WEBP image.';
+            errEl.style.display = 'block';
+        }
+        return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+        const errEl = document.getElementById('cmd-upload-error');
+        if (errEl) {
+            errEl.textContent = 'Image exceeds 15MB limit. Please select a smaller photo.';
+            errEl.style.display = 'block';
+        }
+        return;
+    }
+
+    selectedCommanderFile = file;
+
+    const errEl = document.getElementById('cmd-upload-error');
+    if (errEl) errEl.style.display = 'none';
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const prevImg = document.getElementById('cmd-preview-img');
+        const prevName = document.getElementById('cmd-preview-name');
+        const prevSize = document.getElementById('cmd-preview-size');
+        const prevContainer = document.getElementById('cmd-preview-container');
+        const promptEl = document.getElementById('cmd-dropzone-prompt');
+
+        if (prevImg) prevImg.src = e.target.result;
+        if (prevName) prevName.textContent = file.name;
+        if (prevSize) prevSize.textContent = formatCmdFileSize(file.size);
+        if (prevContainer) prevContainer.style.display = 'flex';
+        if (promptEl) promptEl.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+}
+
+function submitAddCommander(event) {
+    if (event) event.preventDefault();
+
+    if (!currentUser || currentUser.role !== 'instituteadmin') {
+        showToast('Access denied: Only Institute Administrators can upload commander portraits.', 'error');
+        closeAddCommanderModal();
+        return;
+    }
+
+    const errEl = document.getElementById('cmd-upload-error');
+    if (!selectedCommanderFile) {
+        if (errEl) {
+            errEl.textContent = 'Please choose a commander portrait image to upload.';
+            errEl.style.display = 'block';
+        }
+        return;
+    }
+
+    const titleInput = document.getElementById('cmd-input-title');
+    const subInput = document.getElementById('cmd-input-subtitle');
+    const titleVal = titleInput ? titleInput.value.trim() : '';
+    const subVal = subInput ? subInput.value.trim() : '';
+
+    const submitBtn = document.getElementById('cmd-modal-submit-btn');
+    const submitText = document.getElementById('cmd-modal-submit-text');
+    const cancelBtn = document.getElementById('cmd-modal-cancel-btn');
+    const progContainer = document.getElementById('cmd-upload-progress');
+    const progBar = document.getElementById('cmd-upload-bar');
+    const progPercent = document.getElementById('cmd-upload-percent');
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (submitText) submitText.textContent = 'Uploading...';
+    if (progContainer) progContainer.style.display = 'block';
+    if (progBar) progBar.style.width = '0%';
+    if (progPercent) progPercent.textContent = '0%';
+    if (errEl) errEl.style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('image', selectedCommanderFile);
+    if (titleVal) formData.append('title', titleVal);
+    if (subVal) formData.append('sub_title', subVal);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/commanders/upload', true);
+
+    xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            if (progBar) progBar.style.width = percent + '%';
+            if (progPercent) progPercent.textContent = percent + '%';
+        }
+    };
+
+    xhr.onload = () => {
+        let resp = null;
+        try {
+            resp = JSON.parse(xhr.responseText);
+        } catch (ex) {
+            resp = null;
+        }
+
+        if (xhr.status >= 200 && xhr.status < 300 && resp && resp.status === 'success') {
+            if (progBar) progBar.style.width = '100%';
+            if (progPercent) progPercent.textContent = '100%';
+
+            if (resp.commander) {
+                allCommanders.push(resp.commander);
+            } else {
+                allCommanders.push({
+                    id: allCommanders.length + 1,
+                    image_url: 'previouscomd/1.jpg',
+                    title: titleVal || 'Previous Commander of Officers Training College',
+                    sub_title: subVal || 'Officers Training College, AMC Centre and College, Lucknow'
+                });
+            }
+
+            // Re-render slider track with new commander included
+            renderCommandersTrack();
+
+            showToast(resp.message || 'Commander portrait added successfully', 'success');
+            closeAddCommanderModal();
+        } else {
+            const msg = (resp && resp.message) ? resp.message : ('Upload failed (HTTP ' + xhr.status + ')');
+            if (errEl) {
+                errEl.textContent = msg;
+                errEl.style.display = 'block';
+            }
+            showToast(msg, 'error');
+        }
+
+        if (submitBtn) submitBtn.disabled = false;
+        if (cancelBtn) cancelBtn.disabled = false;
+        if (submitText) submitText.textContent = 'Add Commander';
+    };
+
+    xhr.onerror = () => {
+        const msg = 'Network connection error while uploading commander image.';
+        if (errEl) {
+            errEl.textContent = msg;
+            errEl.style.display = 'block';
+        }
+        showToast(msg, 'error');
+        if (submitBtn) submitBtn.disabled = false;
+        if (cancelBtn) cancelBtn.disabled = false;
+        if (submitText) submitText.textContent = 'Add Commander';
+    };
+
+    xhr.send(formData);
+}
+
+// Global key controls for lightbox & modals
 window.addEventListener('keydown', (e) => {
     const modal = document.getElementById('commander-lightbox-modal');
     if (modal && modal.style.display === 'flex') {
         if (e.key === 'Escape') closeCommanderLightbox();
         else if (e.key === 'ArrowLeft') navigateCommanderLightbox(-1);
         else if (e.key === 'ArrowRight') navigateCommanderLightbox(1);
+    }
+    const addModal = document.getElementById('modal-add-commander');
+    if (addModal && addModal.classList.contains('visible')) {
+        if (e.key === 'Escape') closeAddCommanderModal();
     }
 });
 

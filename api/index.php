@@ -1838,6 +1838,212 @@ try {
             ]);
             break;
 
+        // =====================================================================
+        // PREVIOUS COMMANDERS: Get list, upload new portrait, stream image
+        // =====================================================================
+        case 'commanders':
+            if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+                http_response_code(405);
+                echo json_encode(['status' => 'error', 'message' => 'GET required']);
+                break;
+            }
+
+            // Ensure database table exists
+            $mysqli->query("CREATE TABLE IF NOT EXISTS mdl_otc_commanders (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL DEFAULT 'Previous Commander of Officers Training College',
+                sub_title VARCHAR(255) DEFAULT '',
+                filename VARCHAR(255) NOT NULL,
+                storage_path VARCHAR(255) NOT NULL,
+                mime_type VARCHAR(100) NOT NULL,
+                uploaded_by BIGINT DEFAULT 0,
+                timecreated BIGINT NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            // Baseline 31 commanders
+            $commandersList = [];
+            for ($i = 1; $i <= 31; $i++) {
+                $commandersList[] = [
+                    'id' => $i,
+                    'type' => 'base',
+                    'image_url' => "previouscomd/{$i}.jpg",
+                    'title' => 'Previous Commander of Officers Training College',
+                    'sub_title' => 'Officers Training College, AMC Centre and College, Lucknow'
+                ];
+            }
+
+            // Custom uploaded commanders from database
+            $cRes = $mysqli->query("SELECT id, title, sub_title, filename, mime_type, timecreated FROM mdl_otc_commanders ORDER BY id ASC");
+            if ($cRes) {
+                while ($row = $cRes->fetch_assoc()) {
+                    $customId = 31 + (int)$row['id'];
+                    $commandersList[] = [
+                        'id' => $customId,
+                        'db_id' => (int)$row['id'],
+                        'type' => 'custom',
+                        'image_url' => '/api/commanders/image?id=' . (int)$row['id'],
+                        'title' => !empty($row['title']) ? $row['title'] : 'Previous Commander of Officers Training College',
+                        'sub_title' => !empty($row['sub_title']) ? $row['sub_title'] : 'Officers Training College, AMC Centre and College, Lucknow',
+                        'timecreated' => (int)$row['timecreated']
+                    ];
+                }
+            }
+
+            echo json_encode([
+                'status' => 'success',
+                'commanders' => $commandersList,
+                'total' => count($commandersList)
+            ]);
+            break;
+
+        case 'commanders-upload':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['status' => 'error', 'message' => 'POST required']);
+                break;
+            }
+
+            // Access to add commander portraits is granted exclusively to Institute Admin
+            $currentUser = require_role(['instituteadmin']);
+            $userId = (int)$currentUser['id'];
+
+            if (empty($_FILES['image']) || !is_array($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+                http_response_code(400);
+                $err = $_FILES['image']['error'] ?? 'No file provided';
+                echo json_encode(['status' => 'error', 'message' => 'Please select a valid image file to upload (Error: ' . $err . ')']);
+                break;
+            }
+
+            $imgFile = $_FILES['image'];
+            $origName = basename($imgFile['name']);
+            $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+
+            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Invalid image format. Supported formats: JPG, PNG, WEBP']);
+                break;
+            }
+
+            if ($imgFile['size'] > 15 * 1024 * 1024) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Image file exceeds maximum allowable size of 15MB']);
+                break;
+            }
+
+            $imageInfo = @getimagesize($imgFile['tmp_name']);
+            if (!$imageInfo) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Uploaded file is not a valid image']);
+                break;
+            }
+            $mimeType = $imageInfo['mime'];
+
+            $storageDir = '/var/www/moodledata/commanders';
+            if (!is_dir($storageDir)) {
+                @mkdir($storageDir, 0775, true);
+            }
+
+            $uniqueFilename = 'cmd_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
+            $destPath = $storageDir . '/' . $uniqueFilename;
+
+            if (!move_uploaded_file($imgFile['tmp_name'], $destPath)) {
+                http_response_code(500);
+                echo json_encode(['status' => 'error', 'message' => 'Failed to save commander portrait to storage directory']);
+                break;
+            }
+            @chmod($destPath, 0644);
+
+            $frontendDir = '/var/www/frontend/previouscomd';
+            if (is_dir($frontendDir) && is_writable($frontendDir)) {
+                @copy($destPath, $frontendDir . '/' . $uniqueFilename);
+            }
+
+            $cmdTitle = trim($_POST['title'] ?? '');
+            if (empty($cmdTitle)) {
+                $cmdTitle = 'Previous Commander of Officers Training College';
+            }
+            $cmdSub = trim($_POST['sub_title'] ?? '');
+            if (empty($cmdSub)) {
+                $cmdSub = 'Officers Training College, AMC Centre and College, Lucknow';
+            }
+
+            $mysqli->query("CREATE TABLE IF NOT EXISTS mdl_otc_commanders (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL DEFAULT 'Previous Commander of Officers Training College',
+                sub_title VARCHAR(255) DEFAULT '',
+                filename VARCHAR(255) NOT NULL,
+                storage_path VARCHAR(255) NOT NULL,
+                mime_type VARCHAR(100) NOT NULL,
+                uploaded_by BIGINT DEFAULT 0,
+                timecreated BIGINT NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $stmt = $mysqli->prepare("INSERT INTO mdl_otc_commanders (title, sub_title, filename, storage_path, mime_type, uploaded_by, timecreated) VALUES (?, ?, ?, ?, ?, ?, UNIX_TIMESTAMP())");
+            $stmt->bind_param('sssssi', $cmdTitle, $cmdSub, $uniqueFilename, $destPath, $mimeType, $userId);
+            $stmt->execute();
+            $newDbId = (int)$stmt->insert_id;
+            $stmt->close();
+
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'Previous commander portrait uploaded successfully',
+                'commander' => [
+                    'id' => 31 + $newDbId,
+                    'db_id' => $newDbId,
+                    'type' => 'custom',
+                    'image_url' => '/api/commanders/image?id=' . $newDbId,
+                    'title' => $cmdTitle,
+                    'sub_title' => $cmdSub,
+                    'timecreated' => time()
+                ]
+            ]);
+            break;
+
+        case 'commanders-image':
+            $dbId = (int)($_GET['id'] ?? 0);
+            $filename = basename($_GET['file'] ?? '');
+
+            $targetPath = '';
+            $targetMime = 'image/jpeg';
+
+            if ($dbId > 0) {
+                $stmt = $mysqli->prepare("SELECT filename, storage_path, mime_type FROM mdl_otc_commanders WHERE id = ? LIMIT 1");
+                $stmt->bind_param('i', $dbId);
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+
+                if ($row) {
+                    $targetPath = $row['storage_path'];
+                    $targetMime = $row['mime_type'];
+                    if (!file_exists($targetPath)) {
+                        $targetPath = '/var/www/moodledata/commanders/' . $row['filename'];
+                    }
+                }
+            } elseif (!empty($filename)) {
+                $targetPath = '/var/www/moodledata/commanders/' . $filename;
+                $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                if ($ext === 'png') $targetMime = 'image/png';
+                elseif ($ext === 'webp') $targetMime = 'image/webp';
+            }
+
+            if (empty($targetPath) || !file_exists($targetPath)) {
+                http_response_code(404);
+                echo json_encode(['status' => 'error', 'message' => 'Commander image not found']);
+                break;
+            }
+
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            header('Content-Type: ' . $targetMime, true);
+            header('Content-Length: ' . filesize($targetPath));
+            header('Cache-Control: public, max-age=86400');
+            header('X-Content-Type-Options: nosniff');
+            readfile($targetPath);
+            exit;
+
         default:
             http_response_code(404);
             echo json_encode(['status' => 'error', 'message' => 'Endpoint not found: ' . $action]);
