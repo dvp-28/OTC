@@ -704,14 +704,24 @@ try {
         // AUTH: Get current session
         // =====================================================================
         case 'session':
-            $user = get_current_user_session();
-            if ($user) {
+            $cached = get_current_user_session();
+            if ($cached) {
+                $liveUser = refresh_and_validate_user($mysqli, $cached);
+                if (!$liveUser) {
+                    $_SESSION = [];
+                    if (session_id()) {
+                        session_destroy();
+                    }
+                    http_response_code(403);
+                    echo json_encode(['status' => 'error', 'message' => 'Account is suspended or invalid. Please log in again.']);
+                    break;
+                }
                 if (empty($_SESSION['csrf_token'])) {
                     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                 }
                 echo json_encode([
                     'status' => 'success',
-                    'data' => $user,
+                    'data' => $liveUser,
                     'csrf_token' => $_SESSION['csrf_token']
                 ]);
             } else {
@@ -2343,6 +2353,13 @@ try {
                 http_response_code(400);
                 echo json_encode(['status' => 'error', 'message' => 'Valid presentation ID required']);
                 break;
+            }
+
+            $rangeHeader = $_SERVER['HTTP_RANGE'] ?? '';
+            if (!empty($rangeHeader) && strpos($rangeHeader, ',') !== false) {
+                http_response_code(416);
+                header("Content-Range: bytes */0");
+                exit;
             }
 
             $stmt = $mysqli->prepare("SELECT * FROM mdl_course_ppts WHERE id = ? LIMIT 1");
