@@ -795,7 +795,7 @@ try {
             $result = $mysqli->query("
                 SELECT u.id, u.username, u.firstname, u.lastname, u.email, u.phone1 AS mobile, u.suspended, u.lastaccess
                 FROM mdl_user u
-                WHERE u.deleted = 0 AND u.id > 1
+                WHERE u.deleted = 0 AND u.id > 1 AND u.id != 2 AND u.username != 'siteadmin'
                 ORDER BY u.id ASC
             ");
             $users = [];
@@ -943,7 +943,7 @@ try {
                 echo json_encode(['status' => 'error', 'message' => 'POST required']);
                 break;
             }
-            require_role(['instituteadmin']);
+            $currentUser = require_role(['instituteadmin']);
 
             $userId = (int)($body['user_id'] ?? 0);
             $firstname = trim($body['firstname'] ?? '');
@@ -955,10 +955,48 @@ try {
             $password = $body['password'] ?? '';
             $courseIds = isset($body['course_ids']) && is_array($body['course_ids']) ? $body['course_ids'] : null;
 
-            if ($userId < 2 || empty($firstname)) {
-                http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Valid user_id and First Name are required']);
+            if ($userId <= 2) {
+                http_response_code(403);
+                echo json_encode(['status' => 'error', 'message' => 'Protected administrative account cannot be modified']);
                 break;
+            }
+
+            if (empty($firstname)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'First Name is required']);
+                break;
+            }
+
+            // Verify user exists and is not siteadmin
+            $chkU = $mysqli->prepare("SELECT id, username FROM mdl_user WHERE id = ? AND deleted = 0 LIMIT 1");
+            $chkU->bind_param('i', $userId);
+            $chkU->execute();
+            $targetUserRow = $chkU->get_result()->fetch_assoc();
+            $chkU->close();
+
+            if (!$targetUserRow) {
+                http_response_code(404);
+                echo json_encode(['status' => 'error', 'message' => 'User not found']);
+                break;
+            }
+            if ($targetUserRow['username'] === 'siteadmin') {
+                http_response_code(403);
+                echo json_encode(['status' => 'error', 'message' => 'Protected administrative account cannot be modified']);
+                break;
+            }
+
+            // Prevent self-role modification or self-suspension
+            if ($userId === (int)$currentUser['id']) {
+                if (!empty($role) && $role !== $currentUser['role']) {
+                    http_response_code(403);
+                    echo json_encode(['status' => 'error', 'message' => 'Administrators cannot modify or demote their own role']);
+                    break;
+                }
+                if (isset($body['suspended']) && (int)$body['suspended'] === 1) {
+                    http_response_code(403);
+                    echo json_encode(['status' => 'error', 'message' => 'Administrators cannot suspend their own account']);
+                    break;
+                }
             }
 
             if (!empty($password)) {
@@ -975,13 +1013,19 @@ try {
             // Update role assignment if role specified
             if (!empty($role) && in_array($role, ['instituteadmin', 'courseadmin', 'student'])) {
                 // Delete existing system/category level role assignments for this user
-                $mysqli->query("DELETE FROM mdl_role_assignments WHERE userid = {$userId}");
+                $delRole = $mysqli->prepare("DELETE FROM mdl_role_assignments WHERE userid = ?");
+                $delRole->bind_param('i', $userId);
+                $delRole->execute();
+                $delRole->close();
 
                 if ($role === 'instituteadmin') {
                     $rStmt = $mysqli->query("SELECT id FROM mdl_role WHERE shortname = 'instituteadmin' LIMIT 1");
                     if ($rRow = $rStmt->fetch_assoc()) {
                         $rId = (int)$rRow['id'];
-                        $mysqli->query("INSERT INTO mdl_role_assignments (roleid, contextid, userid, timemodified, modifierid) VALUES ({$rId}, 1, {$userId}, UNIX_TIMESTAMP(), 2)");
+                        $insRole = $mysqli->prepare("INSERT INTO mdl_role_assignments (roleid, contextid, userid, timemodified, modifierid) VALUES (?, 1, ?, UNIX_TIMESTAMP(), 2)");
+                        $insRole->bind_param('ii', $rId, $userId);
+                        $insRole->execute();
+                        $insRole->close();
                     }
                 }
             }
@@ -989,7 +1033,11 @@ try {
             // Update course assignments if courseIds array provided
             if ($courseIds !== null) {
                 // Delete existing enrolments
-                $mysqli->query("DELETE FROM mdl_user_enrolments WHERE userid = {$userId}");
+                $delEnrol = $mysqli->prepare("DELETE FROM mdl_user_enrolments WHERE userid = ?");
+                $delEnrol->bind_param('i', $userId);
+                $delEnrol->execute();
+                $delEnrol->close();
+
                 foreach ($courseIds as $cId) {
                     assign_user_course_enrolment($mysqli, $userId, (int)$cId, $role ?: 'student');
                 }
@@ -1008,31 +1056,70 @@ try {
                 echo json_encode(['status' => 'error', 'message' => 'POST required']);
                 break;
             }
-            require_role(['instituteadmin']);
+            $currentUser = require_role(['instituteadmin']);
 
             $userId = (int)($body['user_id'] ?? 0);
             $role = trim($body['role'] ?? '');
 
-            if ($userId < 2 || !in_array($role, ['instituteadmin', 'courseadmin', 'student'])) {
+            if ($userId <= 2) {
+                http_response_code(403);
+                echo json_encode(['status' => 'error', 'message' => 'Protected administrative account cannot be modified']);
+                break;
+            }
+
+            if ($userId === (int)$currentUser['id']) {
+                http_response_code(403);
+                echo json_encode(['status' => 'error', 'message' => 'Administrators cannot modify their own role']);
+                break;
+            }
+
+            if (!in_array($role, ['instituteadmin', 'courseadmin', 'student'])) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Valid user_id and role (instituteadmin|courseadmin|student) required']);
+                echo json_encode(['status' => 'error', 'message' => 'Valid role (instituteadmin|courseadmin|student) required']);
+                break;
+            }
+
+            // Verify user exists and is not siteadmin
+            $chkU = $mysqli->prepare("SELECT id, username FROM mdl_user WHERE id = ? AND deleted = 0 LIMIT 1");
+            $chkU->bind_param('i', $userId);
+            $chkU->execute();
+            $targetUserRow = $chkU->get_result()->fetch_assoc();
+            $chkU->close();
+
+            if (!$targetUserRow) {
+                http_response_code(404);
+                echo json_encode(['status' => 'error', 'message' => 'User not found']);
+                break;
+            }
+            if ($targetUserRow['username'] === 'siteadmin') {
+                http_response_code(403);
+                echo json_encode(['status' => 'error', 'message' => 'Protected administrative account cannot be modified']);
                 break;
             }
 
             // Remove existing system/category role assignments
-            $mysqli->query("DELETE FROM mdl_role_assignments WHERE userid = {$userId}");
+            $delRole = $mysqli->prepare("DELETE FROM mdl_role_assignments WHERE userid = ?");
+            $delRole->bind_param('i', $userId);
+            $delRole->execute();
+            $delRole->close();
 
             if ($role === 'instituteadmin') {
                 $rStmt = $mysqli->query("SELECT id FROM mdl_role WHERE shortname = 'instituteadmin' LIMIT 1");
                 if ($rRow = $rStmt->fetch_assoc()) {
                     $rId = (int)$rRow['id'];
-                    $mysqli->query("INSERT INTO mdl_role_assignments (roleid, contextid, userid, timemodified, modifierid) VALUES ({$rId}, 1, {$userId}, UNIX_TIMESTAMP(), 2)");
+                    $insR = $mysqli->prepare("INSERT INTO mdl_role_assignments (roleid, contextid, userid, timemodified, modifierid) VALUES (?, 1, ?, UNIX_TIMESTAMP(), 2)");
+                    $insR->bind_param('ii', $rId, $userId);
+                    $insR->execute();
+                    $insR->close();
                 }
             } elseif ($role === 'courseadmin') {
                 $rStmt = $mysqli->query("SELECT id FROM mdl_role WHERE shortname = 'courseadmin' LIMIT 1");
                 if ($rRow = $rStmt->fetch_assoc()) {
                     $rId = (int)$rRow['id'];
-                    $mysqli->query("INSERT INTO mdl_role_assignments (roleid, contextid, userid, timemodified, modifierid) VALUES ({$rId}, 1, {$userId}, UNIX_TIMESTAMP(), 2)");
+                    $insR = $mysqli->prepare("INSERT INTO mdl_role_assignments (roleid, contextid, userid, timemodified, modifierid) VALUES (?, 1, ?, UNIX_TIMESTAMP(), 2)");
+                    $insR->bind_param('ii', $rId, $userId);
+                    $insR->execute();
+                    $insR->close();
                 }
             }
 
@@ -1045,9 +1132,9 @@ try {
         case 'users-courses':
             require_role(['instituteadmin']);
             $targetUserId = (int)($urlUserId ?: ($_GET['user_id'] ?? 0));
-            if ($targetUserId < 2) {
-                http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Valid user_id required']);
+            if ($targetUserId <= 2) {
+                http_response_code(403);
+                echo json_encode(['status' => 'error', 'message' => 'Protected administrative account details are restricted']);
                 break;
             }
 
@@ -1083,9 +1170,9 @@ try {
                 $courseIds = array_map('intval', $body['course_ids']);
             }
 
-            if ($userId < 2 || empty($courseIds)) {
-                http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Valid user_id and course_id required']);
+            if ($userId <= 2 || empty($courseIds)) {
+                http_response_code(403);
+                echo json_encode(['status' => 'error', 'message' => 'Protected administrative account cannot be modified']);
                 break;
             }
 
@@ -1110,9 +1197,15 @@ try {
             $userId = (int)($body['user_id'] ?? 0);
             $courseId = (int)($body['course_id'] ?? 0);
 
-            if ($userId < 2 || $courseId < 2) {
+            if ($userId <= 2) {
+                http_response_code(403);
+                echo json_encode(['status' => 'error', 'message' => 'Protected administrative account cannot be modified']);
+                break;
+            }
+
+            if ($courseId < 2) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'user_id and course_id required']);
+                echo json_encode(['status' => 'error', 'message' => 'Valid course_id required']);
                 break;
             }
 
@@ -1146,12 +1239,7 @@ try {
                 break;
             }
 
-            // Course admins can only edit their assigned courses
-            if ($currentUser['role'] === 'courseadmin' && !in_array($courseId, $currentUser['assigned_courses'])) {
-                http_response_code(403);
-                echo json_encode(['status' => 'error', 'message' => 'You can only edit courses assigned to you']);
-                break;
-            }
+            require_course_access($mysqli, $currentUser, $courseId, 'edit');
 
             $stmt = $mysqli->prepare("UPDATE mdl_course SET fullname = ?, summary = ?, timemodified = UNIX_TIMESTAMP() WHERE id = ?");
             $stmt->bind_param('ssi', $fullname, $summary, $courseId);
@@ -1182,14 +1270,14 @@ try {
                 break;
             }
 
-            if ($currentUser['role'] === 'courseadmin' && !in_array($courseId, $currentUser['assigned_courses'])) {
-                http_response_code(403);
-                echo json_encode(['status' => 'error', 'message' => 'You can only add sections to your assigned courses']);
-                break;
-            }
+            require_course_access($mysqli, $currentUser, $courseId, 'edit');
 
-            // Get next section number
-            $maxSection = (int)$mysqli->query("SELECT COALESCE(MAX(section), 0) FROM mdl_course_sections WHERE course = {$courseId}")->fetch_row()[0];
+            // Get next section number using prepared statement
+            $secMaxStmt = $mysqli->prepare("SELECT COALESCE(MAX(section), 0) FROM mdl_course_sections WHERE course = ?");
+            $secMaxStmt->bind_param('i', $courseId);
+            $secMaxStmt->execute();
+            $maxSection = (int)$secMaxStmt->get_result()->fetch_row()[0];
+            $secMaxStmt->close();
             $newSection = $maxSection + 1;
 
             $stmt = $mysqli->prepare("INSERT INTO mdl_course_sections (course, section, name, summary, summaryformat, visible, timemodified) VALUES (?, ?, ?, ?, 1, 1, UNIX_TIMESTAMP())");
@@ -1209,25 +1297,40 @@ try {
         // SECTIONS: List sections for a course
         // =====================================================================
         case 'sections':
-            require_auth();
+            $currentUser = require_auth();
+
             $courseId = (int)($_GET['course_id'] ?? 0);
+
             if ($courseId < 2) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'course_id parameter required']);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Valid course_id parameter required'
+                ]);
                 break;
             }
+
+            // Verify user is authorized to view this course (SEC-B01)
+            require_course_access($mysqli, $currentUser, $courseId, 'view');
 
             $stmt = $mysqli->prepare("SELECT id, section, name, summary, visible FROM mdl_course_sections WHERE course = ? ORDER BY section ASC");
             $stmt->bind_param('i', $courseId);
             $stmt->execute();
+
             $result = $stmt->get_result();
             $sections = [];
-            while ($row = $result->fetch_assoc()) $sections[] = $row;
+
+            while ($row = $result->fetch_assoc()) {
+                $sections[] = $row;
+            }
+
             $stmt->close();
 
-            echo json_encode(['status' => 'success', 'data' => $sections]);
+            echo json_encode([
+                'status' => 'success',
+                'data' => $sections
+            ]);
             break;
-
         // =====================================================================
         // ROLES: List configured roles
         // =====================================================================
@@ -1847,6 +1950,7 @@ try {
                 echo json_encode(['status' => 'error', 'message' => 'GET required']);
                 break;
             }
+            $currentUser = require_auth();
 
             // Ensure database table exists
             $mysqli->query("CREATE TABLE IF NOT EXISTS mdl_otc_commanders (
@@ -2000,48 +2104,49 @@ try {
             break;
 
         case 'commanders-image':
+            $currentUser = require_auth();
             $dbId = (int)($_GET['id'] ?? 0);
-            $filename = basename($_GET['file'] ?? '');
 
-            $targetPath = '';
-            $targetMime = 'image/jpeg';
-
-            if ($dbId > 0) {
-                $stmt = $mysqli->prepare("SELECT filename, storage_path, mime_type FROM mdl_otc_commanders WHERE id = ? LIMIT 1");
-                $stmt->bind_param('i', $dbId);
-                $stmt->execute();
-                $row = $stmt->get_result()->fetch_assoc();
-                $stmt->close();
-
-                if ($row) {
-                    $targetPath = $row['storage_path'];
-                    $targetMime = $row['mime_type'];
-                    if (!file_exists($targetPath)) {
-                        $targetPath = '/var/www/moodledata/commanders/' . $row['filename'];
-                    }
-                }
-            } elseif (!empty($filename)) {
-                $targetPath = '/var/www/moodledata/commanders/' . $filename;
-                $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-                if ($ext === 'png') $targetMime = 'image/png';
-                elseif ($ext === 'webp') $targetMime = 'image/webp';
-            }
-
-            if (empty($targetPath) || !file_exists($targetPath)) {
-                http_response_code(404);
-                echo json_encode(['status' => 'error', 'message' => 'Commander image not found']);
+            if ($dbId < 1) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Valid commander ID parameter required']);
                 break;
             }
+
+            $stmt = $mysqli->prepare("SELECT filename, storage_path, mime_type FROM mdl_otc_commanders WHERE id = ? LIMIT 1");
+            $stmt->bind_param('i', $dbId);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+
+            if (!$row) {
+                http_response_code(404);
+                echo json_encode(['status' => 'error', 'message' => 'Commander image record not found']);
+                break;
+            }
+
+            $storageDir = realpath('/var/www/moodledata/commanders');
+            $safeFilename = basename($row['filename']);
+            $targetPath = $storageDir ? ($storageDir . '/' . $safeFilename) : '';
+            $realPath = $targetPath ? realpath($targetPath) : false;
+
+            if (!$realPath || !$storageDir || !str_starts_with($realPath, $storageDir) || !is_file($realPath)) {
+                http_response_code(404);
+                echo json_encode(['status' => 'error', 'message' => 'Commander image file missing from storage']);
+                break;
+            }
+
+            $targetMime = !empty($row['mime_type']) ? $row['mime_type'] : 'image/jpeg';
 
             while (ob_get_level()) {
                 ob_end_clean();
             }
 
             header('Content-Type: ' . $targetMime, true);
-            header('Content-Length: ' . filesize($targetPath));
-            header('Cache-Control: public, max-age=86400');
+            header('Content-Length: ' . filesize($realPath));
+            header('Cache-Control: private, max-age=86400');
             header('X-Content-Type-Options: nosniff');
-            readfile($targetPath);
+            readfile($realPath);
             exit;
 
         default:
