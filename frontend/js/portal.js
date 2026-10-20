@@ -1742,7 +1742,7 @@ function renderUsers(users) {
     tbody.innerHTML = '';
 
     if (!users || users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 1.5rem;">No users found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 1.5rem;">No users found.</td></tr>';
         return;
     }
 
@@ -1760,26 +1760,24 @@ function renderUsers(users) {
             ? `<span style="color: #ef4444; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.2rem 0.55rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Inactive</span>`
             : `<span style="color: #22c55e; background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); padding: 0.2rem 0.55rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Active</span>`;
 
-        const assignedCourseCount = (u.assigned_courses || []).length;
-        const assignedCourseBadge = assignedCourseCount > 0
-            ? `<span style="background: var(--bg-hover); color: var(--gold-light); border: 1px solid var(--border-subtle); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.78rem; font-weight: 600;">${assignedCourseCount} Course${assignedCourseCount > 1 ? 's' : ''}</span>`
-            : `<span style="color: var(--text-muted); font-size: 0.8rem;">None</span>`;
-
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><code>${esc(u.username)}</code></td>
             <td style="font-weight: 600;">${esc(u.firstname)} ${esc(u.lastname)}</td>
             <td>${esc(u.email || '-')}</td>
-            <td>${esc(u.phone1 || u.phone2 || '-')}</td>
+            <td style="font-family: var(--font-mono); font-size: 0.85rem;">${esc(u.mobile || u.phone1 || u.phone2 || '-')}</td>
             <td>${roleLabels}</td>
             <td>${statusTag}</td>
-            <td>${assignedCourseBadge}</td>
             <td>
-                <button class="btn-card" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;" onclick="openEditUserModal(${u.id})">
-                    ✏ Edit & Assign
+                <button type="button" class="btn-card btn-edit-user" data-id="${u.id}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;" onclick="openEditUserModal(${u.id})">
+                    ✏ Edit User
                 </button>
             </td>
         `;
+        const editBtn = tr.querySelector('.btn-edit-user');
+        if (editBtn) {
+            editBtn.addEventListener('click', () => openEditUserModal(u.id));
+        }
         tbody.appendChild(tr);
     });
 }
@@ -1851,7 +1849,7 @@ function openEditUserModal(userId) {
     document.getElementById('user-form-firstname').value = user.firstname || '';
     document.getElementById('user-form-lastname').value = user.lastname || '';
     document.getElementById('user-form-email').value = user.email || '';
-    document.getElementById('user-form-phone').value = user.phone1 || user.phone2 || '';
+    document.getElementById('user-form-phone').value = user.mobile || user.phone1 || user.phone2 || '';
     document.getElementById('user-form-suspended').value = user.suspended || '0';
 
     // Primary role
@@ -1900,7 +1898,7 @@ async function submitUserForm() {
             const res = await fetch('/api/users/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password, firstname, lastname, email, phone, role, suspended })
+                body: JSON.stringify({ username, password, firstname, lastname, email, phone, mobile: phone, role, suspended })
             });
             const data = await res.json();
             if (data.status !== 'success') {
@@ -1909,7 +1907,7 @@ async function submitUserForm() {
             }
             currentUserId = data.data.id;
         } else {
-            const updatePayload = { user_id: currentUserId, firstname, lastname, email, phone, suspended };
+            const updatePayload = { user_id: currentUserId, firstname, lastname, email, phone, mobile: phone, suspended };
             if (password && password.trim().length > 0) {
                 updatePayload.password = password;
             }

@@ -1128,7 +1128,7 @@ try {
 
             // Fetch paginated records
             $dataSql = "
-                SELECT u.id, u.username, u.firstname, u.lastname, u.email, u.phone1 AS mobile, u.suspended, u.lastaccess
+                SELECT u.id, u.username, u.firstname, u.lastname, u.email, u.phone1 AS mobile, u.phone1, u.phone2, u.suspended, u.lastaccess
                 FROM mdl_user u
                 {$whereSql}
                 ORDER BY u.id ASC
@@ -1246,7 +1246,7 @@ try {
             $firstname = trim($body['firstname'] ?? '');
             $lastname = trim($body['lastname'] ?? '');
             $email = trim($body['email'] ?? '');
-            $mobile = trim($body['mobile'] ?? '');
+            $mobile = trim($body['mobile'] ?? $body['phone'] ?? '');
             $password = $body['password'] ?? '';
             $suspended = isset($body['suspended']) ? (int)$body['suspended'] : 0;
             $role = trim($body['role'] ?? 'student');
@@ -1370,7 +1370,7 @@ try {
             $firstname = trim($body['firstname'] ?? '');
             $lastname = trim($body['lastname'] ?? '');
             $email = trim($body['email'] ?? '');
-            $mobile = trim($body['mobile'] ?? '');
+            $mobile = trim($body['mobile'] ?? $body['phone'] ?? '');
             $suspended = isset($body['suspended']) ? (int)$body['suspended'] : 0;
             $role = trim($body['role'] ?? '');
             $password = $body['password'] ?? '';

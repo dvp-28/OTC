@@ -1176,13 +1176,15 @@ body {
   margin-top: 1.5rem;
 }
 
-.gov-table {
+.gov-table,
+.users-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
 }
 
-.gov-table th {
+.gov-table th,
+.users-table th {
   background: rgba(14, 18, 28, 0.8);
   padding: 1rem 1.25rem;
   font-size: 0.8rem;
@@ -1192,13 +1194,15 @@ body {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.gov-table td {
+.gov-table td,
+.users-table td {
   padding: 1.1rem 1.25rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   font-size: 0.88rem;
 }
 
-.gov-table tr:hover td {
+.gov-table tr:hover td,
+.users-table tr:hover td {
   background: rgba(255, 255, 255, 0.02);
 }
 
