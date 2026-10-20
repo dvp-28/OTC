@@ -1769,85 +1769,70 @@ select option:checked {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
-/* Theme Toggle Button Styling */
+/* Theme Toggle Button Styling (Shared with login.html) */
+.login-theme-toggle,
 .btn-theme-toggle {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: #ffffff;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.35rem 0.75rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-full);
-  color: var(--text-main);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
-  cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  z-index: 30;
 }
 
+.login-theme-toggle:hover,
 .btn-theme-toggle:hover {
-  border-color: var(--gold-primary);
-  background: var(--bg-card-hover);
+  background: rgba(0, 0, 0, 0.75);
+  border-color: #d4af37;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.45);
 }
 
+.login-theme-toggle .icon-sun,
 .btn-theme-toggle .icon-sun {
   display: none;
   color: #f59e0b;
 }
 
+.login-theme-toggle .icon-moon,
 .btn-theme-toggle .icon-moon {
   display: inline-block;
   color: var(--gold-light);
 }
 
+[data-theme="light"] .login-theme-toggle .icon-sun,
 [data-theme="light"] .btn-theme-toggle .icon-sun {
   display: inline-block;
+  color: #b8860b;
 }
 
+[data-theme="light"] .login-theme-toggle .icon-moon,
 [data-theme="light"] .btn-theme-toggle .icon-moon {
   display: none;
 }
 
-.toggle-track {
-  width: 28px;
-  height: 16px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 999px;
-  position: relative;
-  transition: background 0.2s ease;
+[data-theme="light"] .login-theme-toggle,
+[data-theme="light"] .btn-theme-toggle {
+  background: #ffffff;
+  border: 1px solid rgba(212, 175, 55, 0.6);
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.toggle-thumb {
-  width: 12px;
-  height: 12px;
-  background: var(--gold-primary);
-  border-radius: 50%;
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  transition: transform 0.2s ease, background 0.2s ease;
+[data-theme="light"] .login-theme-toggle:hover,
+[data-theme="light"] .btn-theme-toggle:hover {
+  background: #f8fafc;
+  border-color: #b89327;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
 }
 
-.btn-theme-toggle.active .toggle-track,
-[data-theme="dark"] .toggle-track {
-  background: rgba(212, 175, 55, 0.3);
-}
-
-.btn-theme-toggle.active .toggle-thumb,
-[data-theme="dark"] .toggle-thumb {
-  transform: translateX(12px);
-  background: var(--gold-light);
-}
-
-[data-theme="light"] .toggle-track {
-  background: #cbd5e1;
-}
-
-[data-theme="light"] .toggle-thumb {
-  transform: translateX(0);
-  background: #475569;
-}
 
 /* ============================================================
    MOCKUP COURSES GRID (Dashboard Layout)

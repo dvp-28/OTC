@@ -1652,6 +1652,48 @@
             color: #ffffff;
             border-color: #880015;
         }
+
+        /* Institutional Banner & Top Bar Theme Switcher (Identical to Login Page) */
+        .login-theme-toggle {
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            color: #ffffff;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.76rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            z-index: 30;
+        }
+
+        .login-theme-toggle:hover {
+            background: rgba(0, 0, 0, 0.75);
+            border-color: #d4af37;
+            box-shadow: 0 0 12px rgba(212, 175, 55, 0.45);
+        }
+
+        .login-theme-toggle .icon-sun { display: none; }
+        .login-theme-toggle .icon-moon { display: inline-block; }
+        [data-theme="light"] .login-theme-toggle .icon-sun { display: inline-block; color: #b8860b; }
+        [data-theme="light"] .login-theme-toggle .icon-moon { display: none; }
+
+        [data-theme="light"] .login-theme-toggle {
+            background: #ffffff;
+            border: 1px solid rgba(212, 175, 55, 0.6);
+            color: #0f172a;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="light"] .login-theme-toggle:hover {
+            background: #f8fafc;
+            border-color: #b89327;
+            box-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
+        }
     </style>
 </head>
 <body>
@@ -1673,12 +1715,11 @@
         </div>
 
         <div class="header-actions">
-            <!-- Theme Toggle Button -->
-            <button class="btn-theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme (Dark / Normal)">
+            <!-- Quick Theme Switcher (Same as Login Page) -->
+            <button class="login-theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme (Dark / Light)">
                 <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
                 <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                <span id="theme-label-text">Dark Mode</span>
-                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                <span id="theme-label-text">Dark</span>
             </button>
 
             <!-- Administration Quick Actions Settings Button (Top-Right) -->
@@ -2005,15 +2046,6 @@
                         <button type="button" class="btn-slider-ctrl btn-slider-add" id="cmd-slider-add-btn" onclick="openAddCommanderModal()" title="Add Previous Commander Image" aria-label="Add Commander Image" style="display: none;">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                             <span>Add Image</span>
-                        </button>
-                        <button type="button" class="btn-slider-ctrl" id="cmd-slider-toggle-btn" onclick="toggleCommanderSliderPlay()" title="Pause / Resume Auto-Scroll" aria-label="Toggle Auto-Scroll">
-                            <span id="cmd-slider-icon-pause" class="slider-ctrl-icon">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-                            </span>
-                            <span id="cmd-slider-icon-play" class="slider-ctrl-icon" style="display:none;">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                            </span>
-                            <span id="cmd-slider-status-text">Pause</span>
                         </button>
                         <div class="slider-nav-arrows">
                             <button type="button" class="btn-slider-arrow" id="cmd-slider-prev-btn" onclick="stepCommanderSlider(-1)" title="Scroll Previous" aria-label="Previous">

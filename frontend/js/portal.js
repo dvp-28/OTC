@@ -103,10 +103,16 @@ async function logout() {
     window.location.href = '/login.html';
 }
 
-// Theme Engine (Dark / Normal Light Mode)
+// Theme Engine (Dark / Light Mode - Matching Login Page)
 function initTheme() {
     const savedTheme = localStorage.getItem('dronacharya_theme') || localStorage.getItem('ekalavya_theme') || 'dark';
     applyTheme(savedTheme);
+
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    if (themeBtn && !themeBtn._themeBound) {
+        themeBtn.addEventListener('click', toggleTheme);
+        themeBtn._themeBound = true;
+    }
 }
 
 function toggleTheme() {
@@ -129,10 +135,10 @@ function applyTheme(theme) {
     }
 
     const label = document.getElementById('theme-label-text');
-    if (label) label.textContent = theme === 'dark' ? 'Dark Mode' : 'Normal Mode';
+    if (label) label.textContent = theme === 'dark' ? 'Dark' : 'Light';
 
     const menuText = document.getElementById('menu-theme-text');
-    if (menuText) menuText.textContent = theme === 'dark' ? 'Dark Mode' : 'Normal (White)';
+    if (menuText) menuText.textContent = theme === 'dark' ? 'Dark' : 'Light';
 
     const toggleBtn = document.getElementById('theme-toggle-btn');
     if (toggleBtn) {
