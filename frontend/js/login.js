@@ -1,16 +1,23 @@
 // Dronacharya LMS - Secure Login Handler
 document.addEventListener('DOMContentLoaded', () => {
     // Apply saved theme preference (Dark / Light)
+    let _themeToggling = false;
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    if (themeBtn) {
+        themeBtn.onclick = toggleTheme;
+    }
+
     const savedTheme = localStorage.getItem('dronacharya_theme') || localStorage.getItem('ekalavya_theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     updateThemeLabel(savedTheme);
 
-    const themeBtn = document.getElementById('theme-toggle-btn');
-    if (themeBtn) {
-        themeBtn.addEventListener('click', toggleTheme);
-    }
+    function toggleTheme(e) {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (_themeToggling) return;
+        _themeToggling = true;
+        setTimeout(() => { _themeToggling = false; }, 200);
 
-    function toggleTheme() {
         const current = document.documentElement.getAttribute('data-theme') || 'dark';
         const next = current === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', next);
@@ -22,7 +29,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateThemeLabel(theme) {
         const label = document.getElementById('theme-label-text');
         if (label) {
-            label.textContent = theme === 'dark' ? 'Dark' : 'Light';
+            label.textContent = theme === 'dark' ? 'Light' : 'Dark';
+        }
+        if (themeBtn) {
+            themeBtn.setAttribute('title', theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme');
         }
     }
 

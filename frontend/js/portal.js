@@ -104,23 +104,31 @@ async function logout() {
 }
 
 // Theme Engine (Dark / Light Mode - Matching Login Page)
-function initTheme() {
-    const savedTheme = localStorage.getItem('dronacharya_theme') || localStorage.getItem('ekalavya_theme') || 'dark';
-    applyTheme(savedTheme);
+let _themeToggling = false;
 
-    const themeBtn = document.getElementById('theme-toggle-btn');
-    if (themeBtn && !themeBtn._themeBound) {
-        themeBtn.addEventListener('click', toggleTheme);
-        themeBtn._themeBound = true;
-    }
-}
+function toggleTheme(e) {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (_themeToggling) return;
+    _themeToggling = true;
+    setTimeout(() => { _themeToggling = false; }, 200);
 
-function toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     localStorage.setItem('dronacharya_theme', newTheme);
     localStorage.setItem('ekalavya_theme', newTheme);
     applyTheme(newTheme);
+}
+window.toggleTheme = toggleTheme;
+
+function initTheme() {
+    const savedTheme = localStorage.getItem('dronacharya_theme') || localStorage.getItem('ekalavya_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    if (themeBtn) {
+        themeBtn.onclick = toggleTheme;
+    }
 }
 
 function applyTheme(theme) {
@@ -134,18 +142,21 @@ function applyTheme(theme) {
         document.body.classList.remove('theme-light');
     }
 
+    // Action label: In dark mode, show "Light" (action to switch to light).
+    // In light mode, show "Dark" (action to switch to dark).
     const label = document.getElementById('theme-label-text');
-    if (label) label.textContent = theme === 'dark' ? 'Dark' : 'Light';
+    if (label) label.textContent = theme === 'dark' ? 'Light' : 'Dark';
 
     const menuText = document.getElementById('menu-theme-text');
-    if (menuText) menuText.textContent = theme === 'dark' ? 'Dark' : 'Light';
+    if (menuText) menuText.textContent = theme === 'dark' ? 'Light' : 'Dark';
 
     const toggleBtn = document.getElementById('theme-toggle-btn');
     if (toggleBtn) {
+        toggleBtn.setAttribute('title', theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme');
         if (theme === 'dark') {
-            toggleBtn.classList.add('active');
-        } else {
             toggleBtn.classList.remove('active');
+        } else {
+            toggleBtn.classList.add('active');
         }
     }
 }

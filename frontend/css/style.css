@@ -1795,27 +1795,28 @@ select option:checked {
   box-shadow: 0 0 12px rgba(212, 175, 55, 0.45);
 }
 
+/* In Dark mode: show Sun icon (Action: switch to Light mode) */
 .login-theme-toggle .icon-sun,
 .btn-theme-toggle .icon-sun {
-  display: none;
+  display: inline-block;
   color: #f59e0b;
 }
 
 .login-theme-toggle .icon-moon,
 .btn-theme-toggle .icon-moon {
-  display: inline-block;
-  color: var(--gold-light);
+  display: none;
 }
 
+/* In Light mode: show Moon icon (Action: switch to Dark mode) */
 [data-theme="light"] .login-theme-toggle .icon-sun,
 [data-theme="light"] .btn-theme-toggle .icon-sun {
-  display: inline-block;
-  color: #b8860b;
+  display: none;
 }
 
 [data-theme="light"] .login-theme-toggle .icon-moon,
 [data-theme="light"] .btn-theme-toggle .icon-moon {
-  display: none;
+  display: inline-block;
+  color: #8b1e2f;
 }
 
 [data-theme="light"] .login-theme-toggle,
