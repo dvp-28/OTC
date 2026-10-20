@@ -2197,10 +2197,10 @@ function escJs(str) {
 // ============================================================
 // PREVIOUS COMMANDERS AUTO-SLIDER, LIGHTBOX & UPLOAD
 // ============================================================
-let cmdSliderPlaying = true;
-let cmdSliderUserPaused = false;
+let cmdSliderPlaying = false; // Auto-scrolling disabled per user requirement
+let cmdSliderUserPaused = true;
 let cmdSliderRafId = null;
-const cmdSliderSpeed = 0.75; // px per frame (~45px/sec)
+const cmdSliderSpeed = 0;
 let cmdLightboxIndex = 0;
 let allCommanders = [];
 let cmdSliderInitialized = false;
@@ -2258,7 +2258,7 @@ function renderCommandersTrack() {
         allCommanders.forEach((cmd, idx) => {
             const safeTitle = esc(cmd.title || 'Previous Commander of Officers Training College');
             cardsHtml += `
-                <div class="commander-card" onclick="openCommanderLightbox(${idx})" title="View Portrait">
+                <div class="commander-card" data-idx="${idx}" onclick="openCommanderLightbox(${idx})" title="View Portrait">
                     <div class="commander-img-frame">
                         <img src="${esc(cmd.image_url)}" alt="${safeTitle}" loading="lazy" class="commander-portrait" onerror="this.src='previouscomd/1.jpg'">
                     </div>
@@ -2276,19 +2276,82 @@ async function initCommandersSlider() {
     if (!track || !viewport) return;
 
     cmdSliderInitialized = true;
+    cmdSliderPlaying = false;
+    cmdSliderUserPaused = true;
 
     await fetchCommandersList();
     renderCommandersTrack();
 
-    // Hover pauses auto-scroll
-    viewport.addEventListener('mouseenter', () => {
-        cmdSliderPlaying = false;
-    });
-    viewport.addEventListener('mouseleave', () => {
-        if (!cmdSliderUserPaused) {
-            cmdSliderPlaying = true;
+    // Attach click events to nav arrow buttons (< and >)
+    const prevBtn = document.getElementById('cmd-slider-prev-btn');
+    const nextBtn = document.getElementById('cmd-slider-next-btn');
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            stepCommanderSlider(-1);
+        });
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            stepCommanderSlider(1);
+        });
+    }
+
+    // Attach delegated click on track for opening lightbox
+    track.addEventListener('click', (e) => {
+        const card = e.target.closest('.commander-card');
+        if (card) {
+            const idx = card.getAttribute('data-idx');
+            if (idx !== null) {
+                openCommanderLightbox(parseInt(idx));
+            }
         }
     });
+
+    // Attach listeners to lightbox modal controls
+    const lbCloseBtn = document.getElementById('cmd-lightbox-close-btn');
+    const lbPrevBtn = document.getElementById('cmd-lightbox-prev-btn');
+    const lbNextBtn = document.getElementById('cmd-lightbox-next-btn');
+    const lbModal = document.getElementById('commander-lightbox-modal');
+
+    if (lbCloseBtn) {
+        lbCloseBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeCommanderLightbox();
+        });
+    }
+    if (lbPrevBtn) {
+        lbPrevBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateCommanderLightbox(-1);
+        });
+    }
+    if (lbNextBtn) {
+        lbNextBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateCommanderLightbox(1);
+        });
+    }
+    if (lbModal) {
+        lbModal.addEventListener('click', (e) => {
+            if (e.target === lbModal) closeCommanderLightbox();
+        });
+    }
+
+    // Normalizing wrap on user scroll (drag or touch)
+    viewport.addEventListener('scroll', () => {
+        const halfWidth = track.scrollWidth / 2;
+        if (halfWidth > 0) {
+            if (viewport.scrollLeft >= halfWidth * 1.5) {
+                viewport.scrollLeft -= halfWidth;
+            } else if (viewport.scrollLeft < 0) {
+                viewport.scrollLeft += halfWidth;
+            }
+        }
+    }, { passive: true });
 
     // Mouse drag support
     let isMouseDown = false;
@@ -2297,18 +2360,12 @@ async function initCommandersSlider() {
 
     viewport.addEventListener('mousedown', (e) => {
         isMouseDown = true;
-        cmdSliderPlaying = false;
         startX = e.pageX - viewport.offsetLeft;
         scrollLeftStart = viewport.scrollLeft;
     });
 
     window.addEventListener('mouseup', () => {
-        if (isMouseDown) {
-            isMouseDown = false;
-            if (!cmdSliderUserPaused) {
-                cmdSliderPlaying = true;
-            }
-        }
+        isMouseDown = false;
     });
 
     viewport.addEventListener('mousemove', (e) => {
@@ -2323,7 +2380,6 @@ async function initCommandersSlider() {
     let touchStartX = 0;
     let touchScrollStart = 0;
     viewport.addEventListener('touchstart', (e) => {
-        cmdSliderPlaying = false;
         touchStartX = e.touches[0].pageX;
         touchScrollStart = viewport.scrollLeft;
     }, { passive: true });
@@ -2334,53 +2390,21 @@ async function initCommandersSlider() {
         viewport.scrollLeft = touchScrollStart - walk;
     }, { passive: true });
 
-    viewport.addEventListener('touchend', () => {
-        if (!cmdSliderUserPaused) {
-            cmdSliderPlaying = true;
-        }
-    });
-
     initCommanderUploadDropzone();
-    startCommanderSliderLoop();
 }
 
 function startCommanderSliderLoop() {
-    if (cmdSliderRafId) cancelAnimationFrame(cmdSliderRafId);
-
-    function step() {
-        const viewport = document.getElementById('cmd-slider-viewport');
-        const track = document.getElementById('cmd-slider-track');
-        if (viewport && track) {
-            const halfWidth = track.scrollWidth / 2;
-            if (cmdSliderPlaying && halfWidth > 0) {
-                viewport.scrollLeft += cmdSliderSpeed;
-                if (viewport.scrollLeft >= halfWidth) {
-                    viewport.scrollLeft -= halfWidth;
-                }
-            }
-        }
-        cmdSliderRafId = requestAnimationFrame(step);
+    // Auto-scroll disabled per user request
+    if (cmdSliderRafId) {
+        cancelAnimationFrame(cmdSliderRafId);
+        cmdSliderRafId = null;
     }
-    cmdSliderRafId = requestAnimationFrame(step);
 }
 
 function toggleCommanderSliderPlay() {
+    // Kept for backward compatibility if ever called
     cmdSliderUserPaused = !cmdSliderUserPaused;
     cmdSliderPlaying = !cmdSliderUserPaused;
-
-    const iconPause = document.getElementById('cmd-slider-icon-pause');
-    const iconPlay = document.getElementById('cmd-slider-icon-play');
-    const statusText = document.getElementById('cmd-slider-status-text');
-
-    if (cmdSliderPlaying) {
-        if (iconPause) iconPause.style.display = 'inline';
-        if (iconPlay) iconPlay.style.display = 'none';
-        if (statusText) statusText.textContent = 'Pause';
-    } else {
-        if (iconPause) iconPause.style.display = 'none';
-        if (iconPlay) iconPlay.style.display = 'inline';
-        if (statusText) statusText.textContent = 'Play';
-    }
 }
 
 function stepCommanderSlider(direction) {
@@ -2388,18 +2412,20 @@ function stepCommanderSlider(direction) {
     const track = document.getElementById('cmd-slider-track');
     if (!viewport || !track) return;
 
-    const stepSize = 380; // step by approx 2 cards
+    const card = track.querySelector('.commander-card');
+    const cardWidth = card ? (card.offsetWidth + 18) : 200;
+    const stepSize = cardWidth * 2; // step by 2 cards (~400px)
     const halfWidth = track.scrollWidth / 2;
 
-    viewport.scrollBy({ left: direction * stepSize, behavior: 'smooth' });
+    if (direction < 0 && viewport.scrollLeft <= stepSize) {
+        // Wrap to second identical set before scrolling left
+        viewport.scrollLeft += halfWidth;
+    } else if (direction > 0 && viewport.scrollLeft >= halfWidth - stepSize) {
+        // Wrap to first identical set before scrolling right
+        viewport.scrollLeft -= halfWidth;
+    }
 
-    setTimeout(() => {
-        if (viewport.scrollLeft >= halfWidth) {
-            viewport.scrollLeft -= halfWidth;
-        } else if (viewport.scrollLeft <= 0) {
-            viewport.scrollLeft += halfWidth;
-        }
-    }, 450);
+    viewport.scrollBy({ left: direction * stepSize, behavior: 'smooth' });
 }
 
 // Lightbox modal methods
