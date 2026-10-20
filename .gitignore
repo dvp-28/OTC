@@ -37,6 +37,7 @@ dbdata/
 mysql-data/
 uploads/
 uploaddata/
+backups/
 
 # ---------------------------------------------------------------------
 # Dependencies & Package Manager Artifacts

@@ -14,6 +14,9 @@ name: ekalavya
 services:
   proxy:
     image: nginx:1.27-alpine
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
     ports:
       - "80:80"
       - "443:443"
@@ -28,6 +31,9 @@ services:
 
   web:
     image: nginx:1.27-alpine
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
     volumes:
       - ./docker/web/moodle.conf:/etc/nginx/conf.d/default.conf:ro
       - ./moodle-src:/var/www/moodle:ro
@@ -40,12 +46,16 @@ services:
 
   php:
     build: ./docker/php
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1024m
     env_file: .env
     volumes:
       - ./moodle-src:/var/www/moodle
       - ./api:/var/www/moodle/public/api:ro
       - ./config/config.php:/var/www/moodle/config.php:ro
       - ./scripts:/opt/ekalavya/scripts:ro
+      - ./docker/php/moodle.ini:/usr/local/etc/php/conf.d/zz-moodle.ini:ro
       - moodledata:/var/www/moodledata
       - localcache:/var/www/localcache
     depends_on:
@@ -58,6 +68,9 @@ services:
 
   cron:
     build: ./docker/php
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
     env_file: .env
     user: www-data
     command: ["bash", "/opt/ekalavya/scripts/cron-loop.sh"]
@@ -65,6 +78,7 @@ services:
       - ./moodle-src:/var/www/moodle
       - ./config/config.php:/var/www/moodle/config.php:ro
       - ./scripts:/opt/ekalavya/scripts:ro
+      - ./docker/php/moodle.ini:/usr/local/etc/php/conf.d/zz-moodle.ini:ro
       - moodledata:/var/www/moodledata
       - localcache:/var/www/localcache
     depends_on:
@@ -74,13 +88,19 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: ["sh", "-c", "redis-server --requirepass \"$$REDIS_PASSWORD\" --save '' --appendonly no"]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    command: ["sh", "-c", "redis-server --requirepass \"$$REDIS_PASSWORD\" --protected-mode yes --rename-command FLUSHALL \"\" --rename-command FLUSHDB \"\" --rename-command CONFIG \"\" --rename-command SHUTDOWN \"\" --rename-command DEBUG \"\" --save '' --appendonly no"]
     env_file: .env
     networks: [app]
     restart: unless-stopped
 
   db:
     image: mysql:8.4
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 2048m
     env_file: .env
     environment:
       MYSQL_DATABASE: ${DB_NAME}

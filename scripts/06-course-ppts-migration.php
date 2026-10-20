@@ -8,7 +8,11 @@
 $host = getenv('DB_HOST') ?: 'db';
 $dbname = getenv('DB_NAME') ?: 'moodle';
 $user = getenv('DB_USER') ?: 'moodle';
-$pass = getenv('DB_PASS') ?: 'Ek@l4vya#Db!Pass2026';
+$pass = getenv('DB_PASS');
+if (empty($pass)) {
+    fwrite(STDERR, "Database configuration error: DB_PASS environment variable is required.\n");
+    exit(1);
+}
 
 echo "=== Ekalavya LMS: Course PPTs Migration ===\n";
 
