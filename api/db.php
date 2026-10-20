@@ -480,3 +480,72 @@ function require_csrf_token(string $action): void {
     }
 }
 
+// Ensure persistent security audit log table exists (SEC-F01)
+function ensure_audit_table(mysqli $mysqli): void {
+    static $ensured = false;
+    if ($ensured) return;
+
+    $mysqli->query("
+        CREATE TABLE IF NOT EXISTS mdl_ek_audit (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            user_id BIGINT DEFAULT NULL,
+            username VARCHAR(100) DEFAULT NULL,
+            event_type VARCHAR(50) NOT NULL,
+            target_type VARCHAR(50) DEFAULT NULL,
+            target_id VARCHAR(50) DEFAULT NULL,
+            ip_address VARCHAR(45) NOT NULL,
+            user_agent VARCHAR(255) DEFAULT NULL,
+            details TEXT DEFAULT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'SUCCESS',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_user_time (user_id, created_at),
+            INDEX idx_event (event_type, created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+    $ensured = true;
+}
+
+// Log security-relevant audit event (SEC-F01)
+function log_audit_event(
+    mysqli $mysqli,
+    string $eventType,
+    ?string $targetType = null,
+    ?string $targetId = null,
+    ?array $details = null,
+    string $status = 'SUCCESS',
+    ?array $user = null
+): void {
+    try {
+        ensure_audit_table($mysqli);
+
+        if ($user === null) {
+            $user = get_current_user_session();
+        }
+        $userId = $user ? (int)($user['id'] ?? 0) : null;
+        if ($userId <= 0) $userId = null;
+        $username = $user ? ($user['username'] ?? null) : null;
+        $ip = get_client_ip();
+        $userAgent = substr($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown', 0, 255);
+
+        // Strictly purge sensitive credentials before recording details
+        if ($details !== null) {
+            unset($details['password'], $details['csrf_token'], $details['token'], $details['pass']);
+        }
+        $detailsJson = $details ? json_encode($details, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
+
+        $stmt = $mysqli->prepare("
+            INSERT INTO mdl_ek_audit 
+            (user_id, username, event_type, target_type, target_id, ip_address, user_agent, details, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        if ($stmt) {
+            $stmt->bind_param('issssssss', $userId, $username, $eventType, $targetType, $targetId, $ip, $userAgent, $detailsJson, $status);
+            $stmt->execute();
+            $stmt->close();
+        }
+    } catch (Throwable $e) {
+        error_log("Audit logging error: " . $e->getMessage());
+    }
+}
+
+

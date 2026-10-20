@@ -505,6 +505,7 @@ try {
             // Check IP rate limit and temporary account lockout (SEC-A02)
             $lockoutMessage = check_login_lockout($username, $clientIp);
             if ($lockoutMessage !== null) {
+                log_audit_event($mysqli, 'AUTH_LOGIN_BLOCKED', 'user', $username, ['reason' => $lockoutMessage], 'BLOCKED');
                 http_response_code(429);
                 echo json_encode(['status' => 'error', 'message' => $lockoutMessage]);
                 break;
@@ -533,10 +534,12 @@ try {
             if (!$isAccountActive || !$valid) {
                 $failCount = record_login_failure($username, $clientIp);
                 if ($failCount >= 5) {
+                    log_audit_event($mysqli, 'AUTH_ACCOUNT_LOCKED', 'user', $username, ['ip' => $clientIp, 'fail_count' => $failCount], 'BLOCKED');
                     http_response_code(429);
                     echo json_encode(['status' => 'error', 'message' => 'Account is temporarily locked due to multiple failed login attempts. Please try again in 30 minutes.']);
                     break;
                 }
+                log_audit_event($mysqli, 'AUTH_LOGIN_FAILED', 'user', $username, ['ip' => $clientIp, 'fail_count' => $failCount], 'FAILURE');
                 http_response_code(401);
                 echo json_encode(['status' => 'error', 'message' => 'Invalid username or password']);
                 break;
@@ -662,6 +665,7 @@ try {
                 'can_delete_course' => ($role === 'instituteadmin'),
             ];
             $_SESSION['ek_user'] = $sessionUser;
+            log_audit_event($mysqli, 'AUTH_LOGIN_SUCCESS', 'user', (string)$user['id'], ['username' => $user['username'], 'role' => $role], 'SUCCESS', $sessionUser);
 
             echo json_encode([
                 'status' => 'success',
@@ -675,6 +679,10 @@ try {
         // AUTH: Logout
         // =====================================================================
         case 'logout':
+            $currentUser = get_current_user_session();
+            if ($currentUser) {
+                log_audit_event($mysqli, 'AUTH_LOGOUT', 'user', (string)($currentUser['id'] ?? 0), ['username' => $currentUser['username'] ?? ''], 'SUCCESS', $currentUser);
+            }
             $_SESSION = [];
             if (session_id()) {
                 session_destroy();
@@ -732,6 +740,89 @@ try {
                         'users' => $userCount
                     ],
                     'server_time' => date('Y-m-d H:i:s T')
+                ]
+            ]);
+            break;
+
+        // =====================================================================
+        // AUDIT LOGS: Query security audit trail (Institute Admin ONLY - SEC-F01)
+        // =====================================================================
+        case 'audit-logs':
+            $currentUser = require_role(['instituteadmin']);
+            ensure_audit_table($mysqli);
+
+            $page = max(1, (int)($_GET['page'] ?? 1));
+            $limit = isset($_GET['limit']) ? max(1, min((int)$_GET['limit'], 200)) : 50;
+            $offset = ($page - 1) * $limit;
+
+            $eventType = trim($_GET['event_type'] ?? '');
+            $userIdFilter = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 0;
+
+            $whereParts = [];
+            $params = [];
+            $types = '';
+
+            if (!empty($eventType)) {
+                $whereParts[] = "event_type = ?";
+                $params[] = $eventType;
+                $types .= 's';
+            }
+            if ($userIdFilter > 0) {
+                $whereParts[] = "user_id = ?";
+                $params[] = $userIdFilter;
+                $types .= 'i';
+            }
+
+            $whereSql = !empty($whereParts) ? 'WHERE ' . implode(' AND ', $whereParts) : '';
+
+            // Total count
+            $countSql = "SELECT COUNT(*) as total FROM mdl_ek_audit {$whereSql}";
+            if (!empty($params)) {
+                $cStmt = $mysqli->prepare($countSql);
+                $cStmt->bind_param($types, ...$params);
+                $cStmt->execute();
+                $cRes = $cStmt->get_result()->fetch_assoc();
+                $total = (int)($cRes['total'] ?? 0);
+                $cStmt->close();
+            } else {
+                $cRes = $mysqli->query($countSql)->fetch_assoc();
+                $total = (int)($cRes['total'] ?? 0);
+            }
+
+            // Data
+            $dataSql = "
+                SELECT id, user_id, username, event_type, target_type, target_id, ip_address, user_agent, details, status, created_at
+                FROM mdl_ek_audit
+                {$whereSql}
+                ORDER BY id DESC
+                LIMIT ? OFFSET ?
+            ";
+            $dataParams = array_merge($params, [$limit, $offset]);
+            $dataTypes = $types . 'ii';
+
+            $dStmt = $mysqli->prepare($dataSql);
+            $dStmt->bind_param($dataTypes, ...$dataParams);
+            $dStmt->execute();
+            $dRes = $dStmt->get_result();
+
+            $logs = [];
+            while ($row = $dRes->fetch_assoc()) {
+                if (!empty($row['details'])) {
+                    $decoded = json_decode($row['details'], true);
+                    $row['details'] = ($decoded !== null) ? $decoded : $row['details'];
+                }
+                $logs[] = $row;
+            }
+            $dStmt->close();
+
+            echo json_encode([
+                'status' => 'success',
+                'data' => $logs,
+                'pagination' => [
+                    'total' => $total,
+                    'page' => $page,
+                    'limit' => $limit,
+                    'pages' => $limit > 0 ? (int)ceil($total / $limit) : 1
                 ]
             ]);
             break;
@@ -830,6 +921,9 @@ try {
             $secStmt->bind_param('i', $courseId);
             $secStmt->execute();
             $secStmt->close();
+
+            $currentUser = get_current_user_session();
+            log_audit_event($mysqli, 'COURSE_CREATE', 'course', (string)$courseId, ['fullname' => $fullname, 'shortname' => $shortname], 'SUCCESS', $currentUser);
 
             echo json_encode([
                 'status' => 'success',
@@ -940,6 +1034,8 @@ try {
                 $delCrs->close();
 
                 $mysqli->commit();
+                $currentUser = get_current_user_session();
+                log_audit_event($mysqli, 'COURSE_DELETE', 'course', (string)$courseId, ['fullname' => $course['fullname'], 'shortname' => $course['shortname']], 'SUCCESS', $currentUser);
 
                 // Clean up physical PPT files after transaction commit
                 foreach ($storedFilesToPurge as $sf) {
@@ -983,16 +1079,59 @@ try {
             break;
 
         // =====================================================================
-        // USERS: List all users (Institute Admin only)
+        // USERS: List all users with pagination and search caps (Institute Admin only - SEC-B05, SEC-F02)
         // =====================================================================
         case 'users':
-            require_role(['instituteadmin']);
-            $result = $mysqli->query("
+            $currentUser = require_role(['instituteadmin']);
+
+            $page = max(1, (int)($_GET['page'] ?? 1));
+            $limit = isset($_GET['limit']) ? max(1, min((int)$_GET['limit'], 200)) : 100;
+            $offset = ($page - 1) * $limit;
+            $search = trim($_GET['search'] ?? '');
+
+            $whereParts = ["u.deleted = 0", "u.id > 1", "u.id != 2", "u.username != 'siteadmin'"];
+            $params = [];
+            $types = '';
+
+            if (!empty($search)) {
+                $whereParts[] = "(u.username LIKE ? OR u.firstname LIKE ? OR u.lastname LIKE ? OR u.email LIKE ?)";
+                $like = '%' . $search . '%';
+                $params = [$like, $like, $like, $like];
+                $types = 'ssss';
+            }
+
+            $whereSql = 'WHERE ' . implode(' AND ', $whereParts);
+
+            // Count total matching records
+            $countSql = "SELECT COUNT(*) as total FROM mdl_user u {$whereSql}";
+            if (!empty($params)) {
+                $stmtCount = $mysqli->prepare($countSql);
+                $stmtCount->bind_param($types, ...$params);
+                $stmtCount->execute();
+                $cRes = $stmtCount->get_result()->fetch_assoc();
+                $total = (int)($cRes['total'] ?? 0);
+                $stmtCount->close();
+            } else {
+                $cRes = $mysqli->query($countSql)->fetch_assoc();
+                $total = (int)($cRes['total'] ?? 0);
+            }
+
+            // Fetch paginated records
+            $dataSql = "
                 SELECT u.id, u.username, u.firstname, u.lastname, u.email, u.phone1 AS mobile, u.suspended, u.lastaccess
                 FROM mdl_user u
-                WHERE u.deleted = 0 AND u.id > 1 AND u.id != 2 AND u.username != 'siteadmin'
+                {$whereSql}
                 ORDER BY u.id ASC
-            ");
+                LIMIT ? OFFSET ?
+            ";
+            $dataParams = array_merge($params, [$limit, $offset]);
+            $dataTypes = $types . 'ii';
+
+            $stmtData = $mysqli->prepare($dataSql);
+            $stmtData->bind_param($dataTypes, ...$dataParams);
+            $stmtData->execute();
+            $result = $stmtData->get_result();
+
             $stmtRoleInst = $mysqli->prepare("
                 SELECT r.shortname 
                 FROM mdl_role_assignments ra 
@@ -1056,7 +1195,30 @@ try {
                 $row['course_ids'] = $courseIds;
                 $users[] = $row;
             }
-            echo json_encode(['status' => 'success', 'data' => $users]);
+            $stmtData->close();
+            $stmtRoleInst->close();
+            $stmtRoleCourse->close();
+            $stmtCourses->close();
+
+            if ($page === 1) {
+                log_audit_event($mysqli, 'USER_ROSTER_VIEW', 'roster', null, [
+                    'page' => $page,
+                    'limit' => $limit,
+                    'total' => $total,
+                    'search' => $search ?: null
+                ], 'SUCCESS', $currentUser);
+            }
+
+            echo json_encode([
+                'status' => 'success',
+                'data' => $users,
+                'pagination' => [
+                    'total' => $total,
+                    'page' => $page,
+                    'limit' => $limit,
+                    'pages' => $limit > 0 ? (int)ceil($total / $limit) : 1
+                ]
+            ]);
             break;
 
         // =====================================================================
@@ -1068,7 +1230,7 @@ try {
                 echo json_encode(['status' => 'error', 'message' => 'POST required']);
                 break;
             }
-            require_role(['instituteadmin']);
+            $currentUser = require_role(['instituteadmin']);
 
             $username = trim($body['username'] ?? '');
             $firstname = trim($body['firstname'] ?? '');
@@ -1168,6 +1330,13 @@ try {
             foreach ($courseIds as $cId) {
                 assign_user_course_enrolment($mysqli, $newUserId, (int)$cId, $role);
             }
+
+            log_audit_event($mysqli, 'USER_CREATE', 'user', (string)$newUserId, [
+                'username' => $username,
+                'role' => $role,
+                'email' => $email,
+                'courses_assigned' => $courseIds
+            ], 'SUCCESS', $currentUser);
 
             echo json_encode([
                 'status' => 'success',
@@ -1313,6 +1482,17 @@ try {
                 }
             }
 
+            log_audit_event($mysqli, 'USER_UPDATE', 'user', (string)$userId, [
+                'target_username' => $targetUserRow['username'],
+                'firstname' => $firstname,
+                'lastname' => $lastname,
+                'email' => $email,
+                'suspended' => $suspended,
+                'role' => $role,
+                'password_changed' => !empty($password),
+                'course_ids' => $courseIds
+            ], 'SUCCESS', $currentUser);
+
             echo json_encode(['status' => 'success', 'message' => 'User updated successfully']);
             break;
 
@@ -1393,6 +1573,11 @@ try {
                 }
             }
 
+            log_audit_event($mysqli, 'USER_ROLE_CHANGE', 'user', (string)$userId, [
+                'target_username' => $targetUserRow['username'],
+                'new_role' => $role
+            ], 'SUCCESS', $currentUser);
+
             echo json_encode(['status' => 'success', 'message' => "Role updated to {$role}"]);
             break;
 
@@ -1434,7 +1619,7 @@ try {
                 echo json_encode(['status' => 'error', 'message' => 'POST required']);
                 break;
             }
-            require_role(['instituteadmin']);
+            $currentUser = require_role(['instituteadmin']);
 
             $userId = (int)($body['user_id'] ?? 0);
             $courseIds = [];
@@ -1454,6 +1639,10 @@ try {
                 assign_user_course_enrolment($mysqli, $userId, (int)$cId, 'student');
             }
 
+            log_audit_event($mysqli, 'USER_COURSE_ASSIGN', 'user', (string)$userId, [
+                'course_ids' => $courseIds
+            ], 'SUCCESS', $currentUser);
+
             echo json_encode(['status' => 'success', 'message' => 'Courses assigned successfully']);
             break;
 
@@ -1466,7 +1655,7 @@ try {
                 echo json_encode(['status' => 'error', 'message' => 'POST required']);
                 break;
             }
-            require_role(['instituteadmin']);
+            $currentUser = require_role(['instituteadmin']);
 
             $userId = (int)($body['user_id'] ?? 0);
             $courseId = (int)($body['course_id'] ?? 0);
@@ -1495,6 +1684,10 @@ try {
             }
             $delEnrolStmt->close();
             $enrolStmt->close();
+
+            log_audit_event($mysqli, 'USER_COURSE_REMOVE', 'user', (string)$userId, [
+                'course_id' => $courseId
+            ], 'SUCCESS', $currentUser);
 
             echo json_encode(['status' => 'success', 'message' => 'Course assignment removed']);
             break;
@@ -2027,6 +2220,15 @@ try {
 
             $finalExt = strtolower(pathinfo($origFilename, PATHINFO_EXTENSION));
 
+            log_audit_event($mysqli, 'PPT_UPLOAD', 'presentation', (string)$newPptId, [
+                'course_id' => $courseId,
+                'title' => $title,
+                'filename' => $origFilename,
+                'file_size' => $fileSize,
+                'has_media' => (bool)$hasMediaFile,
+                'media_type' => $mediaType
+            ], 'SUCCESS', $currentUser);
+
             echo json_encode([
                 'status' => 'success',
                 'message' => "Presentation '{$title}' uploaded successfully" . ($mediaType ? " with {$mediaType} lecture" : ""),
@@ -2121,6 +2323,13 @@ try {
             header('Cache-Control: private, must-revalidate, max-age=0', true);
             header('Pragma: public', true);
             header('X-Content-Type-Options: nosniff', true);
+
+            log_audit_event($mysqli, 'PPT_DOWNLOAD', 'presentation', (string)$pptId, [
+                'course_id' => $courseId,
+                'filename' => $ppt['original_filename'],
+                'file_size' => $fileSize
+            ], 'SUCCESS', $currentUser);
+
             readfile($realPath);
             exit;
 
@@ -2196,6 +2405,15 @@ try {
                 break;
             }
 
+            $rangeHeader = $_SERVER['HTTP_RANGE'] ?? '';
+            if (empty($rangeHeader) || str_starts_with($rangeHeader, 'bytes=0-')) {
+                log_audit_event($mysqli, 'MEDIA_STREAM', 'presentation', (string)$pptId, [
+                    'course_id' => $courseId,
+                    'filename' => $targetFilename,
+                    'media_type' => $targetMime
+                ], 'SUCCESS', $currentUser);
+            }
+
             stream_media_file($targetMediaFile, $targetMime, $targetFilename);
             exit;
 
@@ -2262,6 +2480,11 @@ try {
             $delStmt->bind_param('i', $pptId);
             $delStmt->execute();
             $delStmt->close();
+
+            log_audit_event($mysqli, 'PPT_DELETE', 'presentation', (string)$pptId, [
+                'course_id' => $courseId,
+                'title' => $ppt['title']
+            ], 'SUCCESS', $currentUser);
 
             echo json_encode([
                 'status' => 'success',
@@ -2444,6 +2667,12 @@ try {
             $stmt->execute();
             $newDbId = (int)$stmt->insert_id;
             $stmt->close();
+
+            log_audit_event($mysqli, 'COMMANDER_UPLOAD', 'commander', (string)$newDbId, [
+                'title' => $cmdTitle,
+                'sub_title' => $cmdSub,
+                'filename' => $uniqueFilename
+            ], 'SUCCESS', $currentUser);
 
             echo json_encode([
                 'status' => 'success',
