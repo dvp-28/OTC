@@ -116,12 +116,57 @@ function extract_presentation_slide_count(string $filePath, string $ext): int {
     if ($ext === 'pptx' && class_exists('ZipArchive')) {
         $zip = new ZipArchive();
         if ($zip->open($filePath) === true) {
+            // Zip bomb protection: cap maximum entries, uncompressed size, and compression ratio (SEC-E03)
+            $maxEntries = 1000;
+            $maxTotalUncompressedSize = 100 * 1024 * 1024; // 100 MB
+            $maxRatio = 50;
+
+            if ($zip->numFiles > $maxEntries) {
+                $zip->close();
+                error_log("Zip bomb alert: PPTX {$filePath} has {$zip->numFiles} entries (exceeds {$maxEntries})");
+                return 1;
+            }
+
+            $totalUncompressed = 0;
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $stat = $zip->statIndex($i);
+                if ($stat) {
+                    $totalUncompressed += $stat['size'];
+                    $compSize = max(1, $stat['comp_size']);
+                    $ratio = $stat['size'] / $compSize;
+                    if ($ratio > $maxRatio && $stat['size'] > 1024 * 1024) {
+                        $zip->close();
+                        error_log("Zip bomb alert: high compression ratio {$ratio} on entry {$stat['name']}");
+                        return 1;
+                    }
+                }
+            }
+
+            if ($totalUncompressed > $maxTotalUncompressedSize) {
+                $zip->close();
+                error_log("Zip bomb alert: total uncompressed size {$totalUncompressed} exceeds 100MB limit");
+                return 1;
+            }
+
             // Check docProps/app.xml for authoritative <Slides>N</Slides>
             $appXml = $zip->getFromName('docProps/app.xml');
-            if ($appXml !== false && preg_match('/<Slides>(\d+)<\/Slides>/i', $appXml, $matches)) {
-                $count = (int)$matches[1];
-                $zip->close();
-                if ($count > 0) return $count;
+            if ($appXml !== false) {
+                // XXE safe parsing (SEC-E03)
+                $prevEntityLoader = null;
+                if (function_exists('libxml_disable_entity_loader')) {
+                    $prevEntityLoader = @libxml_disable_entity_loader(true);
+                }
+                if (preg_match('/<Slides>(\d+)<\/Slides>/i', $appXml, $matches)) {
+                    $count = (int)$matches[1];
+                    $zip->close();
+                    if ($prevEntityLoader !== null && function_exists('libxml_disable_entity_loader')) {
+                        @libxml_disable_entity_loader($prevEntityLoader);
+                    }
+                    if ($count > 0) return $count;
+                }
+                if ($prevEntityLoader !== null && function_exists('libxml_disable_entity_loader')) {
+                    @libxml_disable_entity_loader($prevEntityLoader);
+                }
             }
 
             // Fallback: count individual slide XML files ppt/slides/slide*.xml
@@ -190,15 +235,38 @@ function stream_media_file(string $filePath, string $mimeType, string $filename)
     $rangeHeader = $_SERVER['HTTP_RANGE'] ?? '';
     $isRange = false;
 
-    if (!empty($rangeHeader) && preg_match('/bytes=(\d+)-(\d*)/i', $rangeHeader, $matches)) {
-        $isRange = true;
-        $start = (int)$matches[1];
-        if (!empty($matches[2])) {
-            $end = (int)$matches[2];
+    if (!empty($rangeHeader)) {
+        // Multi-range requests (comma-separated, e.g. bytes=0-10,20-30) are not supported and can cause resource exhaustion (SEC-E05)
+        if (strpos($rangeHeader, ',') !== false) {
+            http_response_code(416);
+            header("Content-Range: bytes */{$size}");
+            exit;
+        }
+
+        if (preg_match('/^bytes=(\d*)-(\d*)$/i', trim($rangeHeader), $matches)) {
+            $isRange = true;
+            if ($matches[1] === '' && $matches[2] === '') {
+                http_response_code(416);
+                header("Content-Range: bytes */{$size}");
+                exit;
+            }
+            if ($matches[1] === '') {
+                // Suffix range: -500 means last 500 bytes
+                $suffix = (int)$matches[2];
+                $start = max(0, $size - $suffix);
+                $end = $size - 1;
+            } else {
+                $start = (int)$matches[1];
+                $end = ($matches[2] !== '') ? (int)$matches[2] : ($size - 1);
+            }
+        } else {
+            http_response_code(416);
+            header("Content-Range: bytes */{$size}");
+            exit;
         }
     }
 
-    if ($start > $end || $start >= $size) {
+    if ($start < 0 || $start > $end || $start >= $size) {
         http_response_code(416);
         header("Content-Range: bytes */{$size}");
         exit;
@@ -225,7 +293,9 @@ function stream_media_file(string $filePath, string $mimeType, string $filename)
     header("Content-Length: {$length}");
     header("Accept-Ranges: bytes");
     header("Content-Disposition: inline; filename=\"" . preg_replace('/[^\w\.\-]/', '_', basename($filename)) . "\"");
-    header("Cache-Control: public, max-age=86400");
+    header("Cache-Control: private, no-transform, no-store, must-revalidate");
+    header("Pragma: no-cache");
+    header("X-Content-Type-Options: nosniff");
 
     $fp = fopen($filePath, 'rb');
     if ($fp === false) {
@@ -1831,6 +1901,55 @@ try {
                     break;
                 }
 
+                // Verify file MIME type via finfo and magic bytes (SEC-E01)
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $detectedMime = finfo_file($finfo, $mFile['tmp_name']);
+                finfo_close($finfo);
+
+                $mHandle = @fopen($mFile['tmp_name'], 'rb');
+                $mBytes = $mHandle ? fread($mHandle, 16) : '';
+                if ($mHandle) fclose($mHandle);
+
+                $validMediaSignature = false;
+                if (in_array($mExt, ['mp4', 'm4a', 'mov'])) {
+                    if (substr($mBytes, 4, 4) === 'ftyp' || substr($mBytes, 4, 4) === 'moov') {
+                        $validMediaSignature = true;
+                    }
+                } elseif (in_array($mExt, ['webm', 'mkv'])) {
+                    if (substr($mBytes, 0, 4) === "\x1A\x45\xDF\xA3") {
+                        $validMediaSignature = true;
+                    }
+                } elseif ($mExt === 'mp3') {
+                    if (substr($mBytes, 0, 3) === 'ID3' || (ord($mBytes[0] ?? '') === 0xFF && (ord($mBytes[1] ?? '') & 0xE0) === 0xE0)) {
+                        $validMediaSignature = true;
+                    }
+                } elseif ($mExt === 'wav') {
+                    if (substr($mBytes, 0, 4) === 'RIFF' && substr($mBytes, 8, 4) === 'WAVE') {
+                        $validMediaSignature = true;
+                    }
+                } elseif (in_array($mExt, ['ogg', 'oga', 'ogv'])) {
+                    if (substr($mBytes, 0, 4) === 'OggS') {
+                        $validMediaSignature = true;
+                    }
+                } elseif ($mExt === 'flac') {
+                    if (substr($mBytes, 0, 4) === 'fLaC') {
+                        $validMediaSignature = true;
+                    }
+                }
+
+                if (!$validMediaSignature) {
+                    if (strpos($detectedMime, 'video/') === 0 || strpos($detectedMime, 'audio/') === 0) {
+                        $validMediaSignature = true;
+                    }
+                }
+
+                if (!$validMediaSignature) {
+                    if ($hasPptFile) @unlink($destinationPath);
+                    http_response_code(400);
+                    echo json_encode(['status' => 'error', 'message' => 'Uploaded media file content does not match a valid audio or video format']);
+                    break;
+                }
+
                 $mediaType = $mediaInfo['type'];
                 $mediaMime = $mediaInfo['mime'];
                 $mediaStoredFilename = sprintf("media_%d_%d_%s.%s", $courseId, time(), bin2hex(random_bytes(8)), $mExt);
@@ -2258,20 +2377,47 @@ try {
                 @mkdir($storageDir, 0775, true);
             }
 
-            $uniqueFilename = 'cmd_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
-            $destPath = $storageDir . '/' . $uniqueFilename;
+            // Re-encode image to strip EXIF metadata and neutralize polyglots (SEC-E02)
+            $srcImage = null;
+            if ($ext === 'jpg' || $ext === 'jpeg') {
+                $srcImage = @imagecreatefromjpeg($imgFile['tmp_name']);
+            } elseif ($ext === 'png') {
+                $srcImage = @imagecreatefrompng($imgFile['tmp_name']);
+            } elseif ($ext === 'webp') {
+                $srcImage = @imagecreatefromwebp($imgFile['tmp_name']);
+            }
 
-            if (!move_uploaded_file($imgFile['tmp_name'], $destPath)) {
-                http_response_code(500);
-                echo json_encode(['status' => 'error', 'message' => 'Failed to save commander portrait to storage directory']);
+            if (!$srcImage) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Failed to process and sanitize uploaded image']);
                 break;
             }
-            @chmod($destPath, 0644);
 
-            $frontendDir = '/var/www/frontend/previouscomd';
-            if (is_dir($frontendDir) && is_writable($frontendDir)) {
-                @copy($destPath, $frontendDir . '/' . $uniqueFilename);
+            $uniqueFilename = 'cmd_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . ($ext === 'jpeg' ? 'jpg' : $ext);
+            $destPath = $storageDir . '/' . $uniqueFilename;
+
+            // Re-encode and save to disk cleanly without EXIF / metadata
+            $saved = false;
+            if ($ext === 'jpg' || $ext === 'jpeg') {
+                $saved = imagejpeg($srcImage, $destPath, 90);
+                $mimeType = 'image/jpeg';
+            } elseif ($ext === 'png') {
+                imagealphablending($srcImage, false);
+                imagesavealpha($srcImage, true);
+                $saved = imagepng($srcImage, $destPath, 8);
+                $mimeType = 'image/png';
+            } elseif ($ext === 'webp') {
+                $saved = imagewebp($srcImage, $destPath, 90);
+                $mimeType = 'image/webp';
             }
+            imagedestroy($srcImage);
+
+            if (!$saved || !file_exists($destPath)) {
+                http_response_code(500);
+                echo json_encode(['status' => 'error', 'message' => 'Failed to sanitize and write image to persistent storage']);
+                break;
+            }
+            @chmod($destPath, 0640);
 
             $cmdTitle = trim($_POST['title'] ?? '');
             if (empty($cmdTitle)) {
