@@ -9,6 +9,10 @@ require_once($CFG->dirroot . '/cohort/lib.php');
 
 \core\cron::setup_user();
 
+if (getenv('APP_ENV') === 'production') {
+    cli_error("FATAL: Demo user creation is strictly disabled in production environment (APP_ENV=production).");
+}
+
 cli_heading('Creating Demo Users for Role-Based Login');
 
 // Helper: create or update user

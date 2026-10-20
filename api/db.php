@@ -249,3 +249,158 @@ function require_course_access(mysqli $mysqli, array $currentUser, int $courseId
         exit;
     }
 }
+
+// Client IP resolver respecting trusted reverse proxy
+function get_client_ip(): string {
+    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+        $ip = trim($ips[0]);
+        if (filter_var($ip, FILTER_VALIDATE_IP)) {
+            return $ip;
+        }
+    }
+    if (!empty($_SERVER['HTTP_X_REAL_IP']) && filter_var($_SERVER['HTTP_X_REAL_IP'], FILTER_VALIDATE_IP)) {
+        return $_SERVER['HTTP_X_REAL_IP'];
+    }
+    return $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+}
+
+// Redis client connector with credentials from environment
+function get_redis_connection(): ?Redis {
+    static $redis = null;
+    static $attempted = false;
+    if ($attempted) {
+        return $redis;
+    }
+    $attempted = true;
+
+    if (!class_exists('Redis')) {
+        return null;
+    }
+
+    try {
+        $client = new Redis();
+        $host = getenv('REDIS_HOST') ?: 'redis';
+        $port = (int)(getenv('REDIS_PORT') ?: 6379);
+        $pass = getenv('REDIS_PASSWORD');
+
+        if ($client->connect($host, $port, 1.5)) {
+            if (!empty($pass)) {
+                $client->auth($pass);
+            }
+            $redis = $client;
+        }
+    } catch (Throwable $e) {
+        error_log("Redis connection error: " . $e->getMessage());
+        $redis = null;
+    }
+
+    return $redis;
+}
+
+// Server-side password policy validator enforcing 12+ chars and complexity (SEC-A06)
+function validate_password_policy(string $password, ?string &$errorMsg = null): bool {
+    if (strlen($password) < 12) {
+        $errorMsg = 'Password must be at least 12 characters long';
+        return false;
+    }
+    if (!preg_match('/[a-z]/', $password)) {
+        $errorMsg = 'Password must include at least one lowercase letter';
+        return false;
+    }
+    if (!preg_match('/[A-Z]/', $password)) {
+        $errorMsg = 'Password must include at least one uppercase letter';
+        return false;
+    }
+    if (!preg_match('/[0-9]/', $password)) {
+        $errorMsg = 'Password must include at least one numerical digit';
+        return false;
+    }
+    if (!preg_match('/[^a-zA-Z0-9]/', $password)) {
+        $errorMsg = 'Password must include at least one special character';
+        return false;
+    }
+    return true;
+}
+
+// Check Redis-backed login lockout (SEC-A02)
+function check_login_lockout(string $username, string $ip): ?string {
+    $redis = get_redis_connection();
+    if (!$redis) {
+        return null; // Graceful fallback
+    }
+
+    try {
+        // IP rate limit: max 30 attempts per minute
+        $ipKey = "ek_ratelimit_ip:{$ip}";
+        $ipAttempts = (int)$redis->get($ipKey);
+        if ($ipAttempts >= 30) {
+            return "Too many requests from this IP address. Please wait a minute before retrying.";
+        }
+
+        // Account lockout check (lockoutduration = 1800s per 02-harden.sh)
+        $cleanUser = strtolower(trim($username));
+        $lockKey = "ek_lock_user:{$cleanUser}";
+        $isLocked = $redis->get($lockKey);
+        if ($isLocked) {
+            $ttl = $redis->ttl($lockKey);
+            $mins = ceil(($ttl > 0 ? $ttl : 1800) / 60);
+            return "Account is temporarily locked due to multiple failed login attempts. Please try again in {$mins} minutes.";
+        }
+    } catch (Throwable $e) {
+        error_log("Redis lockout check error: " . $e->getMessage());
+    }
+
+    return null;
+}
+
+// Record login failure and trigger lockout after 5 attempts (SEC-A02)
+function record_login_failure(string $username, string $ip): int {
+    $redis = get_redis_connection();
+    if (!$redis) {
+        return 0;
+    }
+
+    try {
+        // Increment IP rate limit
+        $ipKey = "ek_ratelimit_ip:{$ip}";
+        $ipCount = $redis->incr($ipKey);
+        if ($ipCount === 1) {
+            $redis->expire($ipKey, 60);
+        }
+
+        // Increment username fail count
+        $cleanUser = strtolower(trim($username));
+        $failKey = "ek_fail_user:{$cleanUser}";
+        $fails = $redis->incr($failKey);
+        if ($fails === 1) {
+            $redis->expire($failKey, 1800); // 30 min window
+        }
+
+        if ($fails >= 5) {
+            $lockKey = "ek_lock_user:{$cleanUser}";
+            $redis->setex($lockKey, 1800, '1'); // Lock for 30 minutes
+        }
+
+        return $fails;
+    } catch (Throwable $e) {
+        error_log("Redis failure record error: " . $e->getMessage());
+        return 0;
+    }
+}
+
+// Clear login failures on successful authentication
+function clear_login_failures(string $username): void {
+    $redis = get_redis_connection();
+    if (!$redis) {
+        return;
+    }
+
+    try {
+        $cleanUser = strtolower(trim($username));
+        $redis->del("ek_fail_user:{$cleanUser}");
+        $redis->del("ek_lock_user:{$cleanUser}");
+    } catch (Throwable $e) {
+        error_log("Redis clear failures error: " . $e->getMessage());
+    }
+}

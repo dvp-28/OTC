@@ -378,6 +378,7 @@ try {
 
             $username = trim($body['username'] ?? '');
             $password = $body['password'] ?? '';
+            $clientIp = get_client_ip();
 
             if (empty($username) || empty($password)) {
                 http_response_code(400);
@@ -385,35 +386,57 @@ try {
                 break;
             }
 
-            // Fetch user from Moodle DB
-            $stmt = $mysqli->prepare("SELECT id, username, password, firstname, lastname, email, auth FROM mdl_user WHERE username = ? AND deleted = 0 AND suspended = 0 AND confirmed = 1 LIMIT 1");
+            // Check IP rate limit and temporary account lockout (SEC-A02)
+            $lockoutMessage = check_login_lockout($username, $clientIp);
+            if ($lockoutMessage !== null) {
+                http_response_code(429);
+                echo json_encode(['status' => 'error', 'message' => $lockoutMessage]);
+                break;
+            }
+
+            // Prepare constant-time comparison against dummy hash to prevent username enumeration (SEC-A01)
+            $dummyHash = '$2y$10$e8460hK6c/t02PqZ4l6dSeOkm4M2/o87YwB33B3dE1kU/kK.zLqG.';
+            $stmt = $mysqli->prepare("SELECT id, username, password, firstname, lastname, email, auth, suspended FROM mdl_user WHERE username = ? AND deleted = 0 LIMIT 1");
             $stmt->bind_param('s', $username);
             $stmt->execute();
             $result = $stmt->get_result();
             $user = $result->fetch_assoc();
             $stmt->close();
 
-            if (!$user) {
-                http_response_code(401);
-                echo json_encode(['status' => 'error', 'message' => 'Invalid username or password']);
-                break;
-            }
+            $isAccountActive = ($user && (int)$user['suspended'] === 0);
+            $targetHash = $isAccountActive ? $user['password'] : $dummyHash;
 
             // Verify password against Moodle's hash (SHA-512 crypt format or bcrypt)
-            $storedHash = $user['password'];
             $valid = false;
-            if (substr($storedHash, 0, 3) === '$6$') {
-                $valid = (crypt($password, $storedHash) === $storedHash);
-            } elseif (substr($storedHash, 0, 4) === '$2y$') {
-                $valid = password_verify($password, $storedHash);
+            if (substr($targetHash, 0, 3) === '$6$') {
+                $valid = (crypt($password, $targetHash) === $targetHash);
             } else {
-                $valid = password_verify($password, $storedHash);
+                $valid = password_verify($password, $targetHash);
             }
 
-            if (!$valid) {
+            if (!$isAccountActive || !$valid) {
+                $failCount = record_login_failure($username, $clientIp);
+                if ($failCount >= 5) {
+                    http_response_code(429);
+                    echo json_encode(['status' => 'error', 'message' => 'Account is temporarily locked due to multiple failed login attempts. Please try again in 30 minutes.']);
+                    break;
+                }
                 http_response_code(401);
                 echo json_encode(['status' => 'error', 'message' => 'Invalid username or password']);
                 break;
+            }
+
+            // Successful authentication: clear failure counters (SEC-A02)
+            clear_login_failures($username);
+
+            // Prevent session fixation (SEC-A03)
+            session_regenerate_id(true);
+            $_SESSION['CREATED_TIME'] = time();
+            $_SESSION['LAST_ACTIVITY'] = time();
+
+            // Issue anti-CSRF token (SEC-C01)
+            if (empty($_SESSION['csrf_token'])) {
+                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
             }
 
             // Determine role by checking Moodle role assignments
@@ -527,7 +550,8 @@ try {
             echo json_encode([
                 'status' => 'success',
                 'message' => 'Login successful',
-                'data' => $sessionUser
+                'data' => $sessionUser,
+                'csrf_token' => $_SESSION['csrf_token']
             ]);
             break;
 
@@ -536,7 +560,19 @@ try {
         // =====================================================================
         case 'logout':
             $_SESSION = [];
-            session_destroy();
+            if (session_id()) {
+                session_destroy();
+            }
+            $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https');
+            setcookie('__Host-EKALAVYA_SESSID', '', [
+                'expires'  => time() - 3600,
+                'path'     => '/',
+                'domain'   => '',
+                'secure'   => $isSecure,
+                'httponly' => true,
+                'samesite' => 'Strict'
+            ]);
             echo json_encode(['status' => 'success', 'message' => 'Logged out']);
             break;
 
@@ -546,7 +582,14 @@ try {
         case 'session':
             $user = get_current_user_session();
             if ($user) {
-                echo json_encode(['status' => 'success', 'data' => $user]);
+                if (empty($_SESSION['csrf_token'])) {
+                    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+                }
+                echo json_encode([
+                    'status' => 'success',
+                    'data' => $user,
+                    'csrf_token' => $_SESSION['csrf_token']
+                ]);
             } else {
                 echo json_encode(['status' => 'success', 'data' => null, 'authenticated' => false]);
             }
@@ -881,6 +924,13 @@ try {
                 break;
             }
 
+            $pwdErr = null;
+            if (!validate_password_policy($password, $pwdErr)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => $pwdErr]);
+                break;
+            }
+
             if (!in_array($role, ['instituteadmin', 'courseadmin', 'student'])) {
                 $role = 'student';
             }
@@ -1000,6 +1050,12 @@ try {
             }
 
             if (!empty($password)) {
+                $pwdErr = null;
+                if (!validate_password_policy($password, $pwdErr)) {
+                    http_response_code(400);
+                    echo json_encode(['status' => 'error', 'message' => $pwdErr]);
+                    break;
+                }
                 $pwdHash = password_hash($password, PASSWORD_BCRYPT);
                 $stmt = $mysqli->prepare("UPDATE mdl_user SET firstname = ?, lastname = ?, email = ?, phone1 = ?, password = ?, suspended = ?, timemodified = UNIX_TIMESTAMP() WHERE id = ?");
                 $stmt->bind_param('sssssii', $firstname, $lastname, $email, $mobile, $pwdHash, $suspended, $userId);

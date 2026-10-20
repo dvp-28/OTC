@@ -63,4 +63,22 @@ if (!$envstatus) {
         }
     }
 }
+
+cli_heading('6. PRODUCTION DEMO ACCOUNT CHECK');
+$isProd = (getenv('APP_ENV') === 'production');
+$demoUsernames = ['inst.admin', 'course.admin', 'student.officer'];
+$foundDemo = [];
+foreach ($demoUsernames as $du) {
+    if ($DB->record_exists('user', ['username' => $du, 'deleted' => 0])) {
+        $foundDemo[] = $du;
+    }
+}
+if ($isProd && !empty($foundDemo)) {
+    cli_writeln("  FAIL: Production environment detected with active demo accounts: " . implode(', ', $foundDemo));
+} elseif (!empty($foundDemo)) {
+    cli_writeln("  NOTICE: Demo accounts active (dev/test environment): " . implode(', ', $foundDemo));
+} else {
+    cli_writeln("  OK: No active demo accounts found.");
+}
+
 cli_heading('VERIFICATION COMPLETE');
