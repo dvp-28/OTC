@@ -24,7 +24,10 @@ function get_or_create_course_context(mysqli $mysqli, int $courseId): int {
     $stmt->close();
 
     $path = "/1/40/{$ctxId}";
-    $mysqli->query("UPDATE mdl_context SET path = '{$path}' WHERE id = {$ctxId}");
+    $uStmt = $mysqli->prepare("UPDATE mdl_context SET path = ? WHERE id = ?");
+    $uStmt->bind_param('si', $path, $ctxId);
+    $uStmt->execute();
+    $uStmt->close();
 
     return $ctxId;
 }
@@ -800,37 +803,71 @@ try {
             $mysqli->begin_transaction();
             try {
                 // Delete context & role assignments for this course
-                $ctxRes = $mysqli->query("SELECT id FROM mdl_context WHERE contextlevel = 50 AND instanceid = {$courseId}");
+                $ctxStmt = $mysqli->prepare("SELECT id FROM mdl_context WHERE contextlevel = 50 AND instanceid = ? LIMIT 1");
+                $ctxStmt->bind_param('i', $courseId);
+                $ctxStmt->execute();
+                $ctxRes = $ctxStmt->get_result();
                 if ($ctxRow = $ctxRes->fetch_assoc()) {
                     $ctxId = (int)$ctxRow['id'];
-                    $mysqli->query("DELETE FROM mdl_role_assignments WHERE contextid = {$ctxId}");
-                    $mysqli->query("DELETE FROM mdl_context WHERE id = {$ctxId}");
+                    $delRole = $mysqli->prepare("DELETE FROM mdl_role_assignments WHERE contextid = ?");
+                    $delRole->bind_param('i', $ctxId);
+                    $delRole->execute();
+                    $delRole->close();
+
+                    $delCtx = $mysqli->prepare("DELETE FROM mdl_context WHERE id = ?");
+                    $delCtx->bind_param('i', $ctxId);
+                    $delCtx->execute();
+                    $delCtx->close();
                 }
+                $ctxStmt->close();
 
                 // Delete enrolments for this course
-                $enrolRes = $mysqli->query("SELECT id FROM mdl_enrol WHERE courseid = {$courseId}");
-                $enrolIds = [];
-                while ($eRow = $enrolRes->fetch_assoc()) $enrolIds[] = (int)$eRow['id'];
-                if (!empty($enrolIds)) {
-                    $idsStr = implode(',', $enrolIds);
-                    $mysqli->query("DELETE FROM mdl_user_enrolments WHERE enrolid IN ({$idsStr})");
-                    $mysqli->query("DELETE FROM mdl_enrol WHERE courseid = {$courseId}");
+                $enrolStmt = $mysqli->prepare("SELECT id FROM mdl_enrol WHERE courseid = ?");
+                $enrolStmt->bind_param('i', $courseId);
+                $enrolStmt->execute();
+                $enrolRes = $enrolStmt->get_result();
+                $delUe = $mysqli->prepare("DELETE FROM mdl_user_enrolments WHERE enrolid = ?");
+                while ($eRow = $enrolRes->fetch_assoc()) {
+                    $eId = (int)$eRow['id'];
+                    $delUe->bind_param('i', $eId);
+                    $delUe->execute();
                 }
+                $delUe->close();
+                $enrolStmt->close();
+
+                $delEnrol = $mysqli->prepare("DELETE FROM mdl_enrol WHERE courseid = ?");
+                $delEnrol->bind_param('i', $courseId);
+                $delEnrol->execute();
+                $delEnrol->close();
 
                 // Delete sections & modules
-                $mysqli->query("DELETE FROM mdl_course_sections WHERE course = {$courseId}");
+                $delSec = $mysqli->prepare("DELETE FROM mdl_course_sections WHERE course = ?");
+                $delSec->bind_param('i', $courseId);
+                $delSec->execute();
+                $delSec->close();
 
                 // Delete PPT presentations and clean up stored files
-                $pptRes = $mysqli->query("SELECT stored_filename FROM mdl_course_ppts WHERE course_id = {$courseId}");
+                $pptStmt = $mysqli->prepare("SELECT stored_filename FROM mdl_course_ppts WHERE course_id = ?");
+                $pptStmt->bind_param('i', $courseId);
+                $pptStmt->execute();
+                $pptRes = $pptStmt->get_result();
                 $storedFilesToPurge = [];
                 if ($pptRes) {
                     while ($pRow = $pptRes->fetch_assoc()) {
                         $storedFilesToPurge[] = $pRow['stored_filename'];
                     }
                 }
-                $mysqli->query("DELETE FROM mdl_course_ppts WHERE course_id = {$courseId}");
+                $pptStmt->close();
 
-                $mysqli->query("DELETE FROM mdl_course WHERE id = {$courseId}");
+                $delPpt = $mysqli->prepare("DELETE FROM mdl_course_ppts WHERE course_id = ?");
+                $delPpt->bind_param('i', $courseId);
+                $delPpt->execute();
+                $delPpt->close();
+
+                $delCrs = $mysqli->prepare("DELETE FROM mdl_course WHERE id = ?");
+                $delCrs->bind_param('i', $courseId);
+                $delCrs->execute();
+                $delCrs->close();
 
                 $mysqli->commit();
 
@@ -844,10 +881,12 @@ try {
                     'status' => 'success',
                     'message' => "Course '{$course['fullname']}' deleted successfully"
                 ]);
-            } catch (Exception $ex) {
+            } catch (Throwable $ex) {
                 $mysqli->rollback();
+                error_log("Failed to delete course ID {$courseId}: " . $ex->getMessage());
                 http_response_code(500);
-                echo json_encode(['status' => 'error', 'message' => 'Failed to delete course: ' . $ex->getMessage()]);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['status' => 'error', 'message' => 'Failed to delete course due to an internal server error']);
             }
             break;
 
@@ -884,6 +923,28 @@ try {
                 WHERE u.deleted = 0 AND u.id > 1 AND u.id != 2 AND u.username != 'siteadmin'
                 ORDER BY u.id ASC
             ");
+            $stmtRoleInst = $mysqli->prepare("
+                SELECT r.shortname 
+                FROM mdl_role_assignments ra 
+                JOIN mdl_role r ON r.id = ra.roleid 
+                WHERE ra.userid = ? AND r.shortname = 'instituteadmin' 
+                LIMIT 1
+            ");
+            $stmtRoleCourse = $mysqli->prepare("
+                SELECT r.shortname 
+                FROM mdl_role_assignments ra 
+                JOIN mdl_role r ON r.id = ra.roleid 
+                WHERE ra.userid = ? AND r.shortname = 'courseadmin' 
+                LIMIT 1
+            ");
+            $stmtCourses = $mysqli->prepare("
+                SELECT DISTINCT c.id, c.fullname, c.shortname
+                FROM mdl_user_enrolments ue
+                JOIN mdl_enrol e ON e.id = ue.enrolid
+                JOIN mdl_course c ON c.id = e.courseid
+                WHERE ue.userid = ? AND c.id > 1 AND ue.status = 0
+            ");
+
             $users = [];
             while ($row = $result->fetch_assoc()) {
                 $userId = (int)$row['id'];
@@ -892,24 +953,16 @@ try {
                 $userRole = 'student';
                 $userRoleLabel = 'Student Officer';
 
-                $rCheck1 = $mysqli->query("
-                    SELECT r.shortname 
-                    FROM mdl_role_assignments ra 
-                    JOIN mdl_role r ON r.id = ra.roleid 
-                    WHERE ra.userid = {$userId} AND r.shortname = 'instituteadmin' 
-                    LIMIT 1
-                ");
+                $stmtRoleInst->bind_param('i', $userId);
+                $stmtRoleInst->execute();
+                $rCheck1 = $stmtRoleInst->get_result();
                 if ($rCheck1 && $rCheck1->fetch_assoc()) {
                     $userRole = 'instituteadmin';
                     $userRoleLabel = 'Institute Admin';
                 } else {
-                    $rCheck2 = $mysqli->query("
-                        SELECT r.shortname 
-                        FROM mdl_role_assignments ra 
-                        JOIN mdl_role r ON r.id = ra.roleid 
-                        WHERE ra.userid = {$userId} AND r.shortname = 'courseadmin' 
-                        LIMIT 1
-                    ");
+                    $stmtRoleCourse->bind_param('i', $userId);
+                    $stmtRoleCourse->execute();
+                    $rCheck2 = $stmtRoleCourse->get_result();
                     if ($rCheck2 && $rCheck2->fetch_assoc()) {
                         $userRole = 'courseadmin';
                         $userRoleLabel = 'Course Admin';
@@ -917,13 +970,9 @@ try {
                 }
 
                 // Get enrolled/assigned courses
-                $cRes = $mysqli->query("
-                    SELECT DISTINCT c.id, c.fullname, c.shortname
-                    FROM mdl_user_enrolments ue
-                    JOIN mdl_enrol e ON e.id = ue.enrolid
-                    JOIN mdl_course c ON c.id = e.courseid
-                    WHERE ue.userid = {$userId} AND c.id > 1 AND ue.status = 0
-                ");
+                $stmtCourses->bind_param('i', $userId);
+                $stmtCourses->execute();
+                $cRes = $stmtCourses->get_result();
                 $userCourses = [];
                 $courseIds = [];
                 while ($cRow = $cRes->fetch_assoc()) {
@@ -964,6 +1013,33 @@ try {
             if (empty($username) || empty($firstname) || empty($password)) {
                 http_response_code(400);
                 echo json_encode(['status' => 'error', 'message' => 'Service ID/Username, First Name, and Password are required']);
+                break;
+            }
+
+            // Input whitelisting & validation (SEC-B04)
+            if (!preg_match('/^[a-zA-Z0-9._-]{3,50}$/', $username)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Username must be 3-50 alphanumeric characters (dot, underscore, hyphen permitted)']);
+                break;
+            }
+            if (strlen($firstname) > 50 || !preg_match('/^[\p{L}\s.\'-]+$/u', $firstname)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'First Name contains invalid characters or exceeds 50 characters']);
+                break;
+            }
+            if (!empty($lastname) && (strlen($lastname) > 50 || !preg_match('/^[\p{L}\s.\'-]+$/u', $lastname))) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Last Name contains invalid characters or exceeds 50 characters']);
+                break;
+            }
+            if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Invalid email address format']);
+                break;
+            }
+            if (!empty($mobile) && !preg_match('/^[0-9+\-\s()]{5,20}$/', $mobile)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Invalid mobile/phone number format']);
                 break;
             }
 
@@ -1010,7 +1086,10 @@ try {
                 $rRes = $rStmt->get_result();
                 if ($rRow = $rRes->fetch_assoc()) {
                     $rId = (int)$rRow['id'];
-                    $mysqli->query("INSERT INTO mdl_role_assignments (roleid, contextid, userid, timemodified, modifierid) VALUES ({$rId}, 1, {$newUserId}, UNIX_TIMESTAMP(), 2)");
+                    $insRa = $mysqli->prepare("INSERT INTO mdl_role_assignments (roleid, contextid, userid, timemodified, modifierid) VALUES (?, 1, ?, UNIX_TIMESTAMP(), 2)");
+                    $insRa->bind_param('ii', $rId, $newUserId);
+                    $insRa->execute();
+                    $insRa->close();
                 }
                 $rStmt->close();
             }
@@ -1057,6 +1136,28 @@ try {
             if (empty($firstname)) {
                 http_response_code(400);
                 echo json_encode(['status' => 'error', 'message' => 'First Name is required']);
+                break;
+            }
+
+            // Input whitelisting & validation (SEC-B04)
+            if (strlen($firstname) > 50 || !preg_match('/^[\p{L}\s.\'-]+$/u', $firstname)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'First Name contains invalid characters or exceeds 50 characters']);
+                break;
+            }
+            if (!empty($lastname) && (strlen($lastname) > 50 || !preg_match('/^[\p{L}\s.\'-]+$/u', $lastname))) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Last Name contains invalid characters or exceeds 50 characters']);
+                break;
+            }
+            if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Invalid email address format']);
+                break;
+            }
+            if (!empty($mobile) && !preg_match('/^[0-9+\-\s()]{5,20}$/', $mobile)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Invalid mobile/phone number format']);
                 break;
             }
 
@@ -1237,15 +1338,19 @@ try {
                 break;
             }
 
-            $cRes = $mysqli->query("
+            $cStmt = $mysqli->prepare("
                 SELECT DISTINCT c.id, c.fullname, c.shortname
                 FROM mdl_user_enrolments ue
                 JOIN mdl_enrol e ON e.id = ue.enrolid
                 JOIN mdl_course c ON c.id = e.courseid
-                WHERE ue.userid = {$targetUserId} AND c.id > 1 AND ue.status = 0
+                WHERE ue.userid = ? AND c.id > 1 AND ue.status = 0
             ");
+            $cStmt->bind_param('i', $targetUserId);
+            $cStmt->execute();
+            $cRes = $cStmt->get_result();
             $uCourses = [];
             while ($cRow = $cRes->fetch_assoc()) $uCourses[] = $cRow;
+            $cStmt->close();
 
             echo json_encode(['status' => 'success', 'data' => $uCourses]);
             break;
@@ -1308,11 +1413,18 @@ try {
                 break;
             }
 
-            $enrolRes = $mysqli->query("SELECT id FROM mdl_enrol WHERE courseid = {$courseId}");
+            $enrolStmt = $mysqli->prepare("SELECT id FROM mdl_enrol WHERE courseid = ?");
+            $enrolStmt->bind_param('i', $courseId);
+            $enrolStmt->execute();
+            $enrolRes = $enrolStmt->get_result();
+            $delEnrolStmt = $mysqli->prepare("DELETE FROM mdl_user_enrolments WHERE enrolid = ? AND userid = ?");
             while ($eRow = $enrolRes->fetch_assoc()) {
                 $eId = (int)$eRow['id'];
-                $mysqli->query("DELETE FROM mdl_user_enrolments WHERE enrolid = {$eId} AND userid = {$userId}");
+                $delEnrolStmt->bind_param('ii', $eId, $userId);
+                $delEnrolStmt->execute();
             }
+            $delEnrolStmt->close();
+            $enrolStmt->close();
 
             echo json_encode(['status' => 'success', 'message' => 'Course assignment removed']);
             break;
@@ -2250,10 +2362,12 @@ try {
 
         default:
             http_response_code(404);
-            echo json_encode(['status' => 'error', 'message' => 'Endpoint not found: ' . $action]);
+            echo json_encode(['status' => 'error', 'message' => 'Requested endpoint not found']);
             break;
     }
-} catch (Exception $e) {
+} catch (Throwable $e) {
+    error_log("API Error [{$action}]: " . $e->getMessage() . "\n" . $e->getTraceAsString());
     http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['status' => 'error', 'message' => 'An internal server error occurred. Please contact the system administrator.']);
 }
