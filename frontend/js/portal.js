@@ -21,6 +21,35 @@ let canvasAnimTime = 0;
 let currentLoadedPpts = [];
 let activeMediaMode = 'simulated'; // 'video' | 'audio' | 'simulated'
 
+let csrfToken = sessionStorage.getItem('ek_csrf_token') || '';
+
+// Central request interceptor: attach anti-CSRF token to mutating requests (SEC-C01)
+const _nativeFetch = window.fetch;
+window.fetch = function(url, options = {}) {
+    const opts = Object.assign({}, options);
+    const method = (opts.method || 'GET').toUpperCase();
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        const token = csrfToken || sessionStorage.getItem('ek_csrf_token') || '';
+        if (token) {
+            if (opts.headers instanceof Headers) {
+                if (!opts.headers.has('X-CSRF-Token')) {
+                    opts.headers.set('X-CSRF-Token', token);
+                }
+            } else if (Array.isArray(opts.headers)) {
+                const hasToken = opts.headers.some(h => h[0].toLowerCase() === 'x-csrf-token');
+                if (!hasToken) {
+                    opts.headers.push(['X-CSRF-Token', token]);
+                }
+            } else {
+                opts.headers = Object.assign({}, opts.headers, {
+                    'X-CSRF-Token': token
+                });
+            }
+        }
+    }
+    return _nativeFetch(url, opts);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     checkSession();
 });
@@ -34,6 +63,10 @@ async function checkSession() {
         const data = await res.json();
         if (data.status === 'success' && data.data) {
             currentUser = data.data;
+            if (data.csrf_token) {
+                csrfToken = data.csrf_token;
+                sessionStorage.setItem('ek_csrf_token', csrfToken);
+            }
             initPortal();
         } else {
             window.location.href = '/login.html';
@@ -1499,6 +1532,10 @@ async function submitAddPpt() {
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/course-ppts/upload', true);
+    const pptUploadToken = csrfToken || sessionStorage.getItem('ek_csrf_token') || '';
+    if (pptUploadToken) {
+        xhr.setRequestHeader('X-CSRF-Token', pptUploadToken);
+    }
 
     xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
@@ -2534,6 +2571,10 @@ function submitAddCommander(event) {
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/commanders/upload', true);
+    const cmdUploadToken = csrfToken || sessionStorage.getItem('ek_csrf_token') || '';
+    if (cmdUploadToken) {
+        xhr.setRequestHeader('X-CSRF-Token', cmdUploadToken);
+    }
 
     xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {

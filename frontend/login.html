@@ -524,6 +524,9 @@
         // Check if already logged in
         fetch('/api/session').then(r => r.json()).then(data => {
             if (data.status === 'success' && data.data) {
+                if (data.csrf_token) {
+                    sessionStorage.setItem('ek_csrf_token', data.csrf_token);
+                }
                 window.location.href = '/portal.html';
             }
         });
@@ -549,6 +552,9 @@
                 const data = await res.json();
 
                 if (data.status === 'success') {
+                    if (data.csrf_token) {
+                        sessionStorage.setItem('ek_csrf_token', data.csrf_token);
+                    }
                     btn.textContent = 'Access Granted ✓';
                     btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
                     setTimeout(() => {

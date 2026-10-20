@@ -404,3 +404,79 @@ function clear_login_failures(string $username): void {
         error_log("Redis clear failures error: " . $e->getMessage());
     }
 }
+
+// Verify Origin and Referer for state-changing requests (SEC-C02)
+function verify_request_origin(): void {
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? null;
+    $referer = $_SERVER['HTTP_REFERER'] ?? null;
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+
+    $hostOnly = strtolower(explode(':', $host)[0]);
+    $allowedHosts = ['ekalavya.local', 'localhost', '127.0.0.1'];
+    if (!empty($hostOnly) && !in_array($hostOnly, $allowedHosts, true)) {
+        $allowedHosts[] = $hostOnly;
+    }
+
+    if ($origin !== null && $origin !== '') {
+        $parsed = parse_url($origin);
+        $originHost = strtolower($parsed['host'] ?? '');
+        if (!in_array($originHost, $allowedHosts, true)) {
+            http_response_code(403);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['status' => 'error', 'message' => 'Origin header validation failed']);
+            exit;
+        }
+    }
+
+    if ($referer !== null && $referer !== '') {
+        $parsed = parse_url($referer);
+        $refererHost = strtolower($parsed['host'] ?? '');
+        if (!in_array($refererHost, $allowedHosts, true)) {
+            http_response_code(403);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['status' => 'error', 'message' => 'Referer header validation failed']);
+            exit;
+        }
+    }
+}
+
+// Enforce CSRF protection on state-changing requests (SEC-C01)
+function require_csrf_token(string $action): void {
+    $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+    if (!in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+        return;
+    }
+
+    // Login does not have a session yet
+    if ($action === 'login') {
+        return;
+    }
+
+    $sessionToken = $_SESSION['csrf_token'] ?? '';
+    if (empty($sessionToken)) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['status' => 'error', 'message' => 'Session expired or missing CSRF token. Please log in again.']);
+        exit;
+    }
+
+    // Check header or POST param or parsed body
+    $clientToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
+    if (!$clientToken && isset($_POST['csrf_token'])) {
+        $clientToken = $_POST['csrf_token'];
+    }
+    if (!$clientToken) {
+        global $body;
+        if (is_array($body) && isset($body['csrf_token'])) {
+            $clientToken = $body['csrf_token'];
+        }
+    }
+
+    if (!$clientToken || !hash_equals($sessionToken, $clientToken)) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['status' => 'error', 'message' => 'Invalid or missing CSRF token']);
+        exit;
+    }
+}
+

@@ -350,18 +350,61 @@ if (preg_match('#^/api/users/(\d+)/courses/assign$#', $path, $pm)) {
     }
 }
 
-// Read JSON body for POST requests or fallback to $_POST for multipart
+$method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+$isMutating = in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true);
+
+// 1. Verify Origin and Referer headers (SEC-C02)
+if ($isMutating) {
+    verify_request_origin();
+}
+
+// 2. Enforce Content-Type and parse request payload (SEC-C03)
+$isUploadRoute = in_array($action, ['course-ppts-upload', 'commanders-upload'], true);
+$rawInput = file_get_contents('php://input');
 $body = [];
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $raw = file_get_contents('php://input');
-    $body = json_decode($raw, true) ?: [];
-    if (empty($body) && !empty($_POST)) {
+
+if ($isMutating) {
+    $rawContentType = $_SERVER['CONTENT_TYPE'] ?? '';
+    $contentType = strtolower(trim(explode(';', $rawContentType)[0]));
+
+    if ($isUploadRoute) {
+        if (strpos($contentType, 'multipart/form-data') === false) {
+            http_response_code(415);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['status' => 'error', 'message' => 'Content-Type must be multipart/form-data for file uploads']);
+            exit;
+        }
         $body = $_POST;
+    } else {
+        if ($action !== 'logout') {
+            if ($contentType !== 'application/json') {
+                http_response_code(415);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['status' => 'error', 'message' => 'Content-Type must be application/json']);
+                exit;
+            }
+
+            if (!empty($rawInput)) {
+                $decoded = json_decode($rawInput, true);
+                if (!is_array($decoded) && json_last_error() !== JSON_ERROR_NONE) {
+                    http_response_code(400);
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo json_encode(['status' => 'error', 'message' => 'Malformed JSON payload']);
+                    exit;
+                }
+                $body = $decoded ?: [];
+            }
+        }
     }
 }
+
 if ($urlUserId !== null && !isset($body['user_id'])) {
     $body['user_id'] = $urlUserId;
 }
+
+// 3. Enforce Anti-CSRF token verification on state-changing endpoints (SEC-C01)
+require_csrf_token($action);
+
 
 try {
     switch ($action) {
