@@ -9,6 +9,28 @@ let courses = [];
 let activeCourseId = null;
 let allUsers = [];
 
+// Central HTML sanitization & escaping utilities (SEC-D01)
+function esc(str) {
+    if (!str && str !== 0) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+const escapeHtml = esc;
+
+function escJs(str) {
+    if (!str && str !== 0) return '';
+    return String(str)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '&quot;')
+        .replace(/\n/g, ' ')
+        .replace(/\r/g, '');
+}
+
 // Video player state variables
 let activePlayingPptId = null;
 let activePlayingPptTitle = '';
@@ -132,12 +154,29 @@ function initPortal() {
     initTheme();
     renderUserHeader();
     applyRoleUI();
+    updateOfficerWatermark();
     setupTabs();
     setupFilters();
     setupVideoPlayerEvents();
     loadDashboardData();
     loadCourses();
     initCommandersSlider();
+}
+
+// Dynamic Officer Visual Identification Watermark Overlay (SEC-F03)
+function updateOfficerWatermark() {
+    const wm = document.getElementById('dynamic-officer-watermark');
+    if (!wm || !currentUser) return;
+    const now = new Date().toISOString().split('T')[0];
+    const userRole = esc(currentUser.role || 'Officer');
+    const uName = esc(currentUser.username || '').toUpperCase();
+    const full = esc(`${currentUser.firstname || ''} ${currentUser.lastname || ''}`);
+    const text = `RESTRICTED DEFENCE USE ONLY // ${uName} (${full} - ${userRole}) // OTC AMC CENTRE // ${now}`;
+    wm.innerHTML = `
+        <div style="transform: rotate(-12deg); transform-origin: center; white-space: nowrap; margin-left: -5%;">${text}</div>
+        <div style="transform: rotate(-12deg); transform-origin: center; white-space: nowrap; margin-left: 10%;">${text}</div>
+        <div style="transform: rotate(-12deg); transform-origin: center; white-space: nowrap; margin-left: -15%;">${text}</div>
+    `;
 }
 
 function renderUserHeader() {
@@ -523,7 +562,7 @@ function renderCourses(filter) {
                         ${currentUser.role === 'student' ? 'View Course' : 'Open Course'}
                     </button>
                     ${canEdit ? `<button class="btn-card" onclick="openEditCourseModal(${c.id})">✏ Edit</button>` : ''}
-                    ${isInstAdmin ? `<button class="btn-card danger" style="color:#ef4444; border-color:rgba(239,68,68,0.4);" onclick="openDeleteCourseModal(${c.id}, '${esc(c.fullname).replace(/'/g, "\\'")}')">🗑 Delete</button>` : ''}
+                    ${isInstAdmin ? `<button class="btn-card danger" style="color:#ef4444; border-color:rgba(239,68,68,0.4);" onclick="openDeleteCourseModal(${c.id}, '${escJs(c.fullname)}')">🗑 Delete</button>` : ''}
                 </div>
             </div>
         `;
@@ -619,6 +658,7 @@ function renderSections(sections) {
 function playPptVideo(pptId, pptTitle) {
     activePlayingPptId = parseInt(pptId);
     activePlayingPptTitle = pptTitle || 'Course Presentation';
+    updateOfficerWatermark();
 
     // Find the PPT object from loaded cache
     const ppt = currentLoadedPpts.find(p => parseInt(p.id) === activePlayingPptId);
@@ -982,6 +1022,14 @@ function drawTacticalCanvasFeed(isPlaying) {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
     ctx.font = 'bold 32px sans-serif';
     ctx.fillText('AMC CENTRE & COLLEGE', w / 2, h / 2 - 25);
+
+    // Dynamic Officer Identification Watermark (SEC-F03)
+    if (currentUser) {
+        ctx.fillStyle = 'rgba(212, 175, 55, 0.15)';
+        ctx.font = 'bold 12px monospace';
+        const officerWm = `RESTRICTED DEFENCE // OFFICER: ${(currentUser.username || '').toUpperCase()} // ID:${currentUser.id} // SECURE OTC LAN`;
+        ctx.fillText(officerWm, w / 2, h / 2 + 15);
+    }
     ctx.restore();
 
     // Audio spectrum equalizer bars at bottom
@@ -2193,11 +2241,11 @@ function renderCommandersTrack() {
     let cardsHtml = '';
     for (let set = 0; set < 2; set++) {
         allCommanders.forEach((cmd, idx) => {
-            const safeTitle = escJs(cmd.title || 'Previous Commander of Officers Training College');
+            const safeTitle = esc(cmd.title || 'Previous Commander of Officers Training College');
             cardsHtml += `
                 <div class="commander-card" onclick="openCommanderLightbox(${idx})" title="View Portrait">
                     <div class="commander-img-frame">
-                        <img src="${cmd.image_url}" alt="${safeTitle}" loading="lazy" class="commander-portrait" onerror="this.src='previouscomd/1.jpg'">
+                        <img src="${esc(cmd.image_url)}" alt="${safeTitle}" loading="lazy" class="commander-portrait" onerror="this.src='previouscomd/1.jpg'">
                     </div>
                 </div>
             `;
