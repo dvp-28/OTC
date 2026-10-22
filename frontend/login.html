@@ -60,27 +60,15 @@
         }
 
         .otc-banner-container {
-            max-width: 1400px;
+            max-width: 1350px;
             width: 100%;
             margin: 0 auto;
-            display: grid;
-            grid-template-columns: auto 1fr auto;
+            display: flex;
             align-items: center;
-            gap: 1.5rem;
+            justify-content: space-between;
+            gap: 2rem;
             box-sizing: border-box;
-        }
-
-        .otc-banner-left {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-        }
-
-        .otc-banner-right {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 1.35rem;
+            padding: 0 9rem;
         }
 
         .otc-banner-logo {
@@ -92,6 +80,7 @@
         }
 
         .otc-banner-text {
+            flex: 1;
             text-align: center;
             display: flex;
             flex-direction: column;
@@ -121,14 +110,16 @@
             margin: 0.3rem 0 0 0;
         }
 
-        /* Banner Theme Toggle Button */
+        /* Banner Theme Toggle Button - PLACED IN THE RIGHT CORNER */
         .login-theme-toggle {
-            position: static;
-            transform: none;
+            position: absolute;
+            right: 2.25rem;
+            top: 50%;
+            transform: translateY(-50%);
             background: rgba(0, 0, 0, 0.45);
             border: 2px solid rgba(212, 175, 55, 0.5);
             color: #ffffff;
-            padding: 0.65rem 1.25rem;
+            padding: 0.65rem 1.35rem;
             border-radius: 24px;
             cursor: pointer;
             display: inline-flex;
@@ -140,7 +131,7 @@
             transition: all 0.2s ease;
             box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
             white-space: nowrap;
-            flex-shrink: 0;
+            z-index: 30;
         }
 
         .login-theme-toggle:hover {
@@ -174,6 +165,9 @@
             .otc-banner-header {
                 padding: 0.9rem 1.5rem;
             }
+            .otc-banner-container {
+                padding: 0 7.5rem;
+            }
             .otc-banner-title {
                 font-size: 2.5rem;
             }
@@ -184,11 +178,17 @@
                 height: 80px;
                 width: 80px;
             }
+            .login-theme-toggle {
+                right: 1.5rem;
+            }
         }
 
         @media (max-width: 900px) {
             .otc-banner-header {
                 padding: 0.85rem 1.25rem;
+            }
+            .otc-banner-container {
+                padding: 0 5.5rem;
             }
             .otc-banner-title {
                 font-size: 2.2rem;
@@ -199,6 +199,11 @@
             .otc-banner-logo {
                 height: 72px;
                 width: 72px;
+            }
+            .login-theme-toggle {
+                right: 1rem;
+                padding: 0.5rem 0.95rem;
+                font-size: 0.92rem;
             }
         }
 
@@ -627,23 +632,20 @@
     <!-- Institutional Top Banner (Officers Training College / AMC Centre & College) -->
     <header class="otc-banner-header">
         <div class="otc-banner-container">
-            <div class="otc-banner-left">
-                <img src="OTC.png" alt="AMC Centre & College Crest" class="otc-banner-logo left">
-            </div>
+            <img src="OTC.png" alt="AMC Centre & College Crest" class="otc-banner-logo left">
             <div class="otc-banner-text">
                 <h1 class="otc-banner-title">OFFICERS TRAINING COLLEGE</h1>
                 <h2 class="otc-banner-subtitle">AMC CENTRE &amp; COLLEGE</h2>
             </div>
-            <div class="otc-banner-right">
-                <img src="college-crest.png" alt="Officers Training College Crest" class="otc-banner-logo right">
-                <!-- Quick Theme Switcher -->
-                <button class="login-theme-toggle" id="theme-toggle-btn" title="Switch Theme (Dark / Light)">
-                    <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-                    <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                    <span id="theme-label-text">Light</span>
-                </button>
-            </div>
+            <img src="college-crest.png" alt="Officers Training College Crest" class="otc-banner-logo right">
         </div>
+
+        <!-- Quick Theme Switcher (Right Corner) -->
+        <button class="login-theme-toggle" id="theme-toggle-btn" title="Switch Theme (Dark / Light)">
+            <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            <span id="theme-label-text">Light</span>
+        </button>
     </header>
 
     <!-- Main Login Area with .login-page class -->
