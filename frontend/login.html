@@ -6,6 +6,7 @@
     <title>Login | Dronacharya LMS - Officers Training College, AMC Centre and College</title>
     <meta name="description" content="Secure login portal for Dronacharya LMS - Air-gapped defence e-learning platform">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/wifi-guard.css">
     <style>
         /* Base Page Setup */
         html {
@@ -45,29 +46,29 @@
         .otc-banner-header {
             width: 100%;
             background: linear-gradient(180deg, #880015 0%, #700010 100%);
-            border-bottom: 3px solid #d4af37;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-            padding: 0.45rem 2rem;
+            border-bottom: 3.5px solid #d4af37;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.65);
+            padding: 0.95rem 2.5rem;
             box-sizing: border-box;
             position: relative;
             z-index: 20;
         }
 
         .otc-banner-container {
-            max-width: 1300px;
+            max-width: 1400px;
             margin: 0 auto;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 1.5rem;
+            gap: 2rem;
         }
 
         .otc-banner-logo {
-            height: 60px;
-            width: 60px;
+            height: 78px;
+            width: 78px;
             object-fit: contain;
             flex-shrink: 0;
-            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
+            filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.7));
         }
 
         .otc-banner-text {
@@ -81,42 +82,42 @@
 
         .otc-banner-title {
             color: #ffffff;
-            font-size: 1.85rem;
+            font-size: 2.3rem;
             font-weight: 900;
-            letter-spacing: 2px;
+            letter-spacing: 2.8px;
             line-height: 1.15;
             text-transform: uppercase;
-            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 255, 255, 0.2);
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85), 0 0 20px rgba(255, 255, 255, 0.25);
             margin: 0;
         }
 
         .otc-banner-subtitle {
             color: #ffffff;
-            font-size: 1.45rem;
+            font-size: 1.7rem;
             font-weight: 800;
-            letter-spacing: 1.8px;
+            letter-spacing: 2.2px;
             line-height: 1.2;
             text-transform: uppercase;
-            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
-            margin: 0.15rem 0 0 0;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+            margin: 0.2rem 0 0 0;
         }
 
         /* Banner Theme Toggle Button */
         .login-theme-toggle {
             position: absolute;
-            right: 1.25rem;
+            right: 2rem;
             top: 50%;
             transform: translateY(-50%);
             background: rgba(0, 0, 0, 0.45);
-            border: 1px solid rgba(212, 175, 55, 0.4);
+            border: 1px solid rgba(212, 175, 55, 0.45);
             color: #ffffff;
-            padding: 0.35rem 0.75rem;
+            padding: 0.45rem 0.95rem;
             border-radius: 20px;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 0.45rem;
-            font-size: 0.76rem;
+            gap: 0.5rem;
+            font-size: 0.82rem;
             font-weight: 600;
             transition: all 0.2s ease;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
@@ -140,7 +141,7 @@
             .login-theme-toggle {
                 position: static;
                 transform: none;
-                margin: 0.4rem auto 0;
+                margin: 0.5rem auto 0;
             }
             .otc-banner-header {
                 display: flex;
@@ -151,33 +152,33 @@
 
         @media (max-width: 900px) {
             .otc-banner-header {
-                padding: 0.5rem 1rem;
+                padding: 0.75rem 1.25rem;
             }
             .otc-banner-logo {
-                height: 52px;
-                width: 52px;
+                height: 60px;
+                width: 60px;
             }
             .otc-banner-title {
-                font-size: 1.35rem;
-                letter-spacing: 1.2px;
+                font-size: 1.6rem;
+                letter-spacing: 1.5px;
             }
             .otc-banner-subtitle {
-                font-size: 1.1rem;
-                letter-spacing: 1px;
+                font-size: 1.25rem;
+                letter-spacing: 1.2px;
             }
         }
 
         @media (max-width: 600px) {
             .otc-banner-logo {
-                height: 42px;
-                width: 42px;
+                height: 48px;
+                width: 48px;
             }
             .otc-banner-title {
-                font-size: 1.05rem;
-                letter-spacing: 0.8px;
+                font-size: 1.25rem;
+                letter-spacing: 1px;
             }
             .otc-banner-subtitle {
-                font-size: 0.85rem;
+                font-size: 1rem;
                 letter-spacing: 0.8px;
             }
         }
@@ -190,7 +191,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
-            padding: 0.5rem 2rem 0.45rem 2rem;
+            padding: 0.75rem 2rem 0.65rem 2rem;
             box-sizing: border-box;
             position: relative;
             z-index: 10;
@@ -199,7 +200,7 @@
 
         .login-header {
             text-align: center;
-            margin: 0.1rem auto 0.35rem auto;
+            margin: 0.25rem auto 0.45rem auto;
             width: 100%;
             max-width: 900px;
             padding: 0 1rem;
@@ -208,10 +209,10 @@
         }
 
         .login-header h1 {
-            font-size: 2.2rem;
+            font-size: 2.5rem;
             font-weight: 900;
-            margin: 0 0 0.2rem 0;
-            letter-spacing: 2px;
+            margin: 0 0 0.25rem 0;
+            letter-spacing: 2.5px;
             color: #ffffff;
             text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95), 0 0 25px rgba(0, 0, 0, 0.7);
         }
@@ -219,9 +220,9 @@
         .login-header .motto {
             color: #f3d779;
             font-style: italic;
-            font-size: 0.98rem;
+            font-size: 1.12rem;
             font-weight: 600;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.6px;
             text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
         }
 
@@ -238,7 +239,7 @@
 
         .login-container {
             width: 100%;
-            max-width: 440px;
+            max-width: 530px;
             margin: 0 auto;
         }
 
@@ -246,19 +247,19 @@
             background: rgba(13, 18, 30, 0.88);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(212, 175, 55, 0.28);
-            border-radius: 18px;
-            padding: 1.65rem 1.75rem;
-            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 1.5px solid rgba(212, 175, 55, 0.35);
+            border-radius: 20px;
+            padding: 2.25rem 2.5rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.12);
             box-sizing: border-box;
         }
 
         [data-theme="light"] .login-card {
-            background: rgba(255, 255, 255, 0.92);
+            background: rgba(255, 255, 255, 0.94);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(212, 175, 55, 0.4);
-            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+            border: 1.5px solid rgba(212, 175, 55, 0.45);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
         }
 
         [data-theme="light"] .login-header h1 {
@@ -282,7 +283,7 @@
 
         [data-theme="light"] .form-input {
             background: #ffffff;
-            border: 1px solid #cbd5e1;
+            border: 1.5px solid #cbd5e1;
             color: #0f172a;
         }
 
@@ -292,27 +293,27 @@
         }
 
         .form-group {
-            margin-bottom: 1.15rem;
+            margin-bottom: 1.4rem;
         }
 
         .form-label {
             display: block;
-            font-size: 0.82rem;
-            font-weight: 600;
+            font-size: 0.92rem;
+            font-weight: 700;
             color: #94a3b8;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 0.5rem;
+            letter-spacing: 0.8px;
+            margin-bottom: 0.65rem;
         }
 
         .form-input {
             width: 100%;
-            padding: 0.85rem 1rem;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.14);
-            border-radius: 10px;
+            padding: 1.05rem 1.25rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1.5px solid rgba(255, 255, 255, 0.16);
+            border-radius: 12px;
             color: #f1f5f9;
-            font-size: 0.95rem;
+            font-size: 1.06rem;
             font-family: inherit;
             transition: 0.18s ease;
             outline: none;
@@ -321,32 +322,33 @@
 
         .form-input:focus {
             border-color: #d4af37;
-            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
-            background: rgba(255, 255, 255, 0.07);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.22);
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .form-input::placeholder {
-            color: #475569;
+            color: #64748b;
         }
 
         .btn-login {
             width: 100%;
-            padding: 0.95rem;
+            padding: 1.15rem;
             background: linear-gradient(135deg, #880015, #b8263e);
             color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            border-radius: 10px;
-            font-size: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            font-size: 1.12rem;
             font-weight: 700;
+            letter-spacing: 0.5px;
             cursor: pointer;
             transition: all 0.2s ease;
-            margin-top: 0.5rem;
+            margin-top: 0.75rem;
             box-sizing: border-box;
         }
 
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(184, 38, 62, 0.45);
+            box-shadow: 0 8px 24px rgba(184, 38, 62, 0.5);
             background: linear-gradient(135deg, #a1001a, #cc2a45);
         }
 
@@ -360,10 +362,10 @@
             background: rgba(239, 68, 68, 0.15);
             border: 1px solid rgba(239, 68, 68, 0.4);
             color: #fca5a5;
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            margin-bottom: 1.25rem;
+            padding: 0.85rem 1.15rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            margin-bottom: 1.35rem;
             display: none;
         }
 
@@ -373,40 +375,64 @@
         }
 
         .security-notice {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: nowrap;
+            white-space: nowrap;
             text-align: center;
-            margin: 0.25rem auto 0.45rem auto;
-            font-size: 0.74rem;
+            margin: 0.35rem auto 0.65rem auto;
+            font-size: 0.82rem;
             color: #e2e8f0;
-            line-height: 1.45;
+            line-height: 1.3;
             background: rgba(15, 23, 42, 0.88);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            padding: 0.4rem 1.75rem;
-            border-radius: 10px;
+            padding: 0.55rem 2.25rem;
+            border-radius: 9999px;
             border: 1px solid rgba(212, 175, 55, 0.35);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.65);
-            max-width: 680px;
-            width: auto;
+            max-width: 95vw;
+            width: max-content;
             box-sizing: border-box;
             z-index: 10;
             flex-shrink: 0;
+            gap: 0.75rem;
+        }
+
+        .security-notice .sec-restricted {
+            color: #f3d779;
+            font-weight: 800;
+            letter-spacing: 0.6px;
+        }
+
+        .security-notice .sec-sep {
+            color: rgba(212, 175, 55, 0.7);
+            font-weight: bold;
         }
 
         [data-theme="light"] .security-notice {
-            background: rgba(255, 255, 255, 0.88);
+            background: rgba(255, 255, 255, 0.94);
             color: #334155;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            border: 1px solid rgba(136, 0, 21, 0.25);
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
         }
 
-        .security-notice strong {
-            color: #f3d779;
-            font-weight: 700;
-        }
-
-        [data-theme="light"] .security-notice strong {
+        [data-theme="light"] .security-notice .sec-restricted {
             color: #880015;
-            font-weight: 700;
+            font-weight: 800;
+        }
+
+        [data-theme="light"] .security-notice .sec-sep {
+            color: #880015;
+        }
+
+        @media (max-width: 1200px) {
+            .security-notice {
+                font-size: 0.75rem;
+                padding: 0.45rem 1.75rem;
+                gap: 0.5rem;
+            }
         }
 
         @media (max-width: 900px) {
@@ -415,22 +441,34 @@
                 padding: 0 1rem;
             }
             .login-header {
-                margin: 0.25rem auto 1rem auto;
+                margin: 0.25rem auto 0.75rem auto;
             }
             .login-header h1 {
-                font-size: 1.65rem;
-                letter-spacing: 1.2px;
+                font-size: 1.9rem;
+                letter-spacing: 1.5px;
             }
             .login-header .motto {
-                font-size: 0.9rem;
+                font-size: 0.95rem;
+            }
+            .login-container {
+                max-width: 480px;
+            }
+            .login-card {
+                padding: 1.85rem 1.75rem;
             }
             .login-main {
-                padding: 1rem 1rem 1.25rem 1rem;
+                padding: 0.75rem 1rem 1rem 1rem;
             }
             .security-notice {
-                font-size: 0.7rem;
-                padding: 0.5rem 0.75rem;
-                margin-top: 0.75rem;
+                white-space: normal;
+                border-radius: 12px;
+                display: block;
+                font-size: 0.74rem;
+                padding: 0.5rem 1rem;
+                max-width: 600px;
+            }
+            .security-notice .sec-sep {
+                display: inline;
             }
         }
 
@@ -493,12 +531,15 @@
             </div>
         </div>
 
-        <!-- Bottom of the page: Restricted Defence Section -->
+        <!-- Bottom of the page: Restricted Defence Section (Single Line) -->
         <div class="security-notice">
-            <strong>RESTRICTED — FOR OFFICIAL DEFENCE USE ONLY</strong><br>
-            Air-gapped on-premise platform • CERT-In &amp; ISO 27001 compliant<br>
-            Unauthorized access is a punishable offence under IT Act, 2000
+            <span class="sec-restricted">RESTRICTED — FOR OFFICIAL DEFENCE USE ONLY</span>
+            <span class="sec-sep">•</span>
+            <span>Air-gapped on-premise platform • CERT-In &amp; ISO 27001 compliant</span>
+            <span class="sec-sep">•</span>
+            <span>Unauthorized access is a punishable offence under IT Act, 2000</span>
         </div>
+    <script src="js/wifi-guard.js"></script>
     <script src="js/login.js"></script>
 </body>
 </html>
