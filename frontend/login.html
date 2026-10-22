@@ -53,27 +53,27 @@
             background: linear-gradient(180deg, #880015 0%, #700010 100%);
             border-bottom: 4px solid #d4af37;
             box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7);
-            padding: 1.1rem 2.5rem;
+            padding: 0.75rem 2rem;
             box-sizing: border-box;
             position: relative;
             z-index: 20;
         }
 
         .otc-banner-container {
-            max-width: 1350px;
+            max-width: 1400px;
             width: 100%;
             margin: 0 auto;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 2rem;
+            gap: 1.25rem;
             box-sizing: border-box;
-            padding: 0 9rem;
+            padding: 0 7.5rem 0 1rem;
         }
 
         .otc-banner-logo {
-            height: 96px;
-            width: 96px;
+            height: clamp(56px, 5.8vw, 84px);
+            width: clamp(56px, 5.8vw, 84px);
             object-fit: contain;
             flex-shrink: 0;
             filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.85));
@@ -86,51 +86,55 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            min-width: 0;
+            overflow: hidden;
         }
 
         .otc-banner-title {
             color: #ffffff;
-            font-size: 3.15rem;
+            font-size: clamp(1.25rem, 2.05vw, 2.55rem);
             font-weight: 900;
-            letter-spacing: 3.5px;
+            letter-spacing: clamp(0.8px, 0.15vw, 2.6px);
             line-height: 1.15;
             text-transform: uppercase;
+            white-space: nowrap !important;
             text-shadow: 0 3px 12px rgba(0, 0, 0, 0.95), 0 0 28px rgba(255, 255, 255, 0.3);
             margin: 0;
         }
 
         .otc-banner-subtitle {
             color: #ffffff;
-            font-size: 2.25rem;
+            font-size: clamp(0.9rem, 1.4vw, 1.75rem);
             font-weight: 800;
-            letter-spacing: 2.8px;
+            letter-spacing: clamp(0.6px, 0.12vw, 2px);
             line-height: 1.2;
             text-transform: uppercase;
+            white-space: nowrap !important;
             text-shadow: 0 3px 12px rgba(0, 0, 0, 0.95);
-            margin: 0.3rem 0 0 0;
+            margin: 0.2rem 0 0 0;
         }
 
         /* Banner Theme Toggle Button - PLACED IN THE RIGHT CORNER */
         .login-theme-toggle {
             position: absolute;
-            right: 2.25rem;
+            right: 2rem;
             top: 50%;
             transform: translateY(-50%);
             background: rgba(0, 0, 0, 0.45);
             border: 2px solid rgba(212, 175, 55, 0.5);
             color: #ffffff;
-            padding: 0.65rem 1.35rem;
+            padding: 0.55rem 1.2rem;
             border-radius: 24px;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 0.65rem;
-            font-size: 1.05rem;
+            gap: 0.55rem;
+            font-size: 1rem;
             font-weight: 800;
             letter-spacing: 0.5px;
             transition: all 0.2s ease;
             box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
-            white-space: nowrap;
+            white-space: nowrap !important;
             z-index: 30;
         }
 
@@ -163,47 +167,55 @@
 
         @media (max-width: 1100px) {
             .otc-banner-header {
-                padding: 0.9rem 1.5rem;
+                padding: 0.65rem 1.25rem;
             }
             .otc-banner-container {
-                padding: 0 7.5rem;
+                padding: 0 6.5rem 0 0.5rem;
+                gap: 1rem;
             }
             .otc-banner-title {
-                font-size: 2.5rem;
+                font-size: clamp(1.2rem, 2.1vw, 2rem);
+                white-space: nowrap !important;
             }
             .otc-banner-subtitle {
-                font-size: 1.85rem;
+                font-size: clamp(0.85rem, 1.4vw, 1.4rem);
+                white-space: nowrap !important;
             }
             .otc-banner-logo {
-                height: 80px;
-                width: 80px;
+                height: 64px;
+                width: 64px;
             }
             .login-theme-toggle {
-                right: 1.5rem;
+                right: 1.25rem;
+                padding: 0.48rem 1rem;
+                font-size: 0.92rem;
             }
         }
 
         @media (max-width: 900px) {
             .otc-banner-header {
-                padding: 0.85rem 1.25rem;
+                padding: 0.6rem 1rem;
             }
             .otc-banner-container {
-                padding: 0 5.5rem;
+                padding: 0 5rem 0 0.5rem;
+                gap: 0.75rem;
             }
             .otc-banner-title {
-                font-size: 2.2rem;
+                font-size: clamp(1.05rem, 2.1vw, 1.6rem);
+                white-space: nowrap !important;
             }
             .otc-banner-subtitle {
-                font-size: 1.65rem;
+                font-size: clamp(0.78rem, 1.4vw, 1.15rem);
+                white-space: nowrap !important;
             }
             .otc-banner-logo {
-                height: 72px;
-                width: 72px;
+                height: 52px;
+                width: 52px;
             }
             .login-theme-toggle {
-                right: 1rem;
-                padding: 0.5rem 0.95rem;
-                font-size: 0.92rem;
+                right: 0.75rem;
+                padding: 0.42rem 0.85rem;
+                font-size: 0.85rem;
             }
         }
 
@@ -211,19 +223,27 @@
             .otc-banner-container {
                 display: flex;
                 flex-direction: column;
-                gap: 0.75rem;
+                gap: 0.5rem;
+                padding: 0 0.5rem;
             }
             .otc-banner-logo {
-                height: 58px;
-                width: 58px;
+                height: 46px;
+                width: 46px;
             }
             .otc-banner-title {
-                font-size: 1.6rem;
-                letter-spacing: 1.2px;
+                font-size: clamp(1rem, 3.6vw, 1.35rem);
+                letter-spacing: 0.8px;
+                white-space: nowrap !important;
             }
             .otc-banner-subtitle {
-                font-size: 1.25rem;
-                letter-spacing: 1px;
+                font-size: clamp(0.75rem, 2.6vw, 1rem);
+                letter-spacing: 0.6px;
+                white-space: nowrap !important;
+            }
+            .login-theme-toggle {
+                position: static;
+                transform: none;
+                margin-top: 0.25rem;
             }
         }
 
@@ -270,43 +290,47 @@
         }
 
         .login-header h1 {
-            font-size: 3.5rem;
+            font-size: clamp(2.2rem, 3.2vw, 3.5rem);
             font-weight: 900;
             margin: 0 0 0.3rem 0;
-            letter-spacing: 3.5px;
+            letter-spacing: clamp(1.5px, 0.25vw, 3.5px);
             line-height: 1.15;
             color: #ffffff;
+            white-space: nowrap !important;
             text-shadow: 0 4px 18px rgba(0, 0, 0, 0.95), 0 0 35px rgba(0, 0, 0, 0.8);
         }
 
         .login-header .motto {
             color: #fde047;
             font-style: italic;
-            font-size: 1.6rem;
+            font-size: clamp(1.1rem, 1.4vw, 1.6rem);
             font-weight: 800;
             letter-spacing: 0.95px;
             line-height: 1.25;
             margin: 0;
+            white-space: nowrap !important;
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
         }
 
         /* LIGHT MODE - HERO TYPOGRAPHY */
         [data-theme="light"] .login-header h1 {
             color: #0b1329;
-            font-size: 3.5rem;
+            font-size: clamp(2.2rem, 3.2vw, 3.5rem);
             font-weight: 900;
-            letter-spacing: 3.5px;
+            letter-spacing: clamp(1.5px, 0.25vw, 3.5px);
             line-height: 1.15;
+            white-space: nowrap !important;
             text-shadow: 0 2px 14px rgba(255, 255, 255, 1), 0 0 25px rgba(255, 255, 255, 0.95);
         }
 
         [data-theme="light"] .login-header .motto {
             color: #880015;
-            font-size: 1.6rem;
+            font-size: clamp(1.1rem, 1.4vw, 1.6rem);
             font-weight: 800;
             letter-spacing: 0.95px;
             line-height: 1.25;
             margin: 0;
+            white-space: nowrap !important;
             text-shadow: 0 2px 10px rgba(255, 255, 255, 0.98), 0 0 15px rgba(255, 255, 255, 0.9);
         }
 
@@ -404,12 +428,12 @@
 
         .btn-login {
             width: 100%;
-            padding: 1.3rem 1.6rem;
+            padding: 1.2rem 1.6rem;
             background: linear-gradient(135deg, #880015, #b8263e);
             color: #ffffff;
             border: 1px solid rgba(255, 255, 255, 0.25);
             border-radius: 14px;
-            font-size: 1.46rem;
+            font-size: 1.42rem;
             font-weight: 800;
             letter-spacing: 1px;
             cursor: pointer;
@@ -417,6 +441,7 @@
             margin-top: 0.85rem;
             box-sizing: border-box;
             box-shadow: 0 6px 22px rgba(184, 38, 62, 0.48);
+            white-space: nowrap !important;
         }
 
         .btn-login:hover {
@@ -458,22 +483,22 @@
             white-space: nowrap !important;
             text-align: center;
             margin: 0.25rem auto 0.35rem auto;
-            font-size: clamp(0.58rem, 0.72vw, 0.94rem);
+            font-size: clamp(0.55rem, 0.7vw, 0.88rem);
             color: #f1f5f9;
             line-height: 1.35;
             background: rgba(13, 18, 30, 0.94);
             backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
-            padding: 0.45rem clamp(0.75rem, 1.4vw, 1.8rem);
+            padding: 0.42rem clamp(0.75rem, 1.3vw, 1.6rem);
             border-radius: 9999px !important;
             border: 1.8px solid rgba(212, 175, 55, 0.5);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.75);
-            max-width: 96vw;
+            max-width: 98vw;
             width: max-content;
             box-sizing: border-box;
             z-index: 10;
             flex-shrink: 0;
-            gap: clamp(0.35rem, 0.6vw, 0.75rem);
+            gap: clamp(0.35rem, 0.55vw, 0.7rem);
         }
 
         .security-notice span,
@@ -520,39 +545,79 @@
             font-weight: 700;
         }
 
-        @media (max-width: 1200px) {
-            .otc-banner-title {
-                font-size: 2.85rem;
-            }
-            .otc-banner-subtitle {
-                font-size: 2.1rem;
+        /* Compact Laptop Support (Ensures 0 Scroll, 100% Visibility at height <= 720px) */
+        @media (max-height: 720px) {
+            .otc-banner-header {
+                padding: 0.52rem 1.5rem;
             }
             .otc-banner-logo {
-                height: 90px;
-                width: 90px;
+                height: 58px;
+                width: 58px;
+            }
+            .otc-banner-title {
+                font-size: clamp(1.15rem, 1.85vw, 1.95rem);
+                white-space: nowrap !important;
+            }
+            .otc-banner-subtitle {
+                font-size: clamp(0.82rem, 1.3vw, 1.35rem);
+                white-space: nowrap !important;
+            }
+            .login-main,
+            .login-page,
+            [data-theme="dark"] .login-main,
+            [data-theme="dark"] .login-page,
+            [data-theme="light"] .login-main,
+            [data-theme="light"] .login-page {
+                padding: 0.25rem 1.5rem !important;
+            }
+            .login-content-wrapper {
+                padding: 0.15rem 1rem;
+            }
+            .login-header {
+                margin: 0 auto 0.65rem auto;
+            }
+            .login-header h1,
+            [data-theme="light"] .login-header h1 {
+                font-size: clamp(1.85rem, 2.5vw, 2.6rem);
+                margin: 0 0 0.15rem 0;
+                white-space: nowrap !important;
+            }
+            .login-header .motto,
+            [data-theme="light"] .login-header .motto {
+                font-size: clamp(0.95rem, 1.15vw, 1.25rem);
+                white-space: nowrap !important;
             }
             .login-container {
-                max-width: 640px;
+                max-width: 520px;
             }
             .login-card {
-                padding: 2.5rem 3rem;
+                padding: 1.25rem 1.9rem;
+                border-radius: 18px;
             }
-            .login-header h1 {
-                font-size: 3.5rem;
+            .form-group {
+                margin-bottom: 0.75rem;
             }
-            [data-theme="light"] .login-header h1 {
-                font-size: 3.5rem;
+            .form-label,
+            [data-theme="light"] .form-label {
+                font-size: 1.02rem;
+                margin-bottom: 0.28rem;
             }
-            .login-header .motto {
-                font-size: 1.6rem;
+            .form-input,
+            [data-theme="light"] .form-input {
+                padding: 0.7rem 1.1rem;
+                font-size: 1.08rem;
             }
-            [data-theme="light"] .login-header .motto {
-                font-size: 1.6rem;
+            .btn-login {
+                padding: 0.8rem 1.2rem;
+                font-size: 1.18rem;
+                margin-top: 0.4rem;
+                white-space: nowrap !important;
             }
             .security-notice {
-                font-size: clamp(0.78rem, 1vw, 0.98rem);
-                padding: 0.55rem 1.8rem;
-                gap: 0.7rem;
+                margin: 0.15rem auto 0.2rem auto;
+                padding: 0.3rem 1.15rem;
+                font-size: clamp(0.52rem, 0.68vw, 0.82rem);
+                white-space: nowrap !important;
             }
         }
 
@@ -567,47 +632,39 @@
                 padding: 0 1rem;
             }
             .login-header {
-                margin: 0 auto 1.5rem auto;
+                margin: 0 auto 1.25rem auto;
             }
-            .login-header h1 {
-                font-size: 3.0rem;
-                letter-spacing: 2.5px;
-            }
+            .login-header h1,
             [data-theme="light"] .login-header h1 {
-                font-size: 3.0rem;
+                font-size: 2.6rem;
+                letter-spacing: 2px;
+                white-space: nowrap !important;
             }
-            .login-header .motto {
-                font-size: 1.45rem;
-            }
+            .login-header .motto,
             [data-theme="light"] .login-header .motto {
-                font-size: 1.45rem;
+                font-size: 1.3rem;
+                white-space: nowrap !important;
             }
             .login-container {
-                max-width: 600px;
+                max-width: 540px;
                 width: 92vw;
             }
             .login-card {
-                padding: 2.25rem 2.4rem;
+                padding: 1.8rem 2rem;
             }
-            .form-label {
-                font-size: 1.2rem;
-            }
+            .form-label,
             [data-theme="light"] .form-label {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
             }
-            .form-input {
-                font-size: 1.28rem;
-                padding: 1.2rem 1.4rem;
-            }
+            .form-input,
             [data-theme="light"] .form-input {
-                font-size: 1.28rem;
+                font-size: 1.18rem;
+                padding: 0.95rem 1.2rem;
             }
             .btn-login {
-                font-size: 1.38rem;
-                padding: 1.3rem 1.5rem;
-            }
-            .login-main {
-                padding: 0.75rem 1rem 1rem 1rem;
+                font-size: 1.26rem;
+                padding: 1rem 1.35rem;
+                white-space: nowrap !important;
             }
             .security-notice {
                 display: inline-flex !important;
@@ -615,9 +672,9 @@
                 flex-wrap: nowrap !important;
                 white-space: nowrap !important;
                 border-radius: 9999px !important;
-                font-size: clamp(0.68rem, 0.95vw, 0.85rem) !important;
-                padding: 0.45rem 1.2rem !important;
-                gap: 0.5rem !important;
+                font-size: clamp(0.58rem, 0.82vw, 0.78rem) !important;
+                padding: 0.38rem 1rem !important;
+                gap: 0.45rem !important;
                 max-width: 98vw !important;
             }
         }
