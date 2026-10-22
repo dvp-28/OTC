@@ -20,7 +20,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow-x: hidden;
+            overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: #ffffff;
             box-sizing: border-box;
@@ -206,16 +206,28 @@
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
-            padding: 0.65rem 2rem 0.55rem 2rem;
+            padding: 0.45rem 2rem 0.45rem 2rem;
             box-sizing: border-box;
             position: relative;
             z-index: 10;
             width: 100%;
         }
 
+        .login-content-wrapper {
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            padding: 0.5rem 1.5rem;
+        }
+
         .login-header {
             text-align: center;
-            margin: 0.2rem auto 0.4rem auto;
+            margin: 0 auto 2.25rem auto;
             width: 100%;
             max-width: 950px;
             padding: 0 1rem;
@@ -228,6 +240,7 @@
             font-weight: 900;
             margin: 0 0 0.25rem 0;
             letter-spacing: 3.2px;
+            line-height: 1.15;
             color: #ffffff;
             text-shadow: 0 4px 18px rgba(0, 0, 0, 0.95), 0 0 35px rgba(0, 0, 0, 0.8);
         }
@@ -238,6 +251,8 @@
             font-size: 1.38rem;
             font-weight: 700;
             letter-spacing: 0.8px;
+            line-height: 1.25;
+            margin: 0;
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
         }
 
@@ -247,6 +262,7 @@
             font-size: 3.1rem;
             font-weight: 900;
             letter-spacing: 3.2px;
+            line-height: 1.15;
             text-shadow: 0 2px 14px rgba(255, 255, 255, 1), 0 0 25px rgba(255, 255, 255, 0.95);
         }
 
@@ -255,18 +271,9 @@
             font-size: 1.38rem;
             font-weight: 800;
             letter-spacing: 0.8px;
+            line-height: 1.25;
+            margin: 0;
             text-shadow: 0 2px 10px rgba(255, 255, 255, 0.98), 0 0 15px rgba(255, 255, 255, 0.9);
-        }
-
-        .login-content-wrapper {
-            width: 100%;
-            flex: 1;
-            min-height: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-sizing: border-box;
-            padding: 0 1.5rem;
         }
 
         .login-container {
@@ -281,7 +288,7 @@
             -webkit-backdrop-filter: blur(16px);
             border: 2px solid rgba(212, 175, 55, 0.4);
             border-radius: 24px;
-            padding: 2.4rem 2.8rem;
+            padding: 2.15rem 2.65rem;
             box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.12);
             box-sizing: border-box;
         }
@@ -415,14 +422,14 @@
             flex-wrap: nowrap;
             white-space: nowrap;
             text-align: center;
-            margin: 0.35rem auto 0.65rem auto;
+            margin: 0.25rem auto 0.45rem auto;
             font-size: 1.06rem;
             color: #f1f5f9;
             line-height: 1.35;
             background: rgba(13, 18, 30, 0.92);
             backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
-            padding: 0.7rem 3rem;
+            padding: 0.55rem 2.8rem;
             border-radius: 9999px;
             border: 1.5px solid rgba(212, 175, 55, 0.45);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
@@ -490,12 +497,17 @@
         }
 
         @media (max-width: 900px) {
+            body {
+                overflow-y: auto;
+                height: auto;
+                min-height: 100vh;
+            }
             .login-content-wrapper {
                 justify-content: center;
                 padding: 0 1rem;
             }
             .login-header {
-                margin: 0.25rem auto 0.75rem auto;
+                margin: 0 auto 0.85rem auto;
             }
             .login-header h1 {
                 font-size: 2.2rem;
@@ -574,14 +586,14 @@
 
     <!-- Main Login Area with .login-page class -->
     <main class="login-main login-page">
-        <!-- Top Center Title and Motto -->
-        <div class="login-header">
-            <h1>DRONACHARYA LMS</h1>
-            <div class="motto">सर्वे सन्तु निरामयाः — May all be free from illness</div>
-        </div>
-
-        <!-- Main Content Area with Login Centered -->
+        <!-- Main Content Area with Header + Login Centered Together -->
         <div class="login-content-wrapper">
+            <!-- Top Center Title and Motto -->
+            <div class="login-header">
+                <h1>DRONACHARYA LMS</h1>
+                <div class="motto">सर्वे सन्तु निरामयाः — May all be free from illness</div>
+            </div>
+
             <div class="login-container">
                 <div class="login-card">
                     <div class="login-error" id="login-error"></div>
