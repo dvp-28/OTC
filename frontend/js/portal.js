@@ -178,6 +178,16 @@ function initPortal() {
     loadDashboardData();
     loadCourses();
     initCommandersSlider();
+
+    const phoneInput = document.getElementById('user-form-phone');
+    if (phoneInput && !phoneInput.dataset.bound) {
+        phoneInput.dataset.bound = 'true';
+        phoneInput.addEventListener('blur', () => {
+            if (phoneInput.value.trim()) {
+                phoneInput.value = formatMobileNumber(phoneInput.value.trim());
+            }
+        });
+    }
 }
 
 // Dynamic Officer Visual Identification Watermark Overlay (SEC-F03)
@@ -469,9 +479,24 @@ function renderDashboardMockupGrid() {
     if (!grid) return;
     grid.innerHTML = '';
 
+    const isStudent = currentUser && currentUser.role === 'student';
     const countEl = document.getElementById('dashboard-batches-count');
     if (countEl) {
-        countEl.textContent = `${courses.length} TOTAL BATCHES REGISTERED`;
+        if (isStudent) {
+            countEl.textContent = `${courses.length} ASSIGNED BATCHES`;
+        } else {
+            countEl.textContent = `${courses.length} TOTAL BATCHES REGISTERED`;
+        }
+    }
+
+    if (courses.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1.5rem; background: var(--bg-card); border: 1px dashed var(--border-subtle); border-radius: 12px; color: var(--text-muted);">
+                <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-main); margin-bottom: 0.35rem;">No Assigned Batches</div>
+                <div style="font-size: 0.85rem;">You do not have any course batches assigned to your account yet.</div>
+            </div>
+        `;
+        return;
     }
 
     const instructors = [
@@ -544,15 +569,43 @@ function renderDashboardMockupGrid() {
 
 function renderCourses(filter) {
     const grid = document.getElementById('courses-grid');
+    if (!grid) return;
     grid.innerHTML = '';
 
+    const isStudent = currentUser && currentUser.role === 'student';
+    const userAssignedIds = isStudent
+        ? ((currentUser.assigned_courses && currentUser.assigned_courses.length > 0)
+            ? currentUser.assigned_courses.map(Number)
+            : (currentUser.enrolled_courses || []).map(c => Number(c.id)))
+        : null;
+
     const filtered = courses.filter(c => {
+        if (userAssignedIds && !userAssignedIds.includes(Number(c.id))) {
+            return false;
+        }
         if (filter === 'all') return true;
         if (filter === 'med') return (c.category_code || '').includes('MED');
         if (filter === 'nur') return (c.category_code || '').includes('NUR');
         if (filter === 'nt') return (c.category_code || '').includes('NT');
         return true;
     });
+
+    if (filtered.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 3.5rem 1.5rem; background: var(--bg-card); border: 1px dashed var(--border-subtle); border-radius: 12px; color: var(--text-muted);">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="margin-bottom: 0.75rem; opacity: 0.5;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-main); margin-bottom: 0.4rem;">
+                    ${isStudent ? 'No Assigned Courses' : 'No Courses Available'}
+                </div>
+                <div style="font-size: 0.88rem; max-width: 420px; margin: 0 auto; line-height: 1.5;">
+                    ${isStudent
+                        ? 'You have not been assigned to any courses in this category. Please contact your Institute Administrator.'
+                        : 'No courses match the selected category filter.'}
+                </div>
+            </div>
+        `;
+        return;
+    }
 
     filtered.forEach(c => {
         let typeClass = 'med';
@@ -687,6 +740,9 @@ function playPptVideo(pptId, pptTitle) {
         theaterWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
+    const backBtn = document.getElementById('classroom-back-to-ppts-btn');
+    if (backBtn) backBtn.style.display = 'inline-flex';
+
     // Hide the PPT Library card below so ONLY the video is visible
     const pptCard = document.getElementById('classroom-ppt-card');
     if (pptCard) {
@@ -811,6 +867,9 @@ function closeClassroomVideo() {
         theaterWrapper.style.display = 'none';
     }
 
+    const backBtn = document.getElementById('classroom-back-to-ppts-btn');
+    if (backBtn) backBtn.style.display = 'none';
+
     // Reveal the PPT Library card below
     const pptCard = document.getElementById('classroom-ppt-card');
     if (pptCard) {
@@ -840,14 +899,31 @@ function togglePlayVideo() {
     }
 }
 
+let videoIdleTimer = null;
+function resetVideoControlsIdle() {
+    const screen = document.getElementById('classroom-video-screen');
+    if (!screen) return;
+    screen.classList.remove('controls-idle');
+    if (videoIdleTimer) clearTimeout(videoIdleTimer);
+    if (isVideoPlaying) {
+        videoIdleTimer = setTimeout(() => {
+            if (isVideoPlaying) {
+                screen.classList.add('controls-idle');
+            }
+        }, 2800);
+    }
+}
+
 function startVideoPlayback() {
     isVideoPlaying = true;
     const playBtn = document.getElementById('btn-play-pause');
     const playStatus = document.getElementById('video-play-status');
     const bigRing = document.getElementById('play-ring-trigger');
 
+    resetVideoControlsIdle();
+
     if (playBtn) {
-        playBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+        playBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
         playBtn.title = 'Pause (Space)';
     }
     if (playStatus) {
@@ -888,9 +964,15 @@ function pauseVideoPlayback() {
     const playBtn = document.getElementById('btn-play-pause');
     const playStatus = document.getElementById('video-play-status');
     const bigRing = document.getElementById('play-ring-trigger');
+    const screen = document.getElementById('classroom-video-screen');
+
+    if (screen) {
+        screen.classList.remove('controls-idle');
+    }
+    if (videoIdleTimer) clearTimeout(videoIdleTimer);
 
     if (playBtn) {
-        playBtn.innerHTML = '▶';
+        playBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
         playBtn.title = 'Play (Space)';
     }
     if (playStatus) {
@@ -986,7 +1068,66 @@ function handleFullscreenChange() {
     }
 }
 
-// Tactical video canvas drawing & simulated military lecture feed
+let currentVideoVolume = 1.0;
+let previousVideoVolume = 1.0;
+
+function setVideoVolume(vol) {
+    vol = Math.max(0, Math.min(1, vol));
+    currentVideoVolume = vol;
+
+    const videoEl = document.getElementById('classroom-html5-video');
+    const audioEl = document.getElementById('classroom-html5-audio');
+    const slider = document.getElementById('video-volume-slider');
+    const volHigh = document.getElementById('icon-vol-high');
+    const volLow = document.getElementById('icon-vol-low');
+    const volMuted = document.getElementById('icon-vol-muted');
+    const volBtn = document.getElementById('btn-volume');
+
+    if (videoEl) {
+        videoEl.volume = vol;
+        videoEl.muted = (vol === 0);
+    }
+    if (audioEl) {
+        audioEl.volume = vol;
+        audioEl.muted = (vol === 0);
+    }
+
+    if (slider) {
+        slider.value = Math.round(vol * 100);
+        const pct = Math.round(vol * 100);
+        slider.style.background = `linear-gradient(90deg, #ef4444 ${pct}%, rgba(255, 255, 255, 0.3) ${pct}%)`;
+    }
+
+    if (volHigh && volLow && volMuted) {
+        if (vol === 0) {
+            volHigh.style.display = 'none';
+            volLow.style.display = 'none';
+            volMuted.style.display = 'block';
+            if (volBtn) volBtn.title = 'Unmute (M)';
+        } else if (vol < 0.5) {
+            volHigh.style.display = 'none';
+            volLow.style.display = 'block';
+            volMuted.style.display = 'none';
+            if (volBtn) volBtn.title = `Volume ${Math.round(vol * 100)}% (M to mute)`;
+        } else {
+            volHigh.style.display = 'block';
+            volLow.style.display = 'none';
+            volMuted.style.display = 'none';
+            if (volBtn) volBtn.title = `Volume ${Math.round(vol * 100)}% (M to mute)`;
+        }
+    }
+}
+
+function toggleVideoMute() {
+    if (currentVideoVolume > 0) {
+        previousVideoVolume = currentVideoVolume;
+        setVideoVolume(0);
+    } else {
+        setVideoVolume(previousVideoVolume > 0 ? previousVideoVolume : 1.0);
+    }
+}
+
+// Clean pure black video canvas (YouTube style, no tactical background/equalizer)
 function drawTacticalCanvasFeed(isPlaying) {
     const canvas = document.getElementById('tactical-video-canvas');
     if (!canvas) return;
@@ -995,91 +1136,13 @@ function drawTacticalCanvasFeed(isPlaying) {
     const h = canvas.height;
     if (w === 0 || h === 0) return;
 
-    // Dark sleek tactical backdrop
-    const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-    bgGrad.addColorStop(0, '#04070e');
-    bgGrad.addColorStop(1, '#020306');
-    ctx.fillStyle = bgGrad;
+    ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, w, h);
-
-    // Subtle tactical grid
-    ctx.strokeStyle = 'rgba(212, 175, 55, 0.04)';
-    ctx.lineWidth = 1;
-    const gridSize = 36;
-    for (let x = 0; x < w; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-    }
-    for (let y = 0; y < h; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-    }
-
-    // Top Header readout
-    ctx.fillStyle = 'rgba(212, 175, 55, 0.75)';
-    ctx.font = '11px "Courier New", monospace';
-    const displayTitle = activePlayingPptTitle ? activePlayingPptTitle.toUpperCase() : 'TACTICAL BRIEFING';
-    ctx.fillText('OTC EKALAVYA SECURE FEED // ' + displayTitle.substring(0, 45), 20, 26);
-
-    ctx.fillStyle = isPlaying ? '#10b981' : '#f59e0b';
-    ctx.beginPath();
-    ctx.arc(w - 180, 22, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-    ctx.fillText(isPlaying ? 'STREAM: LIVE [720p60]' : 'STREAM: PAUSED', w - 168, 26);
-
-    // Center display: Academy Crest Watermark
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-    ctx.font = 'bold 32px sans-serif';
-    ctx.fillText('AMC CENTRE & COLLEGE', w / 2, h / 2 - 25);
-
-    // Dynamic Officer Identification Watermark (SEC-F03)
-    if (currentUser) {
-        ctx.fillStyle = 'rgba(212, 175, 55, 0.15)';
-        ctx.font = 'bold 12px monospace';
-        const officerWm = `RESTRICTED DEFENCE // OFFICER: ${(currentUser.username || '').toUpperCase()} // ID:${currentUser.id} // SECURE OTC LAN`;
-        ctx.fillText(officerWm, w / 2, h / 2 + 15);
-    }
-    ctx.restore();
-
-    // Audio spectrum equalizer bars at bottom
-    const barCount = Math.min(48, Math.floor((w - 80) / 10));
-    const barWidth = Math.max(3, (w - 80) / barCount - 3);
-    const startX = 40;
-    const baseY = h - 35;
-
-    for (let i = 0; i < barCount; i++) {
-        let barHeight = 4;
-        if (isPlaying) {
-            const freq = Math.sin((canvasAnimTime * 3.5) + i * 0.45) * Math.cos(i * 0.25 + canvasAnimTime * 2);
-            barHeight = Math.max(5, Math.abs(freq) * 42 + Math.random() * 8);
-        } else {
-            barHeight = 4 + Math.sin(i * 0.3) * 2;
-        }
-
-        const barGrad = ctx.createLinearGradient(0, baseY - barHeight, 0, baseY);
-        barGrad.addColorStop(0, '#d4af37');
-        barGrad.addColorStop(1, 'rgba(139, 30, 47, 0.6)');
-        ctx.fillStyle = barGrad;
-        ctx.fillRect(startX + i * (barWidth + 3), baseY - barHeight, barWidth, barHeight);
-    }
 }
 
 function startTacticalCanvasAnimation() {
     stopTacticalCanvasAnimation();
-    function loop() {
-        canvasAnimTime += 0.035;
-        drawTacticalCanvasFeed(true);
-        videoCanvasAnimId = requestAnimationFrame(loop);
-    }
-    loop();
+    drawTacticalCanvasFeed(true);
 }
 
 function stopTacticalCanvasAnimation() {
@@ -1116,6 +1179,22 @@ function setupVideoPlayerEvents() {
         playBtn.addEventListener('click', togglePlayVideo);
     }
 
+    const volSlider = document.getElementById('video-volume-slider');
+    if (volSlider) {
+        volSlider.addEventListener('input', (e) => {
+            setVideoVolume(parseFloat(e.target.value) / 100);
+        });
+    }
+
+    const volGroup = document.getElementById('yt-volume-control');
+    if (volGroup) {
+        volGroup.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const step = e.deltaY < 0 ? 0.05 : -0.05;
+            setVideoVolume(currentVideoVolume + step);
+        }, { passive: false });
+    }
+
     const playBig = document.getElementById('play-ring-trigger');
     if (playBig) {
         playBig.addEventListener('click', (e) => {
@@ -1124,12 +1203,84 @@ function setupVideoPlayerEvents() {
         });
     }
 
+    // YouTube-style Seeking & Double Click 10s Skip Gesture
+    let seekRippleTimers = { left: null, right: null };
+    function showSeekRipple(side) {
+        const el = document.getElementById(side === 'right' ? 'yt-seek-ripple-right' : 'yt-seek-ripple-left');
+        if (!el) return;
+        if (seekRippleTimers[side]) {
+            clearTimeout(seekRippleTimers[side]);
+        }
+        el.classList.remove('active');
+        void el.offsetWidth; // trigger reflow
+        el.classList.add('active');
+        seekRippleTimers[side] = setTimeout(() => {
+            el.classList.remove('active');
+            seekRippleTimers[side] = null;
+        }, 650);
+    }
+
+    function seekVideoBy(deltaSeconds) {
+        videoCurrentTime = Math.max(0, Math.min(videoDuration, videoCurrentTime + deltaSeconds));
+        if (activeMediaMode === 'video') {
+            const videoEl = document.getElementById('classroom-html5-video');
+            if (videoEl && !isNaN(videoEl.duration)) {
+                videoEl.currentTime = videoCurrentTime;
+            }
+        } else if (activeMediaMode === 'audio') {
+            const audioEl = document.getElementById('classroom-html5-audio');
+            if (audioEl && !isNaN(audioEl.duration)) {
+                audioEl.currentTime = videoCurrentTime;
+            }
+        }
+        updateVideoTimeDisplay();
+    }
+
+    let lastScreenClickTime = 0;
+    let screenClickTimeout = null;
+
+    function handleVideoScreenClick(e) {
+        if (e.target.closest('.custom-controls-bar') || e.target.closest('#play-ring-trigger')) return;
+
+        const screen = document.getElementById('classroom-video-screen');
+        if (!screen) return;
+        const rect = screen.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const isRightSide = clickX > (rect.width / 2);
+        const now = Date.now();
+        const timeDiff = now - lastScreenClickTime;
+
+        if (timeDiff > 0 && timeDiff < 320) {
+            // Double Click detected! Cancel play/pause and seek 10 seconds
+            if (screenClickTimeout) {
+                clearTimeout(screenClickTimeout);
+                screenClickTimeout = null;
+            }
+            lastScreenClickTime = 0;
+
+            if (isRightSide) {
+                seekVideoBy(10);
+                showSeekRipple('right');
+            } else {
+                seekVideoBy(-10);
+                showSeekRipple('left');
+            }
+        } else {
+            // First click: queue play/pause toggle
+            lastScreenClickTime = now;
+            screenClickTimeout = setTimeout(() => {
+                togglePlayVideo();
+                screenClickTimeout = null;
+            }, 260);
+        }
+    }
+
     // Bind real HTML5 Video element events
     const videoEl = document.getElementById('classroom-html5-video');
     if (videoEl) {
         videoEl.addEventListener('click', (e) => {
             e.stopPropagation();
-            togglePlayVideo();
+            handleVideoScreenClick(e);
         });
         videoEl.addEventListener('loadedmetadata', () => {
             if (activeMediaMode === 'video' && videoEl.duration && !isNaN(videoEl.duration)) {
@@ -1175,19 +1326,53 @@ function setupVideoPlayerEvents() {
     const videoScreen = document.getElementById('classroom-video-screen');
     if (videoScreen) {
         videoScreen.addEventListener('click', (e) => {
-            if (e.target.closest('#play-ring-trigger') || e.target.closest('#classroom-html5-video')) return;
-            togglePlayVideo();
+            handleVideoScreenClick(e);
+        });
+        videoScreen.addEventListener('mousemove', resetVideoControlsIdle);
+        videoScreen.addEventListener('mouseenter', resetVideoControlsIdle);
+        videoScreen.addEventListener('mouseleave', () => {
+            if (isVideoPlaying) {
+                videoScreen.classList.add('controls-idle');
+            }
         });
         videoScreen.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
                 e.preventDefault();
                 togglePlayVideo();
+            } else if (e.code === 'ArrowRight') {
+                e.preventDefault();
+                seekVideoBy(10);
+                showSeekRipple('right');
+            } else if (e.code === 'ArrowLeft') {
+                e.preventDefault();
+                seekVideoBy(-10);
+                showSeekRipple('left');
+            } else if (e.code === 'ArrowUp') {
+                e.preventDefault();
+                setVideoVolume(currentVideoVolume + 0.1);
+            } else if (e.code === 'ArrowDown') {
+                e.preventDefault();
+                setVideoVolume(currentVideoVolume - 0.1);
             } else if (e.code === 'KeyF') {
                 e.preventDefault();
                 toggleFullscreen();
+            } else if (e.code === 'KeyM') {
+                e.preventDefault();
+                toggleVideoMute();
+            } else if (e.code === 'Escape') {
+                closeClassroomVideo();
             }
         });
     }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const theaterWrapper = document.getElementById('classroom-video-theater-wrapper');
+            if (theaterWrapper && theaterWrapper.style.display !== 'none' && !document.fullscreenElement && !document.webkitFullscreenElement) {
+                closeClassroomVideo();
+            }
+        }
+    });
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
@@ -1736,6 +1921,35 @@ async function loadUsers() {
     }
 }
 
+function formatMobileNumber(raw) {
+    if (!raw) return '-';
+    const str = String(raw).trim();
+    if (!str || str === '-') return '-';
+
+    const digits = str.replace(/\D/g, '');
+
+    // 10 digits standard mobile number (e.g. 3698520147 or 9415012001)
+    if (digits.length === 10) {
+        return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+    }
+
+    // 12 digits starting with country code 91
+    if (digits.length === 12 && digits.startsWith('91')) {
+        return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+    }
+
+    // 11 digits starting with 0
+    if (digits.length === 11 && digits.startsWith('0')) {
+        return `+91 ${digits.slice(1, 6)} ${digits.slice(6)}`;
+    }
+
+    if (str.startsWith('+')) {
+        return str;
+    }
+
+    return `+91 ${str}`;
+}
+
 function renderUsers(users) {
     const tbody = document.getElementById('users-table-body');
     if (!tbody) return;
@@ -1760,18 +1974,37 @@ function renderUsers(users) {
             ? `<span style="color: #ef4444; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.2rem 0.55rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Inactive</span>`
             : `<span style="color: #22c55e; background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); padding: 0.2rem 0.55rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Active</span>`;
 
+        const isSelf = currentUser && parseInt(currentUser.id) === parseInt(u.id);
+        const isProtected = isSelf || u.username === 'siteadmin' || parseInt(u.id) <= 2;
+
+        const formattedMobile = formatMobileNumber(u.mobile || u.phone1 || u.phone2);
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><code>${esc(u.username)}</code></td>
             <td style="font-weight: 600;">${esc(u.firstname)} ${esc(u.lastname)}</td>
             <td>${esc(u.email || '-')}</td>
-            <td style="font-family: var(--font-mono); font-size: 0.85rem;">${esc(u.mobile || u.phone1 || u.phone2 || '-')}</td>
+            <td style="font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.3px; white-space: nowrap;">${esc(formattedMobile)}</td>
             <td>${roleLabels}</td>
             <td>${statusTag}</td>
             <td>
-                <button type="button" class="btn-card btn-edit-user" data-id="${u.id}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;" onclick="openEditUserModal(${u.id})">
-                    ✏ Edit User
-                </button>
+                <div style="display: flex; align-items: center; gap: 0.45rem;">
+                    <button type="button" class="btn-card btn-edit-user" data-id="${u.id}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 0.35rem;" onclick="openEditUserModal(${u.id})">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        <span>Edit User</span>
+                    </button>
+                    ${isProtected ? `
+                    <button type="button" class="btn-card" disabled title="${isSelf ? 'Cannot delete your active session account' : 'Protected administrator'}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; opacity: 0.35; cursor: not-allowed; display: inline-flex; align-items: center; gap: 0.35rem;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        <span>Delete</span>
+                    </button>
+                    ` : `
+                    <button type="button" class="btn-card danger btn-delete-user" data-id="${u.id}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 0.35rem;" onclick="confirmDeleteUser(${u.id}, '${esc(u.username)}', '${esc(u.firstname + ' ' + u.lastname)}')">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        <span>Delete</span>
+                    </button>
+                    `}
+                </div>
             </td>
         `;
         const editBtn = tr.querySelector('.btn-edit-user');
@@ -1825,6 +2058,9 @@ function openCreateUserModal() {
     document.getElementById('user-form-suspended').value = '0';
     document.getElementById('user-form-role').value = 'student';
 
+    const deleteBtn = document.getElementById('btn-user-form-delete');
+    if (deleteBtn) deleteBtn.style.display = 'none';
+
     renderCoursesChecklist([]);
     document.getElementById('modal-user-form').classList.add('visible');
 }
@@ -1849,7 +2085,7 @@ function openEditUserModal(userId) {
     document.getElementById('user-form-firstname').value = user.firstname || '';
     document.getElementById('user-form-lastname').value = user.lastname || '';
     document.getElementById('user-form-email').value = user.email || '';
-    document.getElementById('user-form-phone').value = user.mobile || user.phone1 || user.phone2 || '';
+    document.getElementById('user-form-phone').value = formatMobileNumber(user.mobile || user.phone1 || user.phone2);
     document.getElementById('user-form-suspended').value = user.suspended || '0';
 
     // Primary role
@@ -1862,8 +2098,66 @@ function openEditUserModal(userId) {
     }
     document.getElementById('user-form-role').value = primaryRole;
 
+    const deleteBtn = document.getElementById('btn-user-form-delete');
+    if (deleteBtn) {
+        const isSelfOrSiteAdmin = (currentUser && parseInt(currentUser.id) === parseInt(user.id)) || user.username === 'siteadmin' || parseInt(user.id) <= 2;
+        deleteBtn.style.display = isSelfOrSiteAdmin ? 'none' : 'inline-flex';
+    }
+
     renderCoursesChecklist(user.assigned_courses || []);
     document.getElementById('modal-user-form').classList.add('visible');
+}
+
+function handleDeleteFromUserModal() {
+    const userId = parseInt(document.getElementById('user-form-id').value);
+    const user = allUsers.find(u => parseInt(u.id) === userId);
+    if (!user) return;
+    closeModal('modal-user-form');
+    confirmDeleteUser(user.id, user.username, `${user.firstname} ${user.lastname}`);
+}
+
+function confirmDeleteUser(userId, username, fullName) {
+    document.getElementById('delete-user-id').value = userId;
+    const nameStr = fullName ? `${fullName} (${username})` : username;
+    document.getElementById('delete-user-display').textContent = nameStr;
+    document.getElementById('modal-delete-user-confirm').classList.add('visible');
+}
+
+async function submitDeleteUser() {
+    const userId = parseInt(document.getElementById('delete-user-id').value);
+    if (!userId) {
+        showToast('Invalid user ID', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('btn-confirm-delete-user');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Deleting...';
+    }
+
+    try {
+        const res = await fetch('/api/users/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            showToast(data.message || 'User deleted successfully', 'success');
+            closeModal('modal-delete-user-confirm');
+            loadUsers();
+        } else {
+            showToast(data.message || 'Failed to delete user', 'error');
+        }
+    } catch (e) {
+        showToast('Connection error: ' + e.message, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Delete User';
+        }
+    }
 }
 
 async function submitUserForm() {
@@ -1875,7 +2169,8 @@ async function submitUserForm() {
     const firstname = document.getElementById('user-form-firstname').value.trim();
     const lastname = document.getElementById('user-form-lastname').value.trim();
     const email = document.getElementById('user-form-email').value.trim();
-    const phone = document.getElementById('user-form-phone').value.trim();
+    const rawPhone = document.getElementById('user-form-phone').value.trim();
+    const phone = rawPhone ? formatMobileNumber(rawPhone) : '';
     const suspended = parseInt(document.getElementById('user-form-suspended').value);
     const role = document.getElementById('user-form-role').value;
 

@@ -94,6 +94,23 @@ function assign_user_course_enrolment(mysqli $mysqli, int $userId, int $courseId
     }
 }
 
+function normalize_phone_number(?string $raw): string {
+    if (empty($raw)) return '-';
+    $raw = trim($raw);
+    if ($raw === '' || $raw === '-') return '-';
+    $digits = preg_replace('/\D/', '', $raw);
+    if (strlen($digits) === 10) {
+        return '+91 ' . substr($digits, 0, 5) . ' ' . substr($digits, 5);
+    }
+    if (strlen($digits) === 12 && substr($digits, 0, 2) === '91') {
+        return '+91 ' . substr($digits, 2, 5) . ' ' . substr($digits, 7);
+    }
+    if (strlen($digits) === 11 && $digits[0] === '0') {
+        return '+91 ' . substr($digits, 1, 5) . ' ' . substr($digits, 6);
+    }
+    return $raw;
+}
+
 function format_bytes(int $bytes): string {
     if ($bytes >= 1073741824) {
         return number_format($bytes / 1073741824, 2) . ' GB';
@@ -400,6 +417,14 @@ if (preg_match('#^/api/users/(\d+)/courses/assign$#', $path, $pm)) {
 } elseif (preg_match('#^/api/users/(\d+)/courses$#', $path, $pm)) {
     $action = 'users-courses';
     $urlUserId = (int)$pm[1];
+} elseif (preg_match('#^/api/users/(\d+)/delete$#', $path, $pm)) {
+    $action = 'users-delete';
+    $urlUserId = (int)$pm[1];
+} elseif (preg_match('#^/api/users/(\d+)$#', $path, $pm) && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    $action = 'users-delete';
+    $urlUserId = (int)$pm[1];
+} elseif (preg_match('#^/api/users/delete$#', $path, $pm)) {
+    $action = 'users-delete';
 } elseif (preg_match('#^/api/course-ppts/(\d+)/download$#', $path, $pm)) {
     $action = 'course-ppts-download';
     $_GET['id'] = (int)$pm[1];
@@ -1055,19 +1080,38 @@ try {
             break;
 
         // =====================================================================
-        // COURSES: List all (auth required)
+        // COURSES: List courses (Filtered to assigned/enrolled for Student Officers)
         // =====================================================================
         case 'courses':
             $currentUser = require_auth();
-            $sql = "
-                SELECT c.id, c.fullname, c.shortname, c.idnumber, c.summary, c.category, c.visible,
-                       cat.name AS category_name, cat.idnumber AS category_code
-                FROM mdl_course c
-                LEFT JOIN mdl_course_categories cat ON c.category = cat.id
-                WHERE c.id > 1
-                ORDER BY c.category ASC, c.id ASC
-            ";
-            $result = $mysqli->query($sql);
+
+            if ($currentUser['role'] === 'student') {
+                $sql = "
+                    SELECT DISTINCT c.id, c.fullname, c.shortname, c.idnumber, c.summary, c.category, c.visible,
+                           cat.name AS category_name, cat.idnumber AS category_code
+                    FROM mdl_course c
+                    LEFT JOIN mdl_course_categories cat ON c.category = cat.id
+                    INNER JOIN mdl_enrol e ON e.courseid = c.id
+                    INNER JOIN mdl_user_enrolments ue ON ue.enrolid = e.id
+                    WHERE c.id > 1 AND ue.userid = ? AND ue.status = 0
+                    ORDER BY c.category ASC, c.id ASC
+                ";
+                $stmt = $mysqli->prepare($sql);
+                $stmt->bind_param('i', $currentUser['id']);
+                $stmt->execute();
+                $result = $stmt->get_result();
+            } else {
+                $sql = "
+                    SELECT c.id, c.fullname, c.shortname, c.idnumber, c.summary, c.category, c.visible,
+                           cat.name AS category_name, cat.idnumber AS category_code
+                    FROM mdl_course c
+                    LEFT JOIN mdl_course_categories cat ON c.category = cat.id
+                    WHERE c.id > 1
+                    ORDER BY c.category ASC, c.id ASC
+                ";
+                $result = $mysqli->query($sql);
+            }
+
             $courses = [];
             while ($row = $result->fetch_assoc()) {
                 $row['can_edit'] = false;
@@ -1076,7 +1120,7 @@ try {
                     $row['can_edit'] = true;
                     $row['can_delete'] = true;
                 } elseif ($currentUser['role'] === 'courseadmin') {
-                    $row['can_edit'] = in_array((int)$row['id'], $currentUser['assigned_courses']);
+                    $row['can_edit'] = in_array((int)$row['id'], $currentUser['assigned_courses'] ?? []);
                 }
                 $courses[] = $row;
             }
@@ -1418,6 +1462,8 @@ try {
 
                 $row['role'] = $userRole;
                 $row['role_label'] = $userRoleLabel;
+                $row['mobile'] = normalize_phone_number($row['mobile'] ?? $row['phone1'] ?? '');
+                $row['phone1'] = $row['mobile'];
                 $row['courses'] = $userCourses;
                 $row['course_ids'] = $courseIds;
                 $users[] = $row;
@@ -1721,6 +1767,104 @@ try {
             ], 'SUCCESS', $currentUser);
 
             echo json_encode(['status' => 'success', 'message' => 'User updated successfully']);
+            break;
+
+        // =====================================================================
+        // USERS: Delete a user (Institute Admin ONLY - Transactional Soft-Delete)
+        // =====================================================================
+        case 'users-delete':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+                http_response_code(405);
+                echo json_encode(['status' => 'error', 'message' => 'POST or DELETE required']);
+                break;
+            }
+            $currentUser = require_role(['instituteadmin']);
+
+            $userId = (int)($urlUserId ?: ($body['user_id'] ?? ($_GET['user_id'] ?? 0)));
+            if ($userId <= 2) {
+                http_response_code(403);
+                echo json_encode(['status' => 'error', 'message' => 'Protected administrative accounts cannot be deleted']);
+                break;
+            }
+
+            // Prevent self-deletion
+            if ($userId === (int)$currentUser['id']) {
+                http_response_code(403);
+                echo json_encode(['status' => 'error', 'message' => 'Administrators cannot delete their own account']);
+                break;
+            }
+
+            // Verify user exists and is not already deleted
+            $stmtChk = $mysqli->prepare("SELECT id, username, email FROM mdl_user WHERE id = ? AND deleted = 0 LIMIT 1");
+            $stmtChk->bind_param('i', $userId);
+            $stmtChk->execute();
+            $targetUser = $stmtChk->get_result()->fetch_assoc();
+            $stmtChk->close();
+
+            if (!$targetUser) {
+                http_response_code(404);
+                echo json_encode(['status' => 'error', 'message' => 'User not found or already deleted']);
+                break;
+            }
+
+            if ($targetUser['username'] === 'siteadmin') {
+                http_response_code(403);
+                echo json_encode(['status' => 'error', 'message' => 'Primary site administrator cannot be deleted']);
+                break;
+            }
+
+            $now = time();
+            $deletedUsername = $targetUser['username'] . '.' . $now;
+            $deletedEmail = $now . '.' . ($targetUser['email'] ?: 'deleted@ekalavya.local');
+
+            $mysqli->begin_transaction();
+            try {
+                // 1. Mark user as deleted in mdl_user and release username/email uniqueness
+                $delStmt = $mysqli->prepare("UPDATE mdl_user SET deleted = 1, suspended = 1, username = ?, email = ?, timemodified = ? WHERE id = ?");
+                $delStmt->bind_param('ssii', $deletedUsername, $deletedEmail, $now, $userId);
+                $delStmt->execute();
+                $delStmt->close();
+
+                // 2. Remove system and category role assignments
+                $delRoles = $mysqli->prepare("DELETE FROM mdl_role_assignments WHERE userid = ?");
+                $delRoles->bind_param('i', $userId);
+                $delRoles->execute();
+                $delRoles->close();
+
+                // 3. Remove user course enrolments
+                $delEnrols = $mysqli->prepare("DELETE FROM mdl_user_enrolments WHERE userid = ?");
+                $delEnrols->bind_param('i', $userId);
+                $delEnrols->execute();
+                $delEnrols->close();
+
+                // 4. Terminate active sessions (ISO 27001 / SEC-A05)
+                try {
+                    $delSessions = $mysqli->prepare("DELETE FROM mdl_sessions WHERE userid = ?");
+                    if ($delSessions) {
+                        $delSessions->bind_param('i', $userId);
+                        $delSessions->execute();
+                        $delSessions->close();
+                    }
+                } catch (\Throwable $te) {
+                    // Non-fatal if session table is not present
+                }
+
+                $mysqli->commit();
+
+                log_audit_event($mysqli, 'USER_DELETE', 'user', (string)$userId, [
+                    'deleted_username' => $targetUser['username'],
+                    'deleted_by' => $currentUser['username']
+                ], 'SUCCESS', $currentUser);
+
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => "User '{$targetUser['username']}' deleted successfully"
+                ]);
+            } catch (\Throwable $e) {
+                $mysqli->rollback();
+                http_response_code(500);
+                echo json_encode(['status' => 'error', 'message' => 'Failed to delete user: ' . $e->getMessage()]);
+            }
             break;
 
         // =====================================================================

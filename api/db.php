@@ -171,6 +171,14 @@ function refresh_and_validate_user(mysqli $mysqli, array $cachedUser): ?array {
     }
     $enrolStmt->close();
 
+    // Ensure all enrolled courses are also in assigned_courses list
+    foreach ($enrolledCourses as $er) {
+        $cid = (int)$er['id'];
+        if (!in_array($cid, $assignedCourses, true)) {
+            $assignedCourses[] = $cid;
+        }
+    }
+
     $updatedUser = [
         'id'               => (int)$dbUser['id'],
         'username'         => $dbUser['username'],

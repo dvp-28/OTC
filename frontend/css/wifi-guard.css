@@ -11,6 +11,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
+    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
     background: radial-gradient(circle at center, rgba(17, 24, 39, 0.98) 0%, rgba(8, 12, 20, 0.99) 100%);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);

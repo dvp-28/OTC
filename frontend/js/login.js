@@ -46,6 +46,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }).catch(() => {});
 
+    // Show / Hide Password Toggle
+    const togglePasswordBtn = document.getElementById('btn-toggle-password');
+    const passwordInput = document.getElementById('password');
+    if (togglePasswordBtn && passwordInput) {
+        togglePasswordBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const isPassword = passwordInput.getAttribute('type') === 'password';
+            passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+            
+            const eyeShow = togglePasswordBtn.querySelector('.eye-show');
+            const eyeHide = togglePasswordBtn.querySelector('.eye-hide');
+            if (eyeShow && eyeHide) {
+                eyeShow.style.display = isPassword ? 'none' : 'block';
+                eyeHide.style.display = isPassword ? 'block' : 'none';
+            }
+            const label = isPassword ? 'Hide password' : 'Show password';
+            togglePasswordBtn.setAttribute('title', label);
+            togglePasswordBtn.setAttribute('aria-label', label);
+            passwordInput.focus();
+        });
+    }
+
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {

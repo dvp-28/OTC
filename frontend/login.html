@@ -16,6 +16,10 @@
             max-width: 100vw;
         }
 
+        *, *::before, *::after {
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+        }
+
         body {
             margin: 0;
             padding: 0;
@@ -24,11 +28,15 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
             color: #ffffff;
             box-sizing: border-box;
             width: 100%;
             max-width: 100vw;
+        }
+
+        body, input, button, select, textarea, .form-input, .login-btn, .notice-box {
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
         }
 
         /* GUARANTEE BACKGROUND IMAGE /login-bg.jpg ON BOTH DARK AND LIGHT MODES */
@@ -426,6 +434,54 @@
             box-shadow: 0 0 0 4px rgba(136, 0, 21, 0.25);
         }
 
+        .password-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        .password-wrapper .form-input {
+            padding-right: 3.5rem !important;
+        }
+
+        .password-toggle-btn {
+            position: absolute;
+            right: 0.95rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            padding: 0.4rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            border-radius: 8px;
+            transition: color 0.18s ease, background 0.18s ease, transform 0.12s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .password-toggle-btn:hover {
+            color: #d4af37;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .password-toggle-btn:active {
+            transform: translateY(-50%) scale(0.92);
+        }
+
+        [data-theme="light"] .password-toggle-btn {
+            color: #64748b;
+        }
+
+        [data-theme="light"] .password-toggle-btn:hover {
+            color: #880015;
+            background: rgba(0, 0, 0, 0.06);
+        }
+
         .btn-login {
             width: 100%;
             padding: 1.2rem 1.6rem;
@@ -727,7 +783,19 @@
 
                         <div class="form-group">
                             <label class="form-label" for="password">Password</label>
-                            <input type="password" class="form-input" id="password" name="password" placeholder="Enter your password" required>
+                            <div class="password-wrapper">
+                                <input type="password" class="form-input" id="password" name="password" placeholder="Enter your password" required>
+                                <button type="button" id="btn-toggle-password" class="password-toggle-btn" aria-label="Toggle password visibility" title="Show password" tabindex="-1">
+                                    <svg class="eye-icon eye-show" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                    <svg class="eye-icon eye-hide" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
 
                         <button type="submit" class="btn-login" id="btn-login">

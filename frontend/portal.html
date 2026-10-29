@@ -141,7 +141,7 @@
             gap: 0.75rem;
             margin-top: 1.5rem;
         }
-        .btn-modal { flex: 1; padding: 0.75rem; border-radius: 8px; font-weight: 600; font-size: 0.88rem; cursor: pointer; border: 1px solid var(--border-subtle); }
+        .btn-modal { flex: 1; padding: 0.75rem; border-radius: 8px; font-weight: 600; font-size: 0.88rem; cursor: pointer; border: 1px solid var(--border-subtle); white-space: nowrap; }
         .btn-modal.primary { background: linear-gradient(135deg, var(--amc-crimson), var(--amc-crimson-bright)); color: #fff; border-color: transparent; }
         .btn-modal.cancel { background: transparent; color: var(--text-muted); }
         .btn-modal:hover { transform: translateY(-1px); }
@@ -2126,53 +2126,95 @@
                     <h2 style="font-size: 1.35rem; font-weight: 700;" id="classroom-course-title">Select a course</h2>
                     <span style="font-size: 0.82rem; color: var(--gold-light);" id="classroom-section-title"></span>
                 </div>
+                <button id="classroom-back-to-ppts-btn" class="btn-unique-back-ppts" onclick="closeClassroomVideo()" title="Exit video player and return to presentations library (Esc)">
+                    <div class="back-ppts-icon-box">
+                        <svg class="back-ppts-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </div>
+                    <div class="back-ppts-content">
+                        <span class="back-ppts-main">Return to Presentations</span>
+                        <span class="back-ppts-sub">PPT & Lecture Library</span>
+                    </div>
+                    <span class="back-ppts-kbd">ESC</span>
+                </button>
             </div>
 
             <!-- Video Player Theater Section (Hidden by default; launches dynamically when a PPT is clicked) -->
             <div id="classroom-video-theater-wrapper" style="display: none; margin-bottom: 1.5rem;">
-                <div class="video-theater-header" style="display: flex; justify-content: space-between; align-items: center; background: rgba(14, 18, 28, 0.95); border: 1px solid var(--border-subtle); border-bottom: none; border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 0.75rem 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
-                    <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0;">
-                        <span class="playing-pulse-indicator">
-                            <span class="playing-dot"></span>
-                            LECTURE VIDEO
-                        </span>
-                        <span id="theater-active-ppt-title" style="font-size: 0.92rem; font-weight: 600; color: var(--gold-light); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 480px;"></span>
-                    </div>
-                    <button class="btn-card" onclick="closeClassroomVideo()" style="padding: 0.4rem 0.95rem; font-size: 0.82rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.45rem; background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); cursor: pointer;" title="Close video player and return to PPT library">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        <span>Close Video & Return to PPTs</span>
-                    </button>
-                </div>
-
-                <div class="classroom-layout" id="classroom-theater-layout" style="border-top-left-radius: 0; border-top-right-radius: 0;">
+                <div class="classroom-layout" id="classroom-theater-layout">
                     <div class="media-player-container" id="classroom-media-player">
-                        <div class="video-screen" id="classroom-video-screen" tabindex="0" title="Click to Play/Pause">
+                        <div class="video-screen" id="classroom-video-screen" tabindex="0" title="Click to Play/Pause • Double-click left/right to seek 10s">
                             <video id="classroom-html5-video" playsinline preload="metadata" style="position: absolute; top:0; left:0; width:100%; height:100%; object-fit: contain; z-index: 3; display: none; background: #000;"></video>
                             <audio id="classroom-html5-audio" preload="metadata" style="display: none;"></audio>
-                            <canvas id="tactical-video-canvas" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: 1; pointer-events: none;"></canvas>
-                            <div class="tactical-watermark" style="z-index: 2;">OTC • AMC LUCKNOW • RESTRICTED</div>
-                            <div id="dynamic-officer-watermark" class="dynamic-officer-watermark" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: 10; pointer-events: none; overflow: hidden; display: flex; flex-direction: column; justify-content: space-around; opacity: 0.16; font-family: monospace; font-weight: 700; font-size: 13px; color: #ffffff; text-shadow: 1px 1px 2px #000000; user-select: none;"></div>
-                            <div class="video-placeholder-content" id="video-placeholder-content" style="z-index: 2; pointer-events: none;">
-                                <div class="play-ring-btn" id="play-ring-trigger" style="pointer-events: auto;" title="Click to Play/Pause">▶</div>
-                                <div class="video-status-text" id="video-play-status">Tactical Video Stream Ready</div>
-                                <div class="video-sub-text" id="video-sub-text">Interactive Video Feed • OTC Air-Gapped Engine</div>
-                            </div>
-                        </div>
-                        <div class="custom-controls-bar">
-                            <div class="timeline-scrubber" id="timeline-scrubber" title="Click to seek">
-                                <div class="timeline-progress" id="timeline-progress" style="width:0%"></div>
-                            </div>
-                            <div class="controls-row">
-                                <div class="controls-left">
-                                    <button class="ctrl-btn" id="btn-play-pause" title="Play / Pause (Space)" style="font-size: 1.1rem; width: 28px; text-align: center;">▶</button>
-                                    <span class="time-display" id="video-time-display">00:00 / 28:45</span>
+                            <canvas id="tactical-video-canvas" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: 1; pointer-events: none; background: #000;"></canvas>
+
+                            <!-- YouTube Seek Ripple Indicators (Left -10s & Right +10s) -->
+                            <div class="yt-seek-ripple left" id="yt-seek-ripple-left">
+                                <div class="yt-seek-circle">
+                                    <div class="yt-seek-arrows">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="11 19 2 12 11 5 11 19"></polygon><polygon points="22 19 13 12 22 5 22 19"></polygon></svg>
+                                    </div>
+                                    <span class="yt-seek-text">10 seconds</span>
                                 </div>
-                                <div class="controls-right">
-                                    <span class="quality-badge">720p HD</span>
-                                    <button class="btn-fullscreen" id="btn-fullscreen" title="Full Screen (F)" onclick="toggleFullscreen()">
-                                        <svg id="icon-fs-enter" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
-                                        <svg id="icon-fs-exit" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display:none;"><path d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M10 10H4m6 0V4m0 6L3 3m11 7h6m-6 0V4m0 6l7-7"></path></svg>
-                                    </button>
+                            </div>
+                            <div class="yt-seek-ripple right" id="yt-seek-ripple-right">
+                                <div class="yt-seek-circle">
+                                    <div class="yt-seek-arrows">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 19 22 12 13 5 13 19"></polygon><polygon points="2 19 11 12 2 5 2 19"></polygon></svg>
+                                    </div>
+                                    <span class="yt-seek-text">10 seconds</span>
+                                </div>
+                            </div>
+
+                            <!-- Clean Minimal YouTube Center Play Button -->
+                            <div class="video-placeholder-content" id="video-placeholder-content" style="z-index: 4; pointer-events: none;">
+                                <div class="yt-center-play-btn" id="play-ring-trigger" style="pointer-events: auto;" title="Click to Play/Pause (Space)">
+                                    <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+                                </div>
+                            </div>
+
+                            <!-- YouTube-Style Overlay Controls merged inside video section -->
+                            <div class="custom-controls-bar yt-controls-overlay" id="classroom-controls-bar">
+                                <div class="timeline-scrubber" id="timeline-scrubber" title="Click to seek">
+                                    <div class="timeline-progress" id="timeline-progress" style="width:0%">
+                                        <div class="timeline-thumb"></div>
+                                    </div>
+                                </div>
+                                <div class="controls-row">
+                                    <div class="controls-left">
+                                        <button class="ctrl-btn btn-yt-play" id="btn-play-pause" title="Play (Space)">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                        </button>
+                                        <div class="yt-volume-control" id="yt-volume-control">
+                                            <button class="ctrl-btn btn-yt-volume" id="btn-volume" title="Mute / Unmute (M)" onclick="toggleVideoMute()">
+                                                <svg id="icon-vol-high" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                                </svg>
+                                                <svg id="icon-vol-low" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                                </svg>
+                                                <svg id="icon-vol-muted" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                                    <line x1="23" y1="9" x2="17" y2="15"></line>
+                                                    <line x1="17" y1="9" x2="23" y2="15"></line>
+                                                </svg>
+                                            </button>
+                                            <div class="yt-volume-slider-box">
+                                                <input type="range" class="yt-volume-slider" id="video-volume-slider" min="0" max="100" value="100" step="1" title="Volume Slider (Up/Down Arrow)" aria-label="Volume">
+                                            </div>
+                                        </div>
+                                        <span class="time-display" id="video-time-display">00:00 / 28:45</span>
+                                    </div>
+                                    <div class="controls-right">
+                                        <button class="btn-fullscreen btn-yt-fs" id="btn-fullscreen" title="Full Screen (F)" onclick="toggleFullscreen()">
+                                            <svg id="icon-fs-enter" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+                                            <svg id="icon-fs-exit" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display:none;"><path d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M10 10H4m6 0V4m0 6L3 3m11 7h6m-6 0V4m0 6l7-7"></path></svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2349,7 +2391,7 @@
                 </div>
                 <div class="modal-form-group">
                     <label>Mobile Number</label>
-                    <input type="text" id="user-form-phone" placeholder="9876543210">
+                    <input type="text" id="user-form-phone" placeholder="+91 94150 12001">
                 </div>
             </div>
 
@@ -2378,9 +2420,15 @@
                 </div>
             </div>
 
-            <div class="modal-actions">
-                <button class="btn-modal cancel" onclick="closeModal('modal-user-form')">Cancel</button>
-                <button class="btn-modal primary" onclick="submitUserForm()">Save User</button>
+            <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: 1.5rem;">
+                <button type="button" class="btn-modal danger" id="btn-user-form-delete" style="display: none; flex: 0 0 auto; width: auto; min-width: 125px; padding: 0.7rem 1.25rem; font-size: 0.88rem; font-weight: 600; background: #dc2626; color: #ffffff; border: none; border-radius: 8px; cursor: pointer; align-items: center; justify-content: center; gap: 0.45rem; white-space: nowrap;" onclick="handleDeleteFromUserModal()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align: -1px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <span>Delete User</span>
+                </button>
+                <div style="display: flex; gap: 0.75rem; align-items: center; margin-left: auto;">
+                    <button type="button" class="btn-modal cancel" style="flex: 0 0 auto; width: auto; min-width: 105px; padding: 0.7rem 1.35rem; font-size: 0.88rem; font-weight: 600; border-radius: 8px; cursor: pointer; white-space: nowrap;" onclick="closeModal('modal-user-form')">Cancel</button>
+                    <button type="button" class="btn-modal primary" style="flex: 0 0 auto; width: auto; min-width: 130px; padding: 0.7rem 1.5rem; font-size: 0.88rem; font-weight: 700; border-radius: 8px; cursor: pointer; white-space: nowrap;" onclick="submitUserForm()">Save User</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2445,6 +2493,27 @@
             <div class="modal-actions">
                 <button class="btn-modal cancel" onclick="closeModal('modal-delete-course-confirm')">Cancel</button>
                 <button class="btn-modal danger" onclick="submitDeleteCourse()" style="background: #dc2626; color: #ffffff;">Delete Course</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Delete User Confirm -->
+    <div class="modal-overlay" id="modal-delete-user-confirm">
+        <div class="modal-box" style="max-width: 440px;">
+            <h2 style="display: flex; align-items: center; gap: 0.5rem; color: #ef4444;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                Confirm User Deletion
+            </h2>
+            <input type="hidden" id="delete-user-id" value="">
+            <p style="font-size: 0.9rem; margin-bottom: 0.75rem; color: var(--text-secondary); line-height: 1.5;">
+                Are you sure you want to delete user <strong id="delete-user-display" style="color: var(--text-main); font-family: var(--font-mono);"></strong>?
+            </p>
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 0.75rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #f87171;">
+                <strong>Warning:</strong> Deleting this user will purge assigned roles, remove active course enrolments, and immediately revoke active sessions. This action cannot be undone.
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-modal cancel" onclick="closeModal('modal-delete-user-confirm')">Cancel</button>
+                <button type="button" class="btn-modal danger" id="btn-confirm-delete-user" onclick="submitDeleteUser()" style="background: #dc2626; color: #ffffff;">Delete User</button>
             </div>
         </div>
     </div>
