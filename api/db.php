@@ -447,8 +447,8 @@ function require_csrf_token(string $action): void {
         return;
     }
 
-    // Login does not have a session yet
-    if ($action === 'login') {
+    // Login and internal watchdog sync do not have a web session
+    if ($action === 'login' || $action === 'wifi-sync') {
         return;
     }
 
@@ -547,5 +547,210 @@ function log_audit_event(
         error_log("Audit logging error: " . $e->getMessage());
     }
 }
+
+// Check if an IP address belongs to a CIDR or comma-separated list of CIDRs
+function is_ip_in_subnet(string $ip, string $cidrList): bool {
+    if ($ip === '127.0.0.1' || $ip === '::1' || $ip === 'localhost') {
+        return true;
+    }
+
+    $cidrs = array_map('trim', explode(',', $cidrList));
+    foreach ($cidrs as $cidr) {
+        if (empty($cidr)) continue;
+        if (strpos($cidr, '/') === false) {
+            $cidr .= '/32';
+        }
+        list($subnet, $mask) = explode('/', $cidr, 2);
+        $mask = (int)$mask;
+
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && filter_var($subnet, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            $ipLong = ip2long($ip);
+            $subnetLong = ip2long($subnet);
+            if ($mask === 0) {
+                return true;
+            }
+            $maskLong = -1 << (32 - $mask);
+            if (($ipLong & $maskLong) === ($subnetLong & $maskLong)) {
+                return true;
+            }
+        } elseif ($ip === $subnet) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Retrieve current Wi-Fi Guard Configuration from database / environment
+function get_wifi_guard_config(mysqli $mysqli): array {
+    $default = [
+        'id' => 1,
+        'is_enabled' => 1,
+        'is_locked' => 0,
+        'authorized_ssid' => getenv('ALLOWED_WIFI_SSID') ?: '',
+        'authorized_bssid' => '',
+        'authorized_gateway' => getenv('ALLOWED_WIFI_GATEWAY') ?: '',
+        'authorized_subnet' => getenv('ALLOWED_WIFI_SUBNET') ?: '',
+        'current_ssid' => '',
+        'current_bssid' => '',
+        'current_gateway' => '',
+        'current_host_ip' => '',
+        'host_connected' => 1,
+        'last_heartbeat' => 0,
+        'last_violation_reason' => null
+    ];
+
+    $res = $mysqli->query("SELECT * FROM mdl_ek_wifi_lock WHERE id = 1 LIMIT 1");
+    if ($res && $row = $res->fetch_assoc()) {
+        $row['is_enabled'] = (int)$row['is_enabled'];
+        $row['is_locked'] = (int)$row['is_locked'];
+        $row['host_connected'] = (int)$row['host_connected'];
+        $row['last_heartbeat'] = (int)$row['last_heartbeat'];
+
+        if (!empty(getenv('ALLOWED_WIFI_SSID'))) {
+            $row['authorized_ssid'] = getenv('ALLOWED_WIFI_SSID');
+            $row['is_locked'] = 1;
+        }
+        if (!empty(getenv('ALLOWED_WIFI_SUBNET'))) {
+            $row['authorized_subnet'] = getenv('ALLOWED_WIFI_SUBNET');
+        }
+        if (!empty(getenv('ALLOWED_WIFI_GATEWAY'))) {
+            $row['authorized_gateway'] = getenv('ALLOWED_WIFI_GATEWAY');
+        }
+        return $row;
+    }
+    return $default;
+}
+
+// Update Wi-Fi Guard Host Telemetry from watchdog or auto-lock
+function record_wifi_host_heartbeat(mysqli $mysqli, array $hostData, bool $triggerAutoLock = false): array {
+    $config = get_wifi_guard_config($mysqli);
+
+    $currentSsid = trim($hostData['ssid'] ?? '');
+    $currentBssid = trim($hostData['bssid'] ?? '');
+    $currentGateway = trim($hostData['gateway'] ?? '');
+    $currentIp = trim($hostData['ip'] ?? '');
+    $connected = isset($hostData['connected']) ? ((bool)$hostData['connected'] ? 1 : 0) : 1;
+    $now = time();
+
+    $isLocked = (int)$config['is_locked'];
+    $authSsid = $config['authorized_ssid'];
+    $authGateway = $config['authorized_gateway'];
+    $authSubnet = $config['authorized_subnet'];
+
+    // Auto-lock to current connected Wi-Fi if requested or if system is unlocked and auto-lock is triggered
+    if (($triggerAutoLock || ($isLocked === 0 && !empty($currentSsid))) && $connected === 1) {
+        $isLocked = 1;
+        if (!empty($currentSsid)) $authSsid = $currentSsid;
+        if (!empty($currentGateway)) $authGateway = $currentGateway;
+        if (!empty($currentIp) && empty($authSubnet)) {
+            $parts = explode('.', $currentIp);
+            if (count($parts) === 4) {
+                $authSubnet = "{$parts[0]}.{$parts[1]}.{$parts[2]}.0/24";
+            }
+        }
+    }
+
+    $stmt = $mysqli->prepare("
+        UPDATE mdl_ek_wifi_lock SET
+            current_ssid = ?,
+            current_bssid = ?,
+            current_gateway = ?,
+            current_host_ip = ?,
+            host_connected = ?,
+            is_locked = ?,
+            authorized_ssid = ?,
+            authorized_gateway = ?,
+            authorized_subnet = ?,
+            last_heartbeat = ?,
+            timemodified = ?
+        WHERE id = 1
+    ");
+    if ($stmt) {
+        $stmt->bind_param('ssssissssii', 
+            $currentSsid, 
+            $currentBssid, 
+            $currentGateway, 
+            $currentIp, 
+            $connected, 
+            $isLocked, 
+            $authSsid, 
+            $authGateway, 
+            $authSubnet, 
+            $now, 
+            $now
+        );
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    return get_wifi_guard_config($mysqli);
+}
+
+// Check Wi-Fi Network Integrity for client and server
+function check_wifi_network_integrity(mysqli $mysqli, string $clientIp): array {
+    $config = get_wifi_guard_config($mysqli);
+
+    $response = [
+        'allowed' => true,
+        'is_enabled' => (bool)$config['is_enabled'],
+        'is_locked' => (bool)$config['is_locked'],
+        'client_ip' => $clientIp,
+        'authorized_ssid' => $config['authorized_ssid'],
+        'authorized_subnet' => $config['authorized_subnet'],
+        'authorized_gateway' => $config['authorized_gateway'],
+        'current_ssid' => $config['current_ssid'],
+        'current_gateway' => $config['current_gateway'],
+        'host_connected' => (bool)$config['host_connected'],
+        'last_heartbeat' => (int)$config['last_heartbeat'],
+        'violation' => null
+    ];
+
+    if (!$config['is_enabled']) {
+        return $response;
+    }
+
+    if (!$config['is_locked']) {
+        return $response;
+    }
+
+    // 1. Check if server host is connected to Wi-Fi
+    if ($config['host_connected'] === 0) {
+        $response['allowed'] = false;
+        $response['violation'] = 'Server host Wi-Fi network interface is disconnected.';
+        return $response;
+    }
+
+    // 2. Check if server host Wi-Fi SSID matches authorized SSID
+    if (!empty($config['authorized_ssid']) && !empty($config['current_ssid'])) {
+        if (strcasecmp($config['current_ssid'], $config['authorized_ssid']) !== 0) {
+            $response['allowed'] = false;
+            $response['violation'] = "Wi-Fi network mismatch. Connected to unauthorized Wi-Fi '{$config['current_ssid']}', required '{$config['authorized_ssid']}'.";
+            return $response;
+        }
+    }
+
+    // 3. Check if server host default gateway matches authorized gateway
+    if (!empty($config['authorized_gateway']) && !empty($config['current_gateway'])) {
+        if ($config['current_gateway'] !== $config['authorized_gateway']) {
+            $response['allowed'] = false;
+            $response['violation'] = "Network gateway mismatch. Detected gateway {$config['current_gateway']}, expected {$config['authorized_gateway']}.";
+            return $response;
+        }
+    }
+
+    // 4. Verify client IP is on the same authorized Wi-Fi subnet
+    if (!empty($config['authorized_subnet'])) {
+        // Also allow local loopback and internal docker subnets
+        $trustedSubnets = $config['authorized_subnet'] . ',127.0.0.1/32,172.16.0.0/12,172.28.10.0/24';
+        if (!is_ip_in_subnet($clientIp, $trustedSubnets)) {
+            $response['allowed'] = false;
+            $response['violation'] = "Client IP ({$clientIp}) is outside the authorized Wi-Fi subnet ({$config['authorized_subnet']}).";
+            return $response;
+        }
+    }
+
+    return $response;
+}
+
 
 

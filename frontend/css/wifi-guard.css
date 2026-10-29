@@ -1,0 +1,322 @@
+/**
+ * Air-Gapped Wi-Fi Guard Stylesheet
+ * Officers Training College (OTC), AMC Centre & College, Lucknow
+ * Military Air-Gap Network Integrity Fence & Lockdown Overlay
+ */
+
+/* Fullscreen Non-Dismissible Lockdown Overlay */
+#wifi-lockdown-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle at center, rgba(17, 24, 39, 0.98) 0%, rgba(8, 12, 20, 0.99) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 9999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    padding: 1.5rem;
+    box-sizing: border-box;
+}
+
+#wifi-lockdown-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto !important;
+}
+
+body.wifi-locked {
+    overflow: hidden !important;
+}
+
+/* Modal Content Card */
+.wifi-lock-card {
+    background: linear-gradient(180deg, rgba(26, 32, 48, 0.95) 0%, rgba(15, 20, 31, 0.98) 100%);
+    border: 2px solid rgba(220, 38, 38, 0.55);
+    box-shadow: 0 0 50px rgba(220, 38, 38, 0.25), 0 25px 60px rgba(0, 0, 0, 0.85);
+    border-radius: 18px;
+    max-width: 620px;
+    width: 100%;
+    padding: 2.2rem 2.4rem;
+    box-sizing: border-box;
+    text-align: center;
+    position: relative;
+    color: #f8fafc;
+    animation: lockCardPulse 3s infinite alternate ease-in-out;
+}
+
+@keyframes lockCardPulse {
+    0% {
+        border-color: rgba(220, 38, 38, 0.45);
+        box-shadow: 0 0 35px rgba(220, 38, 38, 0.2), 0 20px 50px rgba(0, 0, 0, 0.85);
+    }
+    100% {
+        border-color: rgba(212, 175, 55, 0.7);
+        box-shadow: 0 0 55px rgba(220, 38, 38, 0.35), 0 0 25px rgba(212, 175, 55, 0.2), 0 25px 60px rgba(0, 0, 0, 0.9);
+    }
+}
+
+/* Institutional Header in Lockdown Card */
+.wifi-lock-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.wifi-lock-emblem {
+    width: 72px;
+    height: 72px;
+    margin-bottom: 0.85rem;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+}
+
+.wifi-lock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.28rem 0.85rem;
+    background: rgba(220, 38, 38, 0.18);
+    border: 1px solid rgba(220, 38, 38, 0.5);
+    color: #f87171;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+}
+
+.wifi-lock-title {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+    margin: 0 0 0.35rem 0;
+    text-transform: uppercase;
+}
+
+.wifi-lock-subtitle {
+    font-size: 0.84rem;
+    color: #94a3b8;
+    margin: 0;
+}
+
+/* Radar Animation Scanner */
+.wifi-radar-box {
+    position: relative;
+    width: 110px;
+    height: 110px;
+    margin: 1.2rem auto;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(220, 38, 38, 0.08) 0%, rgba(15, 23, 42, 0.6) 80%);
+    border: 1.5px solid rgba(220, 38, 38, 0.4);
+    box-shadow: inset 0 0 20px rgba(220, 38, 38, 0.2);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wifi-radar-circle {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px dashed rgba(220, 38, 38, 0.3);
+}
+
+.wifi-radar-circle.c1 { width: 40px; height: 40px; }
+.wifi-radar-circle.c2 { width: 75px; height: 75px; }
+
+.wifi-radar-sweep {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 55px;
+    height: 55px;
+    background: conic-gradient(from 0deg, rgba(220, 38, 38, 0.5) 0deg, transparent 60deg, transparent 360deg);
+    transform-origin: 0 0;
+    animation: radarSweep 2s linear infinite;
+}
+
+@keyframes radarSweep {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.wifi-radar-icon {
+    position: relative;
+    z-index: 2;
+    color: #ef4444;
+    animation: iconBlink 1.5s infinite ease-in-out;
+}
+
+@keyframes iconBlink {
+    0%, 100% { opacity: 0.6; transform: scale(0.95); }
+    50% { opacity: 1; transform: scale(1.08); }
+}
+
+/* Diagnostics & Violation Notice */
+.wifi-lock-notice {
+    background: rgba(10, 14, 23, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    margin: 1.2rem 0;
+    text-align: left;
+}
+
+.wifi-lock-reason {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #fca5a5;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.wifi-diagnostics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    font-size: 0.78rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 0.75rem;
+}
+
+.wifi-diag-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.wifi-diag-label {
+    color: #64748b;
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.15rem;
+}
+
+.wifi-diag-val {
+    color: #e2e8f0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-weight: 600;
+    word-break: break-all;
+}
+
+.wifi-diag-val.highlight {
+    color: #d4af37;
+}
+
+.wifi-lock-directive {
+    font-size: 0.74rem;
+    color: #64748b;
+    line-height: 1.45;
+    margin: 1.1rem 0 1.25rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 0.85rem;
+}
+
+/* Actions & Retry Button */
+.wifi-lock-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.btn-wifi-scan {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.4rem;
+    background: linear-gradient(135deg, #d4af37 0%, #aa820a 100%);
+    border: 1px solid #d4af37;
+    color: #0a0d14;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.25);
+}
+
+.btn-wifi-scan:hover {
+    background: linear-gradient(135deg, #f3d779 0%, #d4af37 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+}
+
+.btn-wifi-scan:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Reconnected Success State */
+.wifi-lock-card.restored {
+    border-color: rgba(16, 185, 129, 0.8);
+    box-shadow: 0 0 50px rgba(16, 185, 129, 0.35);
+    animation: none;
+}
+
+.wifi-lock-card.restored .wifi-radar-box {
+    border-color: rgba(16, 185, 129, 0.6);
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.6) 80%);
+}
+
+.wifi-lock-card.restored .wifi-radar-sweep {
+    display: none;
+}
+
+.wifi-lock-card.restored .wifi-radar-icon {
+    color: #10b981;
+    animation: none;
+}
+
+/* Admin Panel Wi-Fi Guard Widget */
+.wifi-guard-panel {
+    background: var(--bg-card, #131b2e);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.wifi-guard-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.wifi-guard-status-badge.active {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.wifi-guard-status-badge.unlocked {
+    background: rgba(234, 179, 8, 0.15);
+    color: #facc15;
+    border: 1px solid rgba(234, 179, 8, 0.4);
+}
+
+.wifi-guard-status-badge.violation {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}

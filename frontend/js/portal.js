@@ -2751,3 +2751,153 @@ if (document.readyState === 'loading') {
     initCommandersSlider();
 }
 
+// ============================================================
+// WI-FI AIR-GAP SECURITY GUARD MODAL & ADMIN CONTROLS
+// ============================================================
+async function openWifiSecurityModal() {
+    const modal = document.getElementById('modal-wifi-security');
+    if (!modal) return;
+    modal.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+    await refreshWifiSecurityModal();
+}
+
+function closeWifiSecurityModal() {
+    const modal = document.getElementById('modal-wifi-security');
+    if (!modal) return;
+    modal.classList.remove('visible');
+    document.body.style.overflow = '';
+}
+
+async function refreshWifiSecurityModal() {
+    const badgeEl = document.getElementById('wifi-modal-status-badge');
+    const authSsidEl = document.getElementById('wifi-modal-auth-ssid');
+    const currSsidEl = document.getElementById('wifi-modal-curr-ssid');
+    const subnetEl = document.getElementById('wifi-modal-auth-subnet');
+    const gwEl = document.getElementById('wifi-modal-gateway');
+
+    try {
+        const res = await fetch('/api/wifi-status');
+        const json = await res.json();
+        if (json.status === 'success' && json.data) {
+            const d = json.data;
+            if (badgeEl) {
+                if (!d.is_enabled) {
+                    badgeEl.className = 'wifi-guard-status-badge unlocked';
+                    badgeEl.textContent = 'BYPASS / INACTIVE';
+                } else if (!d.is_locked) {
+                    badgeEl.className = 'wifi-guard-status-badge unlocked';
+                    badgeEl.textContent = 'DISCOVERY MODE';
+                } else if (!d.allowed) {
+                    badgeEl.className = 'wifi-guard-status-badge violation';
+                    badgeEl.textContent = 'VIOLATION / LOCKED';
+                } else {
+                    badgeEl.className = 'wifi-guard-status-badge active';
+                    badgeEl.textContent = 'ACTIVE & LOCKED';
+                }
+            }
+
+            if (authSsidEl) authSsidEl.textContent = d.authorized_ssid || '(Auto-Discovery)';
+            if (currSsidEl) currSsidEl.textContent = d.current_ssid || '(Host not reported)';
+            if (subnetEl) subnetEl.textContent = d.authorized_subnet || '(Any Subnet)';
+            if (gwEl) gwEl.textContent = d.current_gateway || d.authorized_gateway || '--';
+
+            const inSsid = document.getElementById('wifi-input-ssid');
+            const inSub = document.getElementById('wifi-input-subnet');
+            const inGw = document.getElementById('wifi-input-gateway');
+            if (inSsid && d.authorized_ssid) inSsid.value = d.authorized_ssid;
+            if (inSub && d.authorized_subnet) inSub.value = d.authorized_subnet;
+            if (inGw && d.authorized_gateway) inGw.value = d.authorized_gateway;
+        }
+    } catch (e) {
+        console.error('Failed to load Wi-Fi config:', e);
+    }
+}
+
+async function triggerAutoLockWifi() {
+    const csrfToken = sessionStorage.getItem('ek_csrf_token') || '';
+    try {
+        const res = await fetch('/api/wifi-lock-config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({
+                sub_action: 'auto_lock',
+                csrf_token: csrfToken
+            })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            showToast(data.message || 'Application locked to current Wi-Fi network.', 'success');
+            await refreshWifiSecurityModal();
+        } else {
+            showToast(data.message || 'Auto-lock failed', 'error');
+        }
+    } catch (e) {
+        showToast('Communication error during Wi-Fi auto-lock', 'error');
+    }
+}
+
+async function triggerUnlockWifi() {
+    const csrfToken = sessionStorage.getItem('ek_csrf_token') || '';
+    try {
+        const res = await fetch('/api/wifi-lock-config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({
+                sub_action: 'unlock',
+                csrf_token: csrfToken
+            })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            showToast('Wi-Fi lock released. Application in discovery mode.', 'success');
+            await refreshWifiSecurityModal();
+        } else {
+            showToast(data.message || 'Unlock failed', 'error');
+        }
+    } catch (e) {
+        showToast('Communication error during Wi-Fi unlock', 'error');
+    }
+}
+
+async function submitManualWifiConfig(e) {
+    if (e) e.preventDefault();
+    const csrfToken = sessionStorage.getItem('ek_csrf_token') || '';
+    const ssid = document.getElementById('wifi-input-ssid')?.value.trim() || '';
+    const subnet = document.getElementById('wifi-input-subnet')?.value.trim() || '';
+    const gateway = document.getElementById('wifi-input-gateway')?.value.trim() || '';
+
+    try {
+        const res = await fetch('/api/wifi-lock-config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({
+                sub_action: 'update_manual',
+                authorized_ssid: ssid,
+                authorized_subnet: subnet,
+                authorized_gateway: gateway,
+                csrf_token: csrfToken
+            })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            showToast('Wi-Fi security policy updated successfully.', 'success');
+            await refreshWifiSecurityModal();
+        } else {
+            showToast(data.message || 'Failed to update policy', 'error');
+        }
+    } catch (e) {
+        showToast('Communication error while updating policy', 'error');
+    }
+}
+
+

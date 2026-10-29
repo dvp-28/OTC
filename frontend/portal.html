@@ -6,6 +6,7 @@
     <title>Portal | Dronacharya LMS - Officers Training College</title>
     <meta name="description" content="Dronacharya LMS Officer Portal - Role-based access to courses, classroom, and administration.">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/wifi-guard.css">
     <style>
         /* Role-specific admin toolbar */
         .admin-toolbar {
@@ -1751,6 +1752,10 @@
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
                             <span>Manage Users & Batches</span>
                         </button>
+                        <button class="menu-item" id="popup-quick-wifi-guard" onclick="openWifiSecurityModal(); closeAdminQuickActionsMenu();">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+                            <span>Wi-Fi Air-Gap Security</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -2662,6 +2667,95 @@
         </div>
     </div>
 
+    <!-- Wi-Fi Air-Gap Security Modal -->
+    <div class="modal-overlay" id="modal-wifi-security">
+        <div class="modal-box" style="max-width: 600px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(212, 175, 55, 0.12); display: flex; align-items: center; justify-content: center; color: var(--gold-primary);">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+                    </div>
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.18rem; font-weight: 800; color: var(--text-main);">Wi-Fi Air-Gap Security Guard</h2>
+                        <p style="margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--text-muted);">Enforce single-network containment for offline operations</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeWifiSecurityModal()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+
+            <div id="wifi-config-alert" style="display: none; margin-bottom: 1rem; padding: 0.65rem 0.85rem; border-radius: 8px; font-size: 0.82rem;"></div>
+
+            <!-- Current Status Box -->
+            <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 1.1rem; margin-bottom: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Guard Enforcement</span>
+                    <span id="wifi-modal-status-badge" class="wifi-guard-status-badge unlocked">Checking...</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.82rem;">
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Locked Wi-Fi SSID</div>
+                        <div id="wifi-modal-auth-ssid" style="font-weight: 700; color: var(--gold-light); font-family: monospace;">--</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Current Host Wi-Fi</div>
+                        <div id="wifi-modal-curr-ssid" style="font-weight: 700; color: var(--text-main); font-family: monospace;">--</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Authorized Subnet</div>
+                        <div id="wifi-modal-auth-subnet" style="font-weight: 700; color: var(--text-main); font-family: monospace;">--</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Default Gateway</div>
+                        <div id="wifi-modal-gateway" style="font-weight: 700; color: var(--text-main); font-family: monospace;">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions Bar -->
+            <div style="display: flex; gap: 0.65rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
+                <button type="button" class="btn-admin gold" onclick="triggerAutoLockWifi()" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <span>Auto-Lock to Current Wi-Fi</span>
+                </button>
+                <button type="button" class="btn-admin" onclick="triggerUnlockWifi()" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+                    <span>Unlock Guard</span>
+                </button>
+                <button type="button" class="btn-admin" onclick="window.WifiGuard.simulateLock(5)" title="Simulate 5s network lockdown" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    <span>Test Lockdown Screen</span>
+                </button>
+            </div>
+
+            <!-- Manual Override Form -->
+            <form id="form-wifi-manual" onsubmit="submitManualWifiConfig(event)" style="border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+                <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.85rem;">
+                    Manual Network Policy Override
+                </div>
+                <div class="modal-form-group">
+                    <label for="wifi-input-ssid">Authorized Wi-Fi SSID (Network Name)</label>
+                    <input type="text" id="wifi-input-ssid" placeholder="e.g. OTC_CLASSROOM_WIFI">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div class="modal-form-group">
+                        <label for="wifi-input-subnet">Allowed Subnet CIDR</label>
+                        <input type="text" id="wifi-input-subnet" placeholder="e.g. 192.168.29.0/24">
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="wifi-input-gateway">Expected Gateway IP</label>
+                        <input type="text" id="wifi-input-gateway" placeholder="e.g. 192.168.29.1">
+                    </div>
+                </div>
+                <div class="modal-actions" style="margin-top: 1.25rem;">
+                    <button type="button" class="btn-modal cancel" onclick="closeWifiSecurityModal()">Close</button>
+                    <button type="submit" class="btn-modal primary">Save Policy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div class="toast" id="toast"></div>
 
@@ -2670,6 +2764,7 @@
         <div class="footer-compliance">RESTRICTED • FOR OFFICIAL DEFENCE USE ONLY • AIR-GAPPED ON-PREMISE</div>
     </footer>
 
+    <script src="js/wifi-guard.js"></script>
     <script src="js/portal.js"></script>
 </body>
 </html>

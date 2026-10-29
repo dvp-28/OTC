@@ -478,9 +478,226 @@ if ($urlUserId !== null && !isset($body['user_id'])) {
 // 3. Enforce Anti-CSRF token verification on state-changing endpoints (SEC-C01)
 require_csrf_token($action);
 
+// 4. Enforce Air-Gapped Wi-Fi Guard Gate
+$clientIp = get_client_ip();
+$wifiCheck = check_wifi_network_integrity($mysqli, $clientIp);
+$wifiBypassActions = ['wifi-status', 'wifi-heartbeat', 'wifi-sync', 'wifi-lock-config'];
+
+if (!$wifiCheck['allowed'] && !in_array($action, $wifiBypassActions, true)) {
+    http_response_code(403);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'status' => 'locked',
+        'allowed' => false,
+        'code' => 'WIFI_LOCKDOWN',
+        'message' => 'Air-gapped Wi-Fi lockdown active: ' . ($wifiCheck['violation'] ?? 'Access restricted to authorized network.'),
+        'data' => $wifiCheck
+    ]);
+    exit;
+}
 
 try {
     switch ($action) {
+
+        // =====================================================================
+        // WI-FI GUARD: Status & Diagnostics
+        // =====================================================================
+        case 'wifi-status':
+            $status = check_wifi_network_integrity($mysqli, $clientIp);
+            echo json_encode([
+                'status' => 'success',
+                'data' => $status
+            ]);
+            break;
+
+        // =====================================================================
+        // WI-FI GUARD: High-frequency Heartbeat for Client Polling
+        // =====================================================================
+        case 'wifi-heartbeat':
+            $status = check_wifi_network_integrity($mysqli, $clientIp);
+            if ($status['allowed']) {
+                echo json_encode([
+                    'status' => 'success',
+                    'allowed' => true,
+                    'data' => $status
+                ]);
+            } else {
+                http_response_code(403);
+                echo json_encode([
+                    'status' => 'locked',
+                    'allowed' => false,
+                    'code' => 'WIFI_LOCKDOWN',
+                    'message' => $status['violation'] ?? 'Wi-Fi network violation detected',
+                    'data' => $status
+                ]);
+            }
+            break;
+
+        // =====================================================================
+        // WI-FI GUARD: Real-Time Host Telemetry Sync from Watchdog Daemon
+        // =====================================================================
+        case 'wifi-sync':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['status' => 'error', 'message' => 'POST required']);
+                break;
+            }
+
+            $expectedKey = getenv('WIFI_WATCHDOG_SECRET') ?: 'OTC-Wifi-Guard-Secret-Key-2026!';
+            $clientKey = $_SERVER['HTTP_X_WIFI_WATCHDOG_KEY'] ?? ($body['watchdog_key'] ?? '');
+
+            // Allow if valid watchdog key provided or if request comes from local loopback
+            $isAuthorized = ($clientKey !== '' && hash_equals($expectedKey, $clientKey)) 
+                || in_array($clientIp, ['127.0.0.1', '::1', 'localhost'], true);
+
+            if (!$isAuthorized) {
+                http_response_code(403);
+                echo json_encode(['status' => 'error', 'message' => 'Unauthorized watchdog telemetry sync']);
+                break;
+            }
+
+            $autoLock = !empty($body['auto_lock']);
+            $updated = record_wifi_host_heartbeat($mysqli, $body, $autoLock);
+
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'Host Wi-Fi telemetry synchronized',
+                'data' => $updated
+            ]);
+            break;
+
+        // =====================================================================
+        // WI-FI GUARD: Administrative Configuration (Institute Admin only)
+        // =====================================================================
+        case 'wifi-lock-config':
+            $currentUser = require_role(['instituteadmin']);
+
+            if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+                $config = get_wifi_guard_config($mysqli);
+                echo json_encode([
+                    'status' => 'success',
+                    'data' => $config
+                ]);
+                break;
+            }
+
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['status' => 'error', 'message' => 'POST or GET required']);
+                break;
+            }
+
+            $subAction = trim($body['sub_action'] ?? '');
+            $cfg = get_wifi_guard_config($mysqli);
+            $now = time();
+
+            if ($subAction === 'auto_lock') {
+                $authSsid = !empty($cfg['current_ssid']) ? $cfg['current_ssid'] : 'OTC-Authorized-WiFi';
+                $authGateway = $cfg['current_gateway'];
+                $authSubnet = $cfg['authorized_subnet'];
+                if (empty($authSubnet) && !empty($cfg['current_host_ip'])) {
+                    $parts = explode('.', $cfg['current_host_ip']);
+                    if (count($parts) === 4) {
+                        $authSubnet = "{$parts[0]}.{$parts[1]}.{$parts[2]}.0/24";
+                    }
+                }
+                if (empty($authSubnet)) {
+                    $authSubnet = '192.168.0.0/16';
+                }
+
+                $stmt = $mysqli->prepare("UPDATE mdl_ek_wifi_lock SET 
+                    is_locked = 1, 
+                    is_enabled = 1,
+                    authorized_ssid = ?, 
+                    authorized_gateway = ?, 
+                    authorized_subnet = ?, 
+                    timemodified = ?, 
+                    updated_by = ? 
+                    WHERE id = 1");
+                $stmt->bind_param('sssii', $authSsid, $authGateway, $authSubnet, $now, $currentUser['id']);
+                $stmt->execute();
+                $stmt->close();
+
+                log_audit_event($mysqli, 'WIFI_AUTO_LOCKED', 'wifi_lock', '1', [
+                    'ssid' => $authSsid,
+                    'gateway' => $authGateway,
+                    'subnet' => $authSubnet
+                ], 'SUCCESS', $currentUser);
+
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => "Application successfully locked to Wi-Fi network: {$authSsid}",
+                    'data' => get_wifi_guard_config($mysqli)
+                ]);
+                break;
+
+            } elseif ($subAction === 'unlock') {
+                $stmt = $mysqli->prepare("UPDATE mdl_ek_wifi_lock SET is_locked = 0, timemodified = ?, updated_by = ? WHERE id = 1");
+                $stmt->bind_param('ii', $now, $currentUser['id']);
+                $stmt->execute();
+                $stmt->close();
+
+                log_audit_event($mysqli, 'WIFI_UNLOCKED', 'wifi_lock', '1', [], 'SUCCESS', $currentUser);
+
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Wi-Fi lock released. Application is in discovery mode.',
+                    'data' => get_wifi_guard_config($mysqli)
+                ]);
+                break;
+
+            } elseif ($subAction === 'toggle_enforcement') {
+                $newEnabled = !empty($body['enabled']) ? 1 : 0;
+                $stmt = $mysqli->prepare("UPDATE mdl_ek_wifi_lock SET is_enabled = ?, timemodified = ?, updated_by = ? WHERE id = 1");
+                $stmt->bind_param('iii', $newEnabled, $now, $currentUser['id']);
+                $stmt->execute();
+                $stmt->close();
+
+                log_audit_event($mysqli, 'WIFI_ENFORCEMENT_TOGGLE', 'wifi_lock', '1', ['is_enabled' => $newEnabled], 'SUCCESS', $currentUser);
+
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => $newEnabled ? 'Wi-Fi Guard enforcement enabled' : 'Wi-Fi Guard enforcement temporarily bypassed',
+                    'data' => get_wifi_guard_config($mysqli)
+                ]);
+                break;
+
+            } elseif ($subAction === 'update_manual') {
+                $newSsid = trim($body['authorized_ssid'] ?? '');
+                $newGateway = trim($body['authorized_gateway'] ?? '');
+                $newSubnet = trim($body['authorized_subnet'] ?? '');
+                $lockState = !empty($newSsid) ? 1 : $cfg['is_locked'];
+
+                $stmt = $mysqli->prepare("UPDATE mdl_ek_wifi_lock SET 
+                    is_locked = ?,
+                    authorized_ssid = ?, 
+                    authorized_gateway = ?, 
+                    authorized_subnet = ?, 
+                    timemodified = ?, 
+                    updated_by = ? 
+                    WHERE id = 1");
+                $stmt->bind_param('isssii', $lockState, $newSsid, $newGateway, $newSubnet, $now, $currentUser['id']);
+                $stmt->execute();
+                $stmt->close();
+
+                log_audit_event($mysqli, 'WIFI_MANUAL_CONFIG', 'wifi_lock', '1', [
+                    'ssid' => $newSsid,
+                    'gateway' => $newGateway,
+                    'subnet' => $newSubnet
+                ], 'SUCCESS', $currentUser);
+
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Wi-Fi guard configuration updated successfully',
+                    'data' => get_wifi_guard_config($mysqli)
+                ]);
+                break;
+
+            } else {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Invalid sub_action parameter']);
+                break;
+            }
 
         // =====================================================================
         // AUTH: Login - verify against Moodle's mdl_user table
