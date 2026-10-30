@@ -517,16 +517,75 @@
             border: 1.5px solid rgba(239, 68, 68, 0.5);
             color: #fca5a5;
             padding: 1rem 1.35rem;
-            border-radius: 10px;
+            border-radius: 12px;
             font-size: 1.08rem;
             font-weight: 600;
             margin-bottom: 1.35rem;
             display: none;
+            box-sizing: border-box;
         }
 
         .login-error.visible {
             display: block;
             animation: fadeIn 0.3s ease;
+        }
+
+        [data-theme="light"] .login-error {
+            background: #fef2f2;
+            border: 1.5px solid #f87171;
+            color: #991b1b;
+        }
+
+        /* Invalid login with remaining attempts */
+        .login-attempt-warning {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .login-attempt-msg {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .attempts-left-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            background: rgba(239, 68, 68, 0.25);
+            border: 1.5px solid #ef4444;
+            color: #fee2e2;
+            padding: 0.32rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        [data-theme="light"] .attempts-left-pill {
+            background: #fee2e2;
+            border-color: #dc2626;
+            color: #991b1b;
+        }
+
+        /* Lockout Expired Success State */
+        .lockout-expired-box {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            color: #22c55e;
+            font-weight: 700;
+            font-size: 1.05rem;
+        }
+
+        [data-theme="light"] .lockout-expired-box {
+            color: #15803d;
         }
 
         /* RESTRICTED DEFENCE NOTICE (STRICTLY SINGLE HORIZONTAL LINE) */
@@ -777,7 +836,7 @@
 
                     <form id="login-form" autocomplete="off">
                         <div class="form-group">
-                            <label class="form-label" for="username">Service ID / Username</label>
+                            <label class="form-label" for="username">Username</label>
                             <input type="text" class="form-input" id="username" name="username" placeholder="e.g. student.officer" required autofocus>
                         </div>
 

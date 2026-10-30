@@ -331,8 +331,8 @@ function validate_password_policy(string $password, ?string &$errorMsg = null): 
     return true;
 }
 
-// Check Redis-backed login lockout (SEC-A02)
-function check_login_lockout(string $username, string $ip): ?string {
+// Check Redis-backed login lockout with detailed remaining time info (SEC-A02)
+function get_login_lockout_details(string $username, string $ip): ?array {
     $redis = get_redis_connection();
     if (!$redis) {
         return null; // Graceful fallback
@@ -343,7 +343,14 @@ function check_login_lockout(string $username, string $ip): ?string {
         $ipKey = "ek_ratelimit_ip:{$ip}";
         $ipAttempts = (int)$redis->get($ipKey);
         if ($ipAttempts >= 30) {
-            return "Too many requests from this IP address. Please wait a minute before retrying.";
+            $ttl = $redis->ttl($ipKey);
+            $secs = ($ttl > 0) ? $ttl : 60;
+            return [
+                'type' => 'ip_rate_limit',
+                'locked' => false,
+                'retry_after' => $secs,
+                'message' => "Too many requests from this IP address. Please wait {$secs} seconds before retrying."
+            ];
         }
 
         // Account lockout check (lockoutduration = 1800s per 02-harden.sh)
@@ -352,14 +359,26 @@ function check_login_lockout(string $username, string $ip): ?string {
         $isLocked = $redis->get($lockKey);
         if ($isLocked) {
             $ttl = $redis->ttl($lockKey);
-            $mins = ceil(($ttl > 0 ? $ttl : 1800) / 60);
-            return "Account is temporarily locked due to multiple failed login attempts. Please try again in {$mins} minutes.";
+            $secs = ($ttl > 0) ? $ttl : 1800;
+            $mins = ceil($secs / 60);
+            return [
+                'type' => 'account_locked',
+                'locked' => true,
+                'retry_after' => $secs,
+                'message' => "Account is temporarily locked due to multiple failed login attempts. Please try again in {$mins} minutes."
+            ];
         }
     } catch (Throwable $e) {
         error_log("Redis lockout check error: " . $e->getMessage());
     }
 
     return null;
+}
+
+// Check Redis-backed login lockout (SEC-A02)
+function check_login_lockout(string $username, string $ip): ?string {
+    $details = get_login_lockout_details($username, $ip);
+    return $details ? $details['message'] : null;
 }
 
 // Record login failure and trigger lockout after 5 attempts (SEC-A02)

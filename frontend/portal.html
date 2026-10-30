@@ -64,6 +64,7 @@
         }
         .modal-overlay.visible { display: flex; }
         .modal-box {
+            position: relative;
             background: var(--bg-secondary);
             border: 1px solid var(--border-subtle);
             border-radius: 16px;
@@ -77,9 +78,163 @@
         .modal-box h2 {
             font-size: 1.2rem;
             margin-bottom: 1.25rem;
+            padding-right: 2.2rem;
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 1.25rem;
+            right: 1.25rem;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+        .modal-close-btn:hover {
+            background: rgba(239, 68, 68, 0.15) !important;
+            color: #ef4444 !important;
+            border-color: rgba(239, 68, 68, 0.4) !important;
+            transform: scale(1.06);
+        }
+        [data-theme="light"] .modal-close-btn {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #475569;
+        }
+        [data-theme="light"] .modal-close-btn:hover {
+            background: #fee2e2 !important;
+            color: #dc2626 !important;
+            border-color: #f87171 !important;
         }
         .modal-form-group {
             margin-bottom: 1.25rem;
+        }
+        .modal-password-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .modal-password-wrapper input {
+            padding-right: 2.6rem !important;
+        }
+        .modal-password-toggle-btn {
+            position: absolute;
+            right: 0.65rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            padding: 0.3rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            border-radius: 6px;
+            transition: color 0.18s ease, background 0.18s ease, transform 0.12s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .modal-password-toggle-btn:hover {
+            color: var(--gold-light, #f3d779);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        [data-theme="light"] .modal-password-toggle-btn {
+            color: #64748b;
+        }
+        [data-theme="light"] .modal-password-toggle-btn:hover {
+            color: #8b1e2f;
+            background: rgba(0, 0, 0, 0.05);
+        }
+        /* YouTube Volume Control & Percentage Display */
+        .yt-volume-control {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        .yt-volume-slider-box {
+            width: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, margin 0.25s ease;
+            display: flex;
+            align-items: center;
+            margin-left: 0;
+        }
+        .yt-volume-control:hover .yt-volume-slider-box,
+        .yt-volume-control:focus-within .yt-volume-slider-box,
+        .yt-volume-control.active .yt-volume-slider-box,
+        .yt-volume-slider-box.active {
+            width: 65px;
+            opacity: 1;
+            margin-left: 0.35rem;
+            margin-right: 0.25rem;
+        }
+        .yt-volume-percent {
+            width: 0;
+            opacity: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #f1f5f9 !important;
+            font-family: Arial, "Helvetica Neue", sans-serif;
+            transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, margin 0.25s ease;
+            user-select: none;
+            letter-spacing: 0.3px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+            display: inline-flex;
+            align-items: center;
+        }
+        .yt-volume-control:hover .yt-volume-percent,
+        .yt-volume-control:focus-within .yt-volume-percent,
+        .yt-volume-control.active .yt-volume-percent,
+        .yt-volume-slider-box.active ~ .yt-volume-percent {
+            width: 38px;
+            opacity: 1;
+            margin-left: 0.35rem;
+            margin-right: 0.45rem;
+        }
+        /* Volume On-Screen Display HUD Overlay */
+        .yt-volume-osd {
+            position: absolute;
+            top: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px) scale(0.92);
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            padding: 0.5rem 1.15rem;
+            border-radius: 9999px;
+            font-size: 1.05rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 35;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+            user-select: none;
+        }
+        .yt-volume-osd.active {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+        }
+        .yt-volume-osd-icon {
+            color: #ef4444;
+            flex-shrink: 0;
         }
         .modal-form-group label {
             display: block;
@@ -154,9 +309,40 @@
         .users-table tr:hover td { background: rgba(255,255,255,0.02); }
 
         .ppt-table { width: 100%; border-collapse: collapse; margin-top: 0.25rem; }
-        .ppt-table th { background: rgba(14,18,28,0.8); padding: 0.8rem 1rem; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); text-align: left; }
-        .ppt-table td { padding: 0.85rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.85rem; vertical-align: middle; }
+        .ppt-table th {
+            background: rgba(15, 23, 42, 0.85);
+            padding: 0.85rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #e2e8f0;
+            text-align: left;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .ppt-table td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 0.85rem;
+            vertical-align: middle;
+            color: var(--text-main);
+        }
         .ppt-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+        [data-theme="light"] .ppt-table th {
+            background: #f1f5f9;
+            color: #1e293b;
+            border-bottom: 2px solid #cbd5e1;
+            font-weight: 800;
+        }
+        [data-theme="light"] .ppt-table td {
+            background: #ffffff;
+            color: #0f172a;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        [data-theme="light"] .ppt-table tr:hover td {
+            background: #f8fafc;
+        }
 
         .ppt-table tr.active-playing-row td {
             background: rgba(212, 175, 55, 0.08) !important;
@@ -2020,7 +2206,7 @@
                     </div>
                     <div class="thrust-item-card">
                         <span class="thrust-num-badge">06</span>
-                        <span class="thrust-item-text">Cradle of military education for all Medical, Dental, Non-Technical &amp; Nursing Offrs</span>
+                        <span class="thrust-item-text">Cradle of military education for all Medical, Dental, Non-Technical &amp; Nursing Officers</span>
                     </div>
                     <div class="thrust-item-card">
                         <span class="thrust-num-badge">07</span>
@@ -2168,6 +2354,15 @@
                                 </div>
                             </div>
 
+                            <!-- YouTube Volume Change On-Screen Display HUD -->
+                            <div class="yt-volume-osd" id="yt-volume-osd">
+                                <svg class="yt-volume-osd-icon" id="yt-volume-osd-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                </svg>
+                                <span class="yt-volume-osd-val" id="yt-volume-osd-val">100%</span>
+                            </div>
+
                             <!-- Clean Minimal YouTube Center Play Button -->
                             <div class="video-placeholder-content" id="video-placeholder-content" style="z-index: 4; pointer-events: none;">
                                 <div class="yt-center-play-btn" id="play-ring-trigger" style="pointer-events: auto;" title="Click to Play/Pause (Space)">
@@ -2204,8 +2399,9 @@
                                                 </svg>
                                             </button>
                                             <div class="yt-volume-slider-box">
-                                                <input type="range" class="yt-volume-slider" id="video-volume-slider" min="0" max="100" value="100" step="1" title="Volume Slider (Up/Down Arrow)" aria-label="Volume">
+                                                <input type="range" class="yt-volume-slider" id="video-volume-slider" min="0" max="100" value="100" step="1" title="Volume: 100% (Up/Down Arrow)" aria-label="Volume">
                                             </div>
+                                            <span class="yt-volume-percent" id="video-volume-percent" title="Current Volume">100%</span>
                                         </div>
                                         <span class="time-display" id="video-time-display">00:00 / 28:45</span>
                                     </div>
@@ -2282,7 +2478,7 @@
                 <table class="users-table" id="users-table">
                     <thead>
                         <tr>
-                            <th>Service ID / Username</th>
+                            <th>Username</th>
                             <th>Name</th>
                             <th>Email</th>
                             <th>Mobile</th>
@@ -2304,6 +2500,9 @@
     <!-- MODAL: Edit Course -->
     <div class="modal-overlay" id="modal-edit-course">
         <div class="modal-box">
+            <button type="button" class="modal-close-btn" onclick="closeModal('modal-edit-course')" title="Close (Esc)" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
             <h2 style="display: flex; align-items: center; gap: 0.5rem;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--gold-light);"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 Edit Course Details
@@ -2330,6 +2529,9 @@
     <!-- MODAL: Add Section -->
     <div class="modal-overlay" id="modal-add-section">
         <div class="modal-box">
+            <button type="button" class="modal-close-btn" onclick="closeModal('modal-add-section')" title="Close (Esc)" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
             <h2 style="display: flex; align-items: center; gap: 0.5rem;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--gold-light);"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 Add Course Section / Topic
@@ -2356,6 +2558,9 @@
     <!-- MODAL: Create / Edit User & Course Enrolment -->
     <div class="modal-overlay" id="modal-user-form">
         <div class="modal-box" style="max-width: 580px; max-height: 90vh; overflow-y: auto;">
+            <button type="button" class="modal-close-btn" onclick="closeModal('modal-user-form')" title="Close (Esc)" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
             <h2 id="modal-user-title" style="display: flex; align-items: center; gap: 0.5rem;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--gold-light);"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle></svg>
                 Add / Configure User
@@ -2364,12 +2569,24 @@
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                 <div class="modal-form-group">
-                    <label>Service ID / Username *</label>
+                    <label>Username *</label>
                     <input type="text" id="user-form-username" placeholder="e.g. AMC005">
                 </div>
                 <div class="modal-form-group">
                     <label>Password <span id="user-password-label-hint" style="font-weight: 400; font-size: 0.75rem; color: var(--text-muted);">(req for new)</span></label>
-                    <input type="password" id="user-form-password" placeholder="••••••••">
+                    <div class="modal-password-wrapper">
+                        <input type="password" id="user-form-password" placeholder="••••••••">
+                        <button type="button" id="btn-toggle-user-password" class="modal-password-toggle-btn" onclick="toggleUserFormPassword()" aria-label="Toggle password visibility" title="Show password" tabindex="-1">
+                            <svg class="eye-icon eye-show" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="eye-icon eye-hide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -2436,6 +2653,9 @@
     <!-- MODAL: Add Course -->
     <div class="modal-overlay" id="modal-add-course">
         <div class="modal-box">
+            <button type="button" class="modal-close-btn" onclick="closeModal('modal-add-course')" title="Close (Esc)" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
             <h2 style="display: flex; align-items: center; gap: 0.5rem;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--gold-light);"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                 Add New Course
@@ -2479,6 +2699,9 @@
     <!-- MODAL: Delete Course Confirm -->
     <div class="modal-overlay" id="modal-delete-course-confirm">
         <div class="modal-box" style="max-width: 440px;">
+            <button type="button" class="modal-close-btn" onclick="closeModal('modal-delete-course-confirm')" title="Close (Esc)" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
             <h2 style="display: flex; align-items: center; gap: 0.5rem; color: #ef4444;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                 Confirm Course Deletion
@@ -2500,6 +2723,9 @@
     <!-- MODAL: Delete User Confirm -->
     <div class="modal-overlay" id="modal-delete-user-confirm">
         <div class="modal-box" style="max-width: 440px;">
+            <button type="button" class="modal-close-btn" onclick="closeModal('modal-delete-user-confirm')" title="Close (Esc)" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
             <h2 style="display: flex; align-items: center; gap: 0.5rem; color: #ef4444;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                 Confirm User Deletion
@@ -2521,6 +2747,9 @@
     <!-- MODAL: Add PPT Presentation -->
     <div class="modal-overlay" id="modal-add-ppt">
         <div class="modal-box" style="max-width: 520px;">
+            <button type="button" class="modal-close-btn" onclick="closeModal('modal-add-ppt')" title="Close (Esc)" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
             <h2 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--gold-light);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
                 Upload Course Presentation
@@ -2603,6 +2832,9 @@
     <!-- MODAL: Delete PPT Confirm -->
     <div class="modal-overlay" id="modal-delete-ppt-confirm">
         <div class="modal-box" style="max-width: 440px;">
+            <button type="button" class="modal-close-btn" onclick="closeModal('modal-delete-ppt-confirm')" title="Close (Esc)" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
             <h2 style="display: flex; align-items: center; gap: 0.5rem; color: #ef4444;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                 Confirm PPT Deletion
@@ -2666,8 +2898,8 @@
                         <p style="margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--text-muted);">Upload portrait photo for the Roll of Honour slider</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeAddCommanderModal()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                <button type="button" class="modal-close-btn" onclick="closeAddCommanderModal()" title="Close (Esc)" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             </div>
 
@@ -2749,8 +2981,8 @@
                         <p style="margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--text-muted);">Enforce single-network containment for offline operations</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeWifiSecurityModal()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                <button type="button" class="modal-close-btn" onclick="closeWifiSecurityModal()" title="Close (Esc)" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             </div>
 

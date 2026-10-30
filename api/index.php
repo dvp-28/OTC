@@ -745,11 +745,16 @@ try {
             }
 
             // Check IP rate limit and temporary account lockout (SEC-A02)
-            $lockoutMessage = check_login_lockout($username, $clientIp);
-            if ($lockoutMessage !== null) {
-                log_audit_event($mysqli, 'AUTH_LOGIN_BLOCKED', 'user', $username, ['reason' => $lockoutMessage], 'BLOCKED');
+            $lockoutDetails = get_login_lockout_details($username, $clientIp);
+            if ($lockoutDetails !== null) {
+                log_audit_event($mysqli, 'AUTH_LOGIN_BLOCKED', 'user', $username, ['reason' => $lockoutDetails['message']], 'BLOCKED');
                 http_response_code(429);
-                echo json_encode(['status' => 'error', 'message' => $lockoutMessage]);
+                echo json_encode([
+                    'status' => 'error',
+                    'locked' => !empty($lockoutDetails['locked']),
+                    'retry_after' => (int)($lockoutDetails['retry_after'] ?? 1800),
+                    'message' => $lockoutDetails['message']
+                ]);
                 break;
             }
 
@@ -775,15 +780,28 @@ try {
 
             if (!$isAccountActive || !$valid) {
                 $failCount = record_login_failure($username, $clientIp);
-                if ($failCount >= 5) {
+                $maxAttempts = 5;
+                $attemptsLeft = max(0, $maxAttempts - $failCount);
+
+                if ($failCount >= $maxAttempts) {
                     log_audit_event($mysqli, 'AUTH_ACCOUNT_LOCKED', 'user', $username, ['ip' => $clientIp, 'fail_count' => $failCount], 'BLOCKED');
                     http_response_code(429);
-                    echo json_encode(['status' => 'error', 'message' => 'Account is temporarily locked due to multiple failed login attempts. Please try again in 30 minutes.']);
+                    echo json_encode([
+                        'status' => 'error',
+                        'locked' => true,
+                        'retry_after' => 1800,
+                        'message' => 'Account is temporarily locked due to multiple failed login attempts. Please try again in 30 minutes.'
+                    ]);
                     break;
                 }
                 log_audit_event($mysqli, 'AUTH_LOGIN_FAILED', 'user', $username, ['ip' => $clientIp, 'fail_count' => $failCount], 'FAILURE');
                 http_response_code(401);
-                echo json_encode(['status' => 'error', 'message' => 'Invalid username or password']);
+                $attemptWord = ($attemptsLeft === 1) ? 'attempt' : 'attempts';
+                echo json_encode([
+                    'status' => 'error',
+                    'attempts_left' => $attemptsLeft,
+                    'message' => "Invalid username or password. {$attemptsLeft} {$attemptWord} left."
+                ]);
                 break;
             }
 
