@@ -2051,8 +2051,8 @@ function renderUsers(users) {
         }).join(' ') || '<span class="role-tag stud">Student Officer</span>';
 
         const statusTag = u.suspended == 1
-            ? `<span style="color: #ef4444; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.2rem 0.55rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Inactive</span>`
-            : `<span style="color: #22c55e; background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); padding: 0.2rem 0.55rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Active</span>`;
+            ? `<span class="badge-status-suspended"><span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#ef4444;"></span>Permanently Suspended</span>`
+            : `<span class="badge-status-active"><span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#22c55e;"></span>Active</span>`;
 
         const isSelf = currentUser && parseInt(currentUser.id) === parseInt(u.id);
         const isProtected = isSelf || u.username === 'siteadmin' || parseInt(u.id) <= 2;
@@ -2069,17 +2069,17 @@ function renderUsers(users) {
             <td>${statusTag}</td>
             <td>
                 <div style="display: flex; align-items: center; gap: 0.45rem;">
-                    <button type="button" class="btn-card btn-edit-user" data-id="${u.id}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 0.35rem;" onclick="openEditUserModal(${u.id})">
+                    <button type="button" class="btn-card btn-edit-user" data-id="${u.id}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap;" onclick="openEditUserModal(${u.id})">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                        <span>Edit User</span>
+                        <span>Edit</span>
                     </button>
                     ${isProtected ? `
-                    <button type="button" class="btn-card" disabled title="${isSelf ? 'Cannot delete your active session account' : 'Protected administrator'}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; opacity: 0.35; cursor: not-allowed; display: inline-flex; align-items: center; gap: 0.35rem;">
+                    <button type="button" class="btn-card" disabled title="${isSelf ? 'Cannot delete your active session account' : 'Protected administrator'}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; opacity: 0.35; cursor: not-allowed; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         <span>Delete</span>
                     </button>
                     ` : `
-                    <button type="button" class="btn-card danger btn-delete-user" data-id="${u.id}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 0.35rem;" onclick="confirmDeleteUser(${u.id}, '${esc(u.username)}', '${esc(u.firstname + ' ' + u.lastname)}')">
+                    <button type="button" class="btn-card danger btn-delete-user" data-id="${u.id}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap;" onclick="confirmDeleteUser(${u.id}, '${esc(u.username)}', '${esc(u.firstname + ' ' + u.lastname)}')">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                         <span>Delete</span>
                     </button>

@@ -238,6 +238,236 @@ function detect_media_type(string $ext): ?array {
     return null;
 }
 
+function parse_spreadsheet_rows(string $filePath, string $ext): array {
+    $rows = [];
+    $ext = strtolower($ext);
+
+    if (in_array($ext, ['csv', 'tsv', 'txt'], true)) {
+        $delimiter = ($ext === 'tsv') ? "\t" : ',';
+        if (($handle = fopen($filePath, 'r')) !== false) {
+            $bom = fread($handle, 3);
+            if ($bom !== "\xEF\xBB\xBF") {
+                rewind($handle);
+            }
+            if ($ext === 'csv') {
+                $firstLine = fgets($handle);
+                if ($firstLine !== false) {
+                    $commaCount = substr_count($firstLine, ',');
+                    $semiCount = substr_count($firstLine, ';');
+                    $tabCount = substr_count($firstLine, "\t");
+                    if ($semiCount > $commaCount && $semiCount > $tabCount) {
+                        $delimiter = ';';
+                    } elseif ($tabCount > $commaCount && $tabCount > $semiCount) {
+                        $delimiter = "\t";
+                    }
+                }
+                rewind($handle);
+                $bom = fread($handle, 3);
+                if ($bom !== "\xEF\xBB\xBF") {
+                    rewind($handle);
+                }
+            }
+
+            while (($data = fgetcsv($handle, 8192, $delimiter)) !== false) {
+                if (empty($data) || (count($data) === 1 && trim((string)$data[0]) === '')) {
+                    continue;
+                }
+                // Skip comment or note lines starting with # or //
+                if (str_starts_with(trim((string)$data[0]), '#') || str_starts_with(trim((string)$data[0]), '//')) {
+                    continue;
+                }
+                $cleanRow = array_map(function($val) {
+                    return trim((string)$val);
+                }, $data);
+                $rows[] = $cleanRow;
+            }
+            fclose($handle);
+        }
+    } elseif ($ext === 'xlsx' && class_exists('ZipArchive')) {
+        $zip = new ZipArchive();
+        if ($zip->open($filePath) === true) {
+            $sharedStrings = [];
+            $ssXml = $zip->getFromName('xl/sharedStrings.xml');
+            if ($ssXml) {
+                $xml = @simplexml_load_string($ssXml);
+                if ($xml && isset($xml->si)) {
+                    foreach ($xml->si as $si) {
+                        if (isset($si->t)) {
+                            $sharedStrings[] = (string)$si->t;
+                        } elseif (isset($si->r)) {
+                            $t = '';
+                            foreach ($si->r as $r) {
+                                $t .= (string)$r->t;
+                            }
+                            $sharedStrings[] = $t;
+                        } else {
+                            $sharedStrings[] = '';
+                        }
+                    }
+                }
+            }
+
+            $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
+            if (!$sheetXml) {
+                for ($i = 0; $i < $zip->numFiles; $i++) {
+                    $name = $zip->getNameIndex($i);
+                    if (strpos($name, 'xl/worksheets/sheet') === 0 && substr($name, -4) === '.xml') {
+                        $sheetXml = $zip->getFromIndex($i);
+                        break;
+                    }
+                }
+            }
+
+            if ($sheetXml) {
+                $xml = @simplexml_load_string($sheetXml);
+                if ($xml && isset($xml->sheetData->row)) {
+                    foreach ($xml->sheetData->row as $r) {
+                        $rowCells = [];
+                        foreach ($r->c as $c) {
+                            $cellRef = (string)$c['r'];
+                            preg_match('/^([A-Z]+)/', $cellRef, $colMatches);
+                            $colLetter = $colMatches[1] ?? 'A';
+                            $colIdx = 0;
+                            for ($ci = 0; $ci < strlen($colLetter); $ci++) {
+                                $colIdx = $colIdx * 26 + (ord($colLetter[$ci]) - ord('A') + 1);
+                            }
+                            $colIdx -= 1;
+
+                            $type = (string)($c['t'] ?? '');
+                            $val = (string)($c->v ?? '');
+                            if ($type === 's') {
+                                $sIdx = (int)$val;
+                                $val = $sharedStrings[$sIdx] ?? '';
+                            } elseif ($type === 'inlineStr' && isset($c->is->t)) {
+                                $val = (string)$c->is->t;
+                            }
+                            $rowCells[$colIdx] = trim((string)$val);
+                        }
+                        if (!empty($rowCells)) {
+                            $maxIdx = max(array_keys($rowCells));
+                            $filled = [];
+                            for ($idx = 0; $idx <= $maxIdx; $idx++) {
+                                $filled[$idx] = $rowCells[$idx] ?? '';
+                            }
+                            $rows[] = $filled;
+                        }
+                    }
+                }
+            }
+            $zip->close();
+        }
+    }
+
+    return $rows;
+}
+
+function map_spreadsheet_columns(array $headerRow): array {
+    $colMap = [
+        'username' => -1,
+        'password' => -1,
+        'firstname' => -1,
+        'lastname' => -1,
+        'email' => -1,
+        'mobile' => -1,
+        'role' => -1,
+        'courses' => -1,
+        'suspended' => -1,
+    ];
+
+    $hasNamedHeader = false;
+    foreach ($headerRow as $idx => $rawHeader) {
+        $h = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', (string)$rawHeader)));
+        if ($h === '') continue;
+
+        if (in_array($h, ['username', 'serviceid', 'service_id', 'personalno', 'personalnumber', 'user', 'userid', 'login'], true)) {
+            $colMap['username'] = $idx;
+            $hasNamedHeader = true;
+        } elseif (in_array($h, ['password', 'pass', 'pwd', 'secret', 'passwordrequired'], true)) {
+            $colMap['password'] = $idx;
+            $hasNamedHeader = true;
+        } elseif (in_array($h, ['firstname', 'first_name', 'fname', 'name', 'initials', 'officername', 'firstnameinitials'], true)) {
+            $colMap['firstname'] = $idx;
+            $hasNamedHeader = true;
+        } elseif (in_array($h, ['lastname', 'last_name', 'lname', 'rank', 'surname', 'lastnamerank'], true)) {
+            $colMap['lastname'] = $idx;
+            $hasNamedHeader = true;
+        } elseif (in_array($h, ['email', 'officialemail', 'mail', 'emailaddress'], true)) {
+            $colMap['email'] = $idx;
+            $hasNamedHeader = true;
+        } elseif (in_array($h, ['mobile', 'phone', 'mobilenumber', 'phonenumber', 'contact'], true)) {
+            $colMap['mobile'] = $idx;
+            $hasNamedHeader = true;
+        } elseif (in_array($h, ['role', 'permissions', 'roletype', 'accesslevel', 'rolepermissions'], true)) {
+            $colMap['role'] = $idx;
+            $hasNamedHeader = true;
+        } elseif (in_array($h, ['courses', 'course', 'assignedcourses', 'batch', 'classes'], true)) {
+            $colMap['courses'] = $idx;
+            $hasNamedHeader = true;
+        } elseif (in_array($h, ['status', 'accountstatus', 'suspended', 'state', 'active', 'isactive', 'activestatus', 'activeyesno', 'yesno'], true)) {
+            $colMap['suspended'] = $idx;
+            $hasNamedHeader = true;
+        }
+    }
+
+    if (!$hasNamedHeader && count($headerRow) >= 2) {
+        $colMap = [
+            'username' => 0,
+            'password' => 1,
+            'firstname' => 2,
+            'lastname' => 3,
+            'email' => 4,
+            'mobile' => 5,
+            'suspended' => 6,
+            'role' => 7,
+            'courses' => 8,
+        ];
+    }
+
+    return [$colMap, $hasNamedHeader];
+}
+
+function resolve_course_tokens_to_ids(string $rawCourses, array $allCourses): array {
+    if (trim($rawCourses) === '') return [];
+    $tokens = preg_split('/[,;|]+/', $rawCourses);
+    $resolvedIds = [];
+
+    foreach ($tokens as $token) {
+        $token = trim($token);
+        if ($token === '') continue;
+
+        if (is_numeric($token)) {
+            $id = (int)$token;
+            foreach ($allCourses as $c) {
+                if ((int)$c['id'] === $id) {
+                    $resolvedIds[] = $id;
+                    break;
+                }
+            }
+            continue;
+        }
+
+        $tokenUpper = strtoupper($token);
+        $found = false;
+        foreach ($allCourses as $c) {
+            if (strtoupper($c['shortname']) === $tokenUpper || (!empty($c['idnumber']) && strtoupper($c['idnumber']) === $tokenUpper)) {
+                $resolvedIds[] = (int)$c['id'];
+                $found = true;
+                break;
+            }
+        }
+        if (!$found) {
+            foreach ($allCourses as $c) {
+                if (stripos($c['fullname'], $token) !== false) {
+                    $resolvedIds[] = (int)$c['id'];
+                    break;
+                }
+            }
+        }
+    }
+
+    return array_values(array_unique($resolvedIds));
+}
+
 function stream_media_file(string $filePath, string $mimeType, string $filename): void {
     if (!file_exists($filePath) || !is_file($filePath)) {
         http_response_code(404);
@@ -457,7 +687,7 @@ if ($isMutating) {
 }
 
 // 2. Enforce Content-Type and parse request payload (SEC-C03)
-$isUploadRoute = in_array($action, ['course-ppts-upload', 'commanders-upload'], true);
+$isUploadRoute = in_array($action, ['course-ppts-upload', 'commanders-upload', 'users-bulk-upload'], true);
 $rawInput = file_get_contents('php://input');
 $body = [];
 
@@ -1533,9 +1763,10 @@ try {
             $role = trim($body['role'] ?? 'student');
             $courseIds = is_array($body['course_ids'] ?? null) ? $body['course_ids'] : [];
 
-            if (empty($username) || empty($firstname) || empty($password)) {
+            // All fields are strictly required
+            if (empty($username) || empty($password) || empty($firstname) || empty($lastname) || empty($email) || empty($mobile)) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Service ID/Username, First Name, and Password are required']);
+                echo json_encode(['status' => 'error', 'message' => 'All fields (Username, Password, First Name, Last Name, Official Email, Mobile Number) are required']);
                 break;
             }
 
@@ -1545,36 +1776,45 @@ try {
                 echo json_encode(['status' => 'error', 'message' => 'Username must be 3-50 alphanumeric characters (dot, underscore, hyphen permitted)']);
                 break;
             }
-            if (strlen($firstname) > 50 || !preg_match('/^[\p{L}\s.\'-]+$/u', $firstname)) {
+            if (strlen($firstname) < 2 || strlen($firstname) > 50 || !preg_match('/^[\p{L}\s.\'-]+$/u', $firstname)) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'First Name contains invalid characters or exceeds 50 characters']);
+                echo json_encode(['status' => 'error', 'message' => 'First Name / Initials is required and must be 2-50 characters']);
                 break;
             }
-            if (!empty($lastname) && (strlen($lastname) > 50 || !preg_match('/^[\p{L}\s.\'-]+$/u', $lastname))) {
+            if (strlen($lastname) < 2 || strlen($lastname) > 50 || !preg_match('/^[\p{L}\s.\'-]+$/u', $lastname)) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Last Name contains invalid characters or exceeds 50 characters']);
+                echo json_encode(['status' => 'error', 'message' => 'Last Name / Rank is required and must be 2-50 characters']);
                 break;
             }
-            if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Invalid email address format']);
+                echo json_encode(['status' => 'error', 'message' => 'Valid official email address is required (e.g. officer@amc.gov.in)']);
                 break;
             }
-            if (!empty($mobile) && !preg_match('/^[0-9+\-\s()]{5,20}$/', $mobile)) {
+            $cleanMobile = preg_replace('/\D/', '', $mobile);
+            if (strlen($cleanMobile) < 10 || strlen($cleanMobile) > 15) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Invalid mobile/phone number format']);
+                echo json_encode(['status' => 'error', 'message' => 'Mobile number is required and must contain at least 10 valid digits']);
                 break;
             }
 
             $pwdErr = null;
             if (!validate_password_policy($password, $pwdErr)) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => $pwdErr]);
+                echo json_encode(['status' => 'error', 'message' => 'Password requirement failed: ' . $pwdErr]);
                 break;
             }
 
             if (!in_array($role, ['instituteadmin', 'courseadmin', 'student'])) {
-                $role = 'student';
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Valid role (Student Officer, Course Admin, or Institute Admin) is required']);
+                break;
+            }
+
+            if (empty($courseIds) && $suspended === 0 && $role !== 'instituteadmin') {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'At least one course must be assigned to an active user']);
+                break;
             }
 
             // Check duplicate username
@@ -1637,6 +1877,382 @@ try {
             break;
 
         // =====================================================================
+        // USERS: Download Validated Spreadsheet Template (CSV / Excel)
+        // =====================================================================
+        case 'users-template':
+            $currentUser = require_auth();
+            $format = strtolower(trim($_GET['format'] ?? 'xlsx'));
+            if ($format === 'csv') {
+                header('Content-Type: text/csv; charset=utf-8');
+                header('Content-Disposition: attachment; filename="ekalavya_officers_template.csv"');
+                echo "username,password,firstname,lastname,email,mobile,status,role,courses\n";
+                echo "AMC010,Officer@2026!,Vikram,Singh,vikram.singh@amc.gov.in,+91 94150 12001,Yes,student,MOBC\n";
+                echo "AMC011,Officer@2026!,Pooja,Nair,pooja.nair@amc.gov.in,+91 94150 12002,Yes,student,BNOC\n";
+                echo "AMC012,Officer@2026!,Rajesh,Sharma,rajesh.sharma@amc.gov.in,+91 94150 12003,Yes,courseadmin,MOBC; MOJCC\n";
+                echo "AMC013,Officer@2026!,Sunita,Verma,sunita.verma@amc.gov.in,+91 94150 12004,No,student,None\n";
+                exit;
+            } else {
+                $templatePath = __DIR__ . '/../frontend/ekalavya_users_template.xlsx';
+                if (!file_exists($templatePath)) {
+                    $templatePath = __DIR__ . '/../test_bulk_users.xlsx';
+                }
+                if (file_exists($templatePath)) {
+                    while (ob_get_level()) { ob_end_clean(); }
+                    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                    header('Content-Disposition: attachment; filename="ekalavya_officers_bulk_upload_template.xlsx"');
+                    header('Content-Length: ' . filesize($templatePath));
+                    header('Cache-Control: private, max-age=3600');
+                    readfile($templatePath);
+                    exit;
+                } else {
+                    http_response_code(404);
+                    echo json_encode(['status' => 'error', 'message' => 'Template file not found']);
+                    exit;
+                }
+            }
+            break;
+
+        // =====================================================================
+        // USERS: Bulk Upload & Import from CSV / Excel (Institute Admin ONLY)
+        // =====================================================================
+        case 'users-bulk-upload':
+        case 'users-bulk-create':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['status' => 'error', 'message' => 'POST required']);
+                break;
+            }
+            $currentUser = require_role(['instituteadmin']);
+
+            $rows = [];
+            if ($action === 'users-bulk-upload') {
+                $file = $_FILES['file'] ?? null;
+                if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
+                    http_response_code(400);
+                    echo json_encode(['status' => 'error', 'message' => 'Valid CSV or Excel file is required for bulk upload']);
+                    break;
+                }
+
+                if ($file['size'] > 15 * 1024 * 1024) {
+                    http_response_code(400);
+                    echo json_encode(['status' => 'error', 'message' => 'Uploaded file exceeds 15MB limit']);
+                    break;
+                }
+
+                $origName = basename($file['name']);
+                $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+                if (!in_array($ext, ['csv', 'xlsx', 'xls', 'tsv', 'txt'], true)) {
+                    http_response_code(400);
+                    echo json_encode(['status' => 'error', 'message' => 'Unsupported format. Please upload a .csv, .xlsx, or .tsv file.']);
+                    break;
+                }
+
+                $rows = parse_spreadsheet_rows($file['tmp_name'], $ext);
+            } else {
+                $usersInput = $body['users'] ?? null;
+                if (!is_array($usersInput) || empty($usersInput)) {
+                    http_response_code(400);
+                    echo json_encode(['status' => 'error', 'message' => 'JSON payload must contain a non-empty "users" array']);
+                    break;
+                }
+                $headerRow = ['username', 'password', 'firstname', 'lastname', 'email', 'mobile', 'role', 'courses', 'suspended'];
+                $rows[] = $headerRow;
+                foreach ($usersInput as $u) {
+                    $cTokens = is_array($u['courses'] ?? null) ? implode(',', $u['courses']) : ($u['courses'] ?? ($u['course_ids'] ?? ''));
+                    if (is_array($cTokens)) $cTokens = implode(',', $cTokens);
+                    $rows[] = [
+                        $u['username'] ?? '',
+                        $u['password'] ?? '',
+                        $u['firstname'] ?? '',
+                        $u['lastname'] ?? '',
+                        $u['email'] ?? '',
+                        $u['mobile'] ?? ($u['phone'] ?? ''),
+                        $u['role'] ?? 'student',
+                        $cTokens,
+                        $u['suspended'] ?? ($u['status'] ?? '0')
+                    ];
+                }
+            }
+
+            if (empty($rows)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'The uploaded file contains no data rows']);
+                break;
+            }
+
+            // Dynamically locate the header row (supports Note banners or titles in top rows)
+            $headerRowIdx = 0;
+            $hasNamedHeader = false;
+            $colMap = [];
+            for ($rIdx = 0; $rIdx < min(10, count($rows)); $rIdx++) {
+                [$testColMap, $testHasNamed] = map_spreadsheet_columns($rows[$rIdx]);
+                if ($testHasNamed) {
+                    $colMap = $testColMap;
+                    $hasNamedHeader = true;
+                    $headerRowIdx = $rIdx;
+                    break;
+                }
+            }
+
+            if (!$hasNamedHeader) {
+                [$colMap, $hasNamedHeader] = map_spreadsheet_columns($rows[0]);
+                $headerRowIdx = 0;
+            }
+
+            $startIdx = $hasNamedHeader ? ($headerRowIdx + 1) : 0;
+
+            $allCourses = [];
+            $cRes = $mysqli->query("SELECT id, shortname, fullname, idnumber FROM mdl_course WHERE id > 1");
+            if ($cRes) {
+                while ($crow = $cRes->fetch_assoc()) {
+                    $allCourses[] = $crow;
+                }
+                $cRes->free();
+            }
+
+            $instAdminRoleId = null;
+            $rStmt = $mysqli->prepare("SELECT id FROM mdl_role WHERE shortname = 'instituteadmin' LIMIT 1");
+            $rStmt->execute();
+            $rRes = $rStmt->get_result();
+            if ($rRow = $rRes->fetch_assoc()) {
+                $instAdminRoleId = (int)$rRow['id'];
+            }
+            $rStmt->close();
+
+            $created = [];
+            $skipped = [];
+            $errors = [];
+            $totalDataRows = 0;
+
+            for ($i = $startIdx; $i < count($rows); $i++) {
+                $row = $rows[$i];
+                if (empty($row)) continue;
+
+                $getVal = function(string $key) use ($colMap, $row): string {
+                    $idx = $colMap[$key] ?? -1;
+                    return ($idx >= 0 && isset($row[$idx])) ? trim((string)$row[$idx]) : '';
+                };
+
+                $username = $getVal('username');
+                if ($username === '') continue;
+
+                $totalDataRows++;
+
+                if (!preg_match('/^[a-zA-Z0-9._-]{3,50}$/', $username)) {
+                    $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => 'Username must be 3-50 alphanumeric characters (dot, underscore, hyphen permitted)'];
+                    continue;
+                }
+
+                // 2. Validate First Name / Initials (REQUIRED)
+                $firstname = $getVal('firstname');
+                if ($firstname === '' || strlen($firstname) < 2 || strlen($firstname) > 50 || !preg_match('/^[\p{L}\s.\'-]+$/u', $firstname)) {
+                    $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => 'First Name / Initials is required (2-50 characters)'];
+                    continue;
+                }
+
+                // 3. Validate Last Name / Rank (REQUIRED)
+                $lastname = $getVal('lastname');
+                if ($lastname === '' || strlen($lastname) < 2 || strlen($lastname) > 50 || !preg_match('/^[\p{L}\s.\'-]+$/u', $lastname)) {
+                    $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => 'Last Name / Rank is required (2-50 characters)'];
+                    continue;
+                }
+
+                // 4. Validate Email (REQUIRED)
+                $email = $getVal('email');
+                if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => 'Valid official email address is required (e.g. officer@amc.gov.in)'];
+                    continue;
+                }
+
+                // 5. Validate Mobile (REQUIRED)
+                $rawMobile = $getVal('mobile');
+                $cleanMobile = preg_replace('/\D/', '', $rawMobile);
+                if (strlen($cleanMobile) < 10 || strlen($cleanMobile) > 15) {
+                    $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => 'Valid mobile number is required (at least 10 digits)'];
+                    continue;
+                }
+                $mobile = normalize_phone_number($rawMobile);
+
+                // 6. Validate Active Status (Yes/No or active/suspended) (REQUIRED)
+                $statusRaw = strtolower(trim($getVal('suspended')));
+                if ($statusRaw === '') {
+                    $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => "Active Status (Yes/No) is required"];
+                    continue;
+                }
+                if (in_array($statusRaw, ['yes', 'y', 'true', 'active', '0'], true)) {
+                    $suspended = 0; // Active
+                } elseif (in_array($statusRaw, ['no', 'n', 'false', 'suspended', 'inactive', 'permanently suspended', 'permanent suspended', '1'], true)) {
+                    $suspended = 1; // Permanently Suspended
+                } else {
+                    $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => "Invalid Active Status '{$statusRaw}'. Must be 'Yes' (Active) or 'No' (Permanently Suspended)."];
+                    continue;
+                }
+
+                // 7. Validate Role (REQUIRED)
+                $roleRaw = strtolower($getVal('role'));
+                if ($roleRaw === '') {
+                    $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => 'Role is required (student, courseadmin, or instituteadmin)'];
+                    continue;
+                }
+                if (strpos($roleRaw, 'inst') !== false || strpos($roleRaw, 'super') !== false) {
+                    $role = 'instituteadmin';
+                } elseif (strpos($roleRaw, 'course') !== false || strpos($roleRaw, 'teach') !== false || strpos($roleRaw, 'faculty') !== false || strpos($roleRaw, 'admin') !== false) {
+                    $role = 'courseadmin';
+                } elseif (strpos($roleRaw, 'student') !== false || strpos($roleRaw, 'officer') !== false) {
+                    $role = 'student';
+                } else {
+                    $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => "Invalid role '$roleRaw'. Must be student, courseadmin, or instituteadmin."];
+                    continue;
+                }
+
+                // 8. Validate Courses (REQUIRED for Active, Optional for Permanently Suspended)
+                $coursesRaw = trim($getVal('courses'));
+                $isSuspended = ($suspended === 1);
+                $courseIds = [];
+
+                if ($coursesRaw !== '' && !in_array(strtolower($coursesRaw), ['none', 'n/a', 'na', '-', 'nil'], true)) {
+                    $courseIds = resolve_course_tokens_to_ids($coursesRaw, $allCourses);
+                    if (empty($courseIds) && !$isSuspended) {
+                        $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => "No valid courses found matching '$coursesRaw'"];
+                        continue;
+                    }
+                } elseif (!$isSuspended && $role !== 'instituteadmin') {
+                    $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => 'At least one assigned course code is required (e.g. MOBC) for active accounts'];
+                    continue;
+                }
+
+                // 9. Check Existing User in database (Update Status/Profile or Create New)
+                $dup = $mysqli->prepare("SELECT id, suspended FROM mdl_user WHERE username = ? AND deleted = 0 LIMIT 1");
+                $dup->bind_param('s', $username);
+                $dup->execute();
+                $existing = $dup->get_result()->fetch_assoc();
+                $dup->close();
+
+                $password = $getVal('password');
+
+                if ($existing) {
+                    $existingId = (int)$existing['id'];
+                    $statusLabel = ($suspended === 1) ? 'Permanently Suspended' : 'Active';
+
+                    if (!empty($password)) {
+                        $pwdErr = null;
+                        if (!validate_password_policy($password, $pwdErr)) {
+                            $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => 'Password validation failed: ' . $pwdErr];
+                            continue;
+                        }
+                        $pwdHash = password_hash($password, PASSWORD_BCRYPT);
+                        $upStmt = $mysqli->prepare("UPDATE mdl_user SET firstname = ?, lastname = ?, email = ?, phone1 = ?, password = ?, suspended = ?, timemodified = UNIX_TIMESTAMP() WHERE id = ?");
+                        $upStmt->bind_param('sssssii', $firstname, $lastname, $email, $mobile, $pwdHash, $suspended, $existingId);
+                    } else {
+                        $upStmt = $mysqli->prepare("UPDATE mdl_user SET firstname = ?, lastname = ?, email = ?, phone1 = ?, suspended = ?, timemodified = UNIX_TIMESTAMP() WHERE id = ?");
+                        $upStmt->bind_param('ssssii', $firstname, $lastname, $email, $mobile, $suspended, $existingId);
+                    }
+                    $upStmt->execute();
+                    $upStmt->close();
+
+                    if ($role === 'instituteadmin' && $instAdminRoleId) {
+                        $insRa = $mysqli->prepare("INSERT IGNORE INTO mdl_role_assignments (roleid, contextid, userid, timemodified, modifierid) VALUES (?, 1, ?, UNIX_TIMESTAMP(), 2)");
+                        $insRa->bind_param('ii', $instAdminRoleId, $existingId);
+                        $insRa->execute();
+                        $insRa->close();
+                    }
+
+                    if (!empty($courseIds)) {
+                        foreach ($courseIds as $cId) {
+                            assign_user_course_enrolment($mysqli, $existingId, (int)$cId, $role);
+                        }
+                    }
+
+                    $created[] = [
+                        'row' => $i + 1,
+                        'username' => $username,
+                        'id' => $existingId,
+                        'action' => 'updated',
+                        'status' => $statusLabel,
+                        'message' => "User {$username} updated ({$statusLabel})"
+                    ];
+                    continue;
+                }
+
+                // New User: Validate Password
+                if ($password === '') {
+                    $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => 'Password is required for new user account'];
+                    continue;
+                }
+                $pwdErr = null;
+                if (!validate_password_policy($password, $pwdErr)) {
+                    $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => 'Password validation failed: ' . $pwdErr];
+                    continue;
+                }
+
+                $pwdHash = password_hash($password, PASSWORD_BCRYPT);
+                $stmt = $mysqli->prepare("
+                    INSERT INTO mdl_user 
+                    (username, password, firstname, lastname, email, phone1, suspended, auth, confirmed, timecreated, timemodified) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'manual', 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP())
+                ");
+                $stmt->bind_param('ssssssi', $username, $pwdHash, $firstname, $lastname, $email, $mobile, $suspended);
+                
+                if (!$stmt->execute()) {
+                    $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => $stmt->error];
+                    $stmt->close();
+                    continue;
+                }
+
+                $newUserId = (int)$stmt->insert_id;
+                $stmt->close();
+
+                if ($role === 'instituteadmin' && $instAdminRoleId) {
+                    $insRa = $mysqli->prepare("INSERT INTO mdl_role_assignments (roleid, contextid, userid, timemodified, modifierid) VALUES (?, 1, ?, UNIX_TIMESTAMP(), 2)");
+                    $insRa->bind_param('ii', $instAdminRoleId, $newUserId);
+                    $insRa->execute();
+                    $insRa->close();
+                }
+
+                foreach ($courseIds as $cId) {
+                    assign_user_course_enrolment($mysqli, $newUserId, (int)$cId, $role);
+                }
+
+                $statusLabel = ($suspended === 1) ? 'Permanently Suspended' : 'Active';
+                $created[] = [
+                    'row' => $i + 1,
+                    'username' => $username,
+                    'id' => $newUserId,
+                    'action' => 'created',
+                    'status' => $statusLabel,
+                    'message' => "User {$username} created ({$statusLabel})"
+                ];
+            }
+
+            log_audit_event($mysqli, 'USER_BULK_UPLOAD', 'user', 'bulk', [
+                'total_rows' => $totalDataRows,
+                'created_count' => count($created),
+                'skipped_count' => count($skipped),
+                'error_count' => count($errors)
+            ], 'SUCCESS', $currentUser);
+
+            echo json_encode([
+                'status' => 'success',
+                'message' => sprintf(
+                    'Bulk upload complete: %d user%s added successfully%s%s',
+                    count($created),
+                    count($created) === 1 ? '' : 's',
+                    count($skipped) > 0 ? sprintf(', %d skipped (duplicates)', count($skipped)) : '',
+                    count($errors) > 0 ? sprintf(', %d errors', count($errors)) : ''
+                ),
+                'data' => [
+                    'total' => $totalDataRows,
+                    'created_count' => count($created),
+                    'skipped_count' => count($skipped),
+                    'error_count' => count($errors),
+                    'created' => $created,
+                    'skipped' => $skipped,
+                    'errors' => $errors
+                ]
+            ]);
+            break;
+
+        // =====================================================================
         // USERS: Update user details & role (Institute Admin ONLY)
         // =====================================================================
         case 'users-update':
@@ -1663,31 +2279,32 @@ try {
                 break;
             }
 
-            if (empty($firstname)) {
+            if (empty($firstname) || empty($lastname) || empty($email) || empty($mobile)) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'First Name is required']);
+                echo json_encode(['status' => 'error', 'message' => 'All profile fields (First Name, Last Name, Official Email, Mobile Number) are required']);
                 break;
             }
 
             // Input whitelisting & validation (SEC-B04)
-            if (strlen($firstname) > 50 || !preg_match('/^[\p{L}\s.\'-]+$/u', $firstname)) {
+            if (strlen($firstname) < 2 || strlen($firstname) > 50 || !preg_match('/^[\p{L}\s.\'-]+$/u', $firstname)) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'First Name contains invalid characters or exceeds 50 characters']);
+                echo json_encode(['status' => 'error', 'message' => 'First Name must be between 2 and 50 characters']);
                 break;
             }
-            if (!empty($lastname) && (strlen($lastname) > 50 || !preg_match('/^[\p{L}\s.\'-]+$/u', $lastname))) {
+            if (strlen($lastname) < 2 || strlen($lastname) > 50 || !preg_match('/^[\p{L}\s.\'-]+$/u', $lastname)) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Last Name contains invalid characters or exceeds 50 characters']);
+                echo json_encode(['status' => 'error', 'message' => 'Last Name / Rank must be between 2 and 50 characters']);
                 break;
             }
-            if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Invalid email address format']);
+                echo json_encode(['status' => 'error', 'message' => 'Valid official email address is required']);
                 break;
             }
-            if (!empty($mobile) && !preg_match('/^[0-9+\-\s()]{5,20}$/', $mobile)) {
+            $cleanMobile = preg_replace('/\D/', '', $mobile);
+            if (strlen($cleanMobile) < 10 || strlen($cleanMobile) > 15) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Invalid mobile/phone number format']);
+                echo json_encode(['status' => 'error', 'message' => 'Mobile number must contain at least 10 valid digits']);
                 break;
             }
 

@@ -1,0 +1,5 @@
+username,password,firstname,lastname,email,mobile,status,role,courses
+AMC091,Officer@2026!,Arjun,Rao,arjun.rao@amc.gov.in,+91 94150 12091,active,student,MOBC
+AMC092,Officer@2026!,Deepika,Pillai,deepika.pillai@amc.gov.in,+91 94150 12092,active,student,BNOC
+AMC093,Officer@2026!,Harsh,Vardhan,harsh.vardhan@amc.gov.in,+91 94150 12093,active,courseadmin,MOBC;MOJCC
+AMC094,Officer@2026!,Pooja,Deshmukh,pooja.deshmukh@amc.gov.in,+91 94150 12094,active,student,NTPCC

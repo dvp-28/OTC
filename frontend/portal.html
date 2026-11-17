@@ -5,9 +5,126 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal | Dronacharya LMS - Officers Training College</title>
     <meta name="description" content="Dronacharya LMS Officer Portal - Role-based access to courses, classroom, and administration.">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=20261117_v13">
     <link rel="stylesheet" href="css/wifi-guard.css">
     <style>
+        /* Bulk Upload Modal High-Contrast Light Theme Direct Rules */
+        [data-theme="light"] .bulk-format-box,
+        body.theme-light .bulk-format-box {
+            background: #f1f5f9 !important;
+            border: 2px solid #cbd5e1 !important;
+            border-left: 6px solid #8b1e2f !important;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08) !important;
+        }
+        [data-theme="light"] .bulk-format-title,
+        body.theme-light .bulk-format-title {
+            color: #8b1e2f !important;
+            font-weight: 800 !important;
+        }
+        [data-theme="light"] .bulk-format-sub,
+        body.theme-light .bulk-format-sub {
+            color: #334155 !important;
+            font-weight: 600 !important;
+        }
+        [data-theme="light"] .btn-download-template,
+        body.theme-light .btn-download-template {
+            background: #ffffff !important;
+            border: 2px solid #b45309 !important;
+            color: #78350f !important;
+            box-shadow: 0 2px 6px rgba(180, 83, 9, 0.15) !important;
+        }
+        [data-theme="light"] .btn-download-template-badge,
+        body.theme-light .btn-download-template-badge {
+            background: #dcfce7 !important;
+            color: #166534 !important;
+            border: 1px solid #4ade80 !important;
+        }
+        [data-theme="light"] .bulk-col-badge,
+        body.theme-light .bulk-col-badge {
+            background: #ffffff !important;
+            border: 1.5px solid #94a3b8 !important;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04) !important;
+        }
+        [data-theme="light"] .bulk-col-label,
+        body.theme-light .bulk-col-label {
+            color: #8b1e2f !important;
+            font-weight: 800 !important;
+        }
+        [data-theme="light"] .bulk-col-code,
+        body.theme-light .bulk-col-code {
+            color: #0369a1 !important;
+            background: #e0f2fe !important;
+            border: 1px solid #7dd3fc !important;
+        }
+        [data-theme="light"] .bulk-rules-box,
+        body.theme-light .bulk-rules-box {
+            background: #fef3c7 !important;
+            border: 2px solid #d97706 !important;
+            border-left: 6px solid #b45309 !important;
+            box-shadow: 0 4px 16px rgba(217, 119, 6, 0.16) !important;
+        }
+        [data-theme="light"] .bulk-rules-header,
+        body.theme-light .bulk-rules-header {
+            border-bottom: 1.5px solid #d97706 !important;
+        }
+        [data-theme="light"] .bulk-rules-title,
+        body.theme-light .bulk-rules-title {
+            color: #78350f !important;
+            font-weight: 800 !important;
+        }
+        [data-theme="light"] .bulk-rules-title svg,
+        body.theme-light .bulk-rules-title svg {
+            color: #b45309 !important;
+            stroke: #b45309 !important;
+        }
+        [data-theme="light"] .bulk-rules-badge,
+        body.theme-light .bulk-rules-badge {
+            background: #fee2e2 !important;
+            color: #991b1b !important;
+            border: 1.5px solid #ef4444 !important;
+            font-weight: 800 !important;
+        }
+        [data-theme="light"] .bulk-rules-list,
+        body.theme-light .bulk-rules-list {
+            color: #0f172a !important;
+        }
+        [data-theme="light"] .bulk-rules-list strong,
+        body.theme-light .bulk-rules-list strong {
+            color: #78350f !important;
+            font-weight: 800 !important;
+        }
+        [data-theme="light"] .bulk-rules-list code,
+        body.theme-light .bulk-rules-list code {
+            background: #ffffff !important;
+            border: 1.5px solid #cbd5e1 !important;
+            color: #8b1e2f !important;
+            font-weight: 700 !important;
+        }
+        [data-theme="light"] .bulk-dropzone-box,
+        body.theme-light .bulk-dropzone-box {
+            border: 2px dashed #64748b !important;
+            background: #f8fafc !important;
+        }
+        [data-theme="light"] .bulk-dropzone-box:hover,
+        body.theme-light .bulk-dropzone-box:hover {
+            border-color: #8b1e2f !important;
+            background: #fff1f2 !important;
+        }
+        [data-theme="light"] .bulk-dropzone-icon,
+        body.theme-light .bulk-dropzone-icon {
+            color: #8b1e2f !important;
+        }
+        [data-theme="light"] .bulk-dropzone-title,
+        body.theme-light .bulk-dropzone-title {
+            color: #0f172a !important;
+            font-weight: 700 !important;
+        }
+        [data-theme="light"] .bulk-dropzone-sub,
+        body.theme-light .bulk-dropzone-sub {
+            color: #475569 !important;
+            font-weight: 500 !important;
+        }
+
         /* Role-specific admin toolbar */
         .admin-toolbar {
             display: none;
@@ -1883,6 +2000,282 @@
             border-color: #b89327;
             box-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
         }
+
+        /* ============================================================
+           BULK USER UPLOAD MODAL - HIGH-CONTRAST THEME STYLING
+           ============================================================ */
+        [data-theme="light"] .bulk-user-modal-box {
+            background: #ffffff !important;
+            border: 2px solid #cbd5e1 !important;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2) !important;
+            color: #0f172a !important;
+        }
+        [data-theme="light"] .bulk-user-modal-box h2 {
+            color: #0f172a !important;
+            font-weight: 800 !important;
+        }
+        [data-theme="light"] .bulk-user-modal-box h2 svg {
+            color: #8b1e2f !important;
+        }
+        [data-theme="light"] .bulk-user-modal-box .modal-desc {
+            color: #334155 !important;
+            font-weight: 600 !important;
+        }
+
+        /* 1. Format Guide Container Box */
+        .bulk-format-box {
+            background: linear-gradient(145deg, rgba(18, 26, 42, 0.95), rgba(11, 16, 26, 0.98));
+            border: 1.5px solid rgba(212, 175, 55, 0.35);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+        [data-theme="light"] .bulk-format-box {
+            background: #f1f5f9 !important;
+            border: 2px solid #94a3b8 !important;
+            border-left: 6px solid #8b1e2f !important;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08) !important;
+        }
+
+        .bulk-format-title {
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: var(--gold-light, #f3d779);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        [data-theme="light"] .bulk-format-title {
+            color: #8b1e2f !important;
+        }
+
+        .bulk-format-sub {
+            font-size: 0.76rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+        }
+        [data-theme="light"] .bulk-format-sub {
+            color: #334155 !important;
+            font-weight: 600 !important;
+        }
+
+        /* Download Template Button */
+        .btn-download-template {
+            font-size: 0.8rem;
+            padding: 0.48rem 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            background: linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.06));
+            border: 1.5px solid var(--gold-light, #d4af37);
+            color: var(--gold-light, #f3d779);
+        }
+        .btn-download-template:hover {
+            background: rgba(212, 175, 55, 0.25);
+            transform: translateY(-1px);
+        }
+        [data-theme="light"] .btn-download-template {
+            background: #8b1e2f !important;
+            border: 1.5px solid #701423 !important;
+            color: #ffffff !important;
+            box-shadow: 0 3px 10px rgba(139, 30, 47, 0.25) !important;
+        }
+        [data-theme="light"] .btn-download-template:hover {
+            background: #a32238 !important;
+        }
+        [data-theme="light"] .btn-download-template svg {
+            color: #ffffff !important;
+        }
+
+        .btn-template-pill {
+            font-size: 0.68rem;
+            background: rgba(34,197,94,0.22);
+            color: #86efac;
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+        [data-theme="light"] .btn-template-pill {
+            background: #ffffff !important;
+            color: #8b1e2f !important;
+            border: 1px solid rgba(255,255,255,0.5) !important;
+        }
+
+        /* 2. Column Badges */
+        .bulk-col-badge {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(212, 175, 55, 0.22);
+            border-radius: 8px;
+            padding: 0.55rem 0.7rem;
+            transition: all 0.2s ease;
+        }
+        .bulk-col-badge:hover {
+            border-color: rgba(212, 175, 55, 0.5);
+            background: rgba(212, 175, 55, 0.08);
+        }
+        [data-theme="light"] .bulk-col-badge {
+            background: #ffffff !important;
+            border: 1.5px solid #cbd5e1 !important;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06) !important;
+        }
+        [data-theme="light"] .bulk-col-badge:hover {
+            border-color: #8b1e2f !important;
+            box-shadow: 0 4px 12px rgba(139, 30, 47, 0.15) !important;
+        }
+
+        .bulk-col-label {
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: var(--gold-light, #f3d779);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 0.2rem;
+        }
+        [data-theme="light"] .bulk-col-label {
+            color: #8b1e2f !important;
+        }
+
+        .bulk-col-code {
+            font-size: 0.82rem;
+            color: #60a5fa;
+            background: rgba(96, 165, 250, 0.12);
+            border: 1px solid rgba(96, 165, 250, 0.25);
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            font-weight: 700;
+            display: inline-block;
+        }
+        [data-theme="light"] .bulk-col-code {
+            background: #eff6ff !important;
+            border: 1px solid #bfdbfe !important;
+            color: #1d4ed8 !important;
+            font-weight: 800 !important;
+        }
+
+        /* 3. Mandatory Rules Box */
+        .bulk-rules-box {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.09) 0%, rgba(139, 30, 47, 0.08) 100%);
+            border: 1.5px solid rgba(212, 175, 55, 0.35);
+            border-radius: 10px;
+            padding: 1.1rem 1.25rem;
+            margin-top: 1rem;
+        }
+        [data-theme="light"] .bulk-rules-box {
+            background: #fef3c7 !important;
+            border: 2px solid #d97706 !important;
+            box-shadow: 0 4px 16px rgba(217, 119, 6, 0.14) !important;
+        }
+
+        .bulk-rules-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.85rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 1.5px solid rgba(212, 175, 55, 0.25);
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        [data-theme="light"] .bulk-rules-header {
+            border-bottom-color: #f59e0b !important;
+        }
+
+        .bulk-rules-title {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            font-size: 0.86rem;
+            font-weight: 900;
+            color: var(--gold-light, #f3d779);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+        [data-theme="light"] .bulk-rules-title {
+            color: #92400e !important;
+        }
+        [data-theme="light"] .bulk-rules-title svg {
+            color: #d97706 !important;
+        }
+
+        .bulk-rules-badge {
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 0.25rem 0.65rem;
+            border-radius: 9999px;
+            background: rgba(239, 68, 68, 0.18);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            letter-spacing: 0.5px;
+        }
+        [data-theme="light"] .bulk-rules-badge {
+            background: #dc2626 !important;
+            color: #ffffff !important;
+            border-color: #b91c1c !important;
+            box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25) !important;
+        }
+
+        .bulk-rules-list {
+            display: grid;
+            gap: 0.6rem;
+            font-size: 0.77rem;
+            line-height: 1.6;
+            color: var(--text-main, #e2e8f0);
+        }
+        [data-theme="light"] .bulk-rules-list {
+            color: #1e293b !important;
+            font-weight: 500 !important;
+        }
+        [data-theme="light"] .bulk-rules-list strong {
+            color: #0f172a !important;
+            font-weight: 800 !important;
+        }
+        [data-theme="light"] .bulk-rules-list code {
+            background: #ffffff !important;
+            border: 1.5px solid #d97706 !important;
+            color: #92400e !important;
+            padding: 0.15rem 0.45rem !important;
+            border-radius: 4px !important;
+            font-weight: 800 !important;
+        }
+
+        /* 4. Drop Zone */
+        .bulk-dropzone-box {
+            border: 2px dashed rgba(212, 175, 55, 0.35);
+            border-radius: 12px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 1.25rem;
+        }
+        .bulk-dropzone-box:hover {
+            border-color: var(--gold-light, #d4af37);
+            background: rgba(212, 175, 55, 0.06);
+        }
+        [data-theme="light"] .bulk-dropzone-box {
+            background: #f8fafc !important;
+            border: 2px dashed #64748b !important;
+        }
+        [data-theme="light"] .bulk-dropzone-box:hover {
+            background: #f1f5f9 !important;
+            border-color: #8b1e2f !important;
+        }
+        [data-theme="light"] .bulk-dropzone-prompt-title {
+            color: #0f172a !important;
+            font-weight: 800 !important;
+        }
+        [data-theme="light"] .bulk-dropzone-prompt-sub {
+            color: #475569 !important;
+            font-weight: 600 !important;
+        }
+        [data-theme="light"] .bulk-dropzone-icon {
+            color: #8b1e2f !important;
+        }
     </style>
 </head>
 <body>
@@ -1929,10 +2322,6 @@
                         <button class="menu-item" onclick="openEditCourseModal(); closeAdminQuickActionsMenu();">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                             <span>Edit Course Details</span>
-                        </button>
-                        <button class="menu-item" onclick="openAddSectionModal(); closeAdminQuickActionsMenu();">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                            <span>Add Course Section</span>
                         </button>
                         <button class="menu-item" id="popup-quick-manage-users" onclick="switchTab('users'); closeAdminQuickActionsMenu();" style="display:none;">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
@@ -2467,7 +2856,15 @@
                     <h2 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 0.25rem;">User & Batch Management</h2>
                     <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0;">Institute Admin access — manage registered officers, roles, and course assignments.</p>
                 </div>
-                <div>
+                <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+                    <button class="btn-admin" onclick="openBulkUserModal()" style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 1rem; font-weight: 600; border-color: rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.08); color: var(--text-main); cursor: pointer;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span>📁 Bulk Upload (CSV / Excel)</span>
+                    </button>
                     <button class="btn-admin gold" onclick="openCreateUserModal()" style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 1rem; font-weight: 600;">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="17" y1="11" x2="23" y2="11"></line></svg>
                         <span>+ Add New User</span>
@@ -2557,7 +2954,7 @@
 
     <!-- MODAL: Create / Edit User & Course Enrolment -->
     <div class="modal-overlay" id="modal-user-form">
-        <div class="modal-box" style="max-width: 580px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-box" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
             <button type="button" class="modal-close-btn" onclick="closeModal('modal-user-form')" title="Close (Esc)" aria-label="Close">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
@@ -2570,12 +2967,13 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                 <div class="modal-form-group">
                     <label>Username *</label>
-                    <input type="text" id="user-form-username" placeholder="e.g. AMC005">
+                    <input type="text" id="user-form-username" placeholder="e.g. AMC005" autocomplete="off">
+                    <div id="user-err-username" style="display: none; color: #f87171; font-size: 0.7rem; margin-top: 0.2rem;"></div>
                 </div>
                 <div class="modal-form-group">
-                    <label>Password <span id="user-password-label-hint" style="font-weight: 400; font-size: 0.75rem; color: var(--text-muted);">(req for new)</span></label>
+                    <label>Password * <span id="user-password-label-hint" style="font-weight: 400; font-size: 0.75rem; color: var(--gold-light);">(required for new user)</span></label>
                     <div class="modal-password-wrapper">
-                        <input type="password" id="user-form-password" placeholder="••••••••">
+                        <input type="password" id="user-form-password" placeholder="••••••••" autocomplete="new-password" oninput="validateUserFormPasswordLive(this.value)">
                         <button type="button" id="btn-toggle-user-password" class="modal-password-toggle-btn" onclick="toggleUserFormPassword()" aria-label="Toggle password visibility" title="Show password" tabindex="-1">
                             <svg class="eye-icon eye-show" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -2587,17 +2985,33 @@
                             </svg>
                         </button>
                     </div>
+                    <!-- Live Password Security Requirements Checklist Widget -->
+                    <div id="user-password-policy-box" style="margin-top: 0.35rem; padding: 0.45rem 0.6rem; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-subtle); border-radius: 6px; font-size: 0.71rem; line-height: 1.35;">
+                        <div style="font-weight: 600; color: var(--gold-light); margin-bottom: 0.2rem; display: flex; justify-content: space-between; align-items: center;">
+                            <span>Password Policy Requirements:</span>
+                            <span id="user-password-policy-status" style="font-weight: 700; color: #f87171; font-size: 0.68rem;">Required</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.15rem 0.5rem;">
+                            <div id="pwd-chk-len" style="color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem;"><span class="pwd-chk-icon">•</span> Min 12 characters</div>
+                            <div id="pwd-chk-upper" style="color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem;"><span class="pwd-chk-icon">•</span> 1 Uppercase (A-Z)</div>
+                            <div id="pwd-chk-lower" style="color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem;"><span class="pwd-chk-icon">•</span> 1 Lowercase (a-z)</div>
+                            <div id="pwd-chk-digit" style="color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem;"><span class="pwd-chk-icon">•</span> 1 Number (0-9)</div>
+                            <div id="pwd-chk-special" style="grid-column: span 2; color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem;"><span class="pwd-chk-icon">•</span> 1 Special symbol (!@#$%^&*)</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.2rem;">
                 <div class="modal-form-group">
                     <label>First Name / Initials *</label>
                     <input type="text" id="user-form-firstname" placeholder="e.g. Officer">
+                    <div id="user-err-firstname" style="display: none; color: #f87171; font-size: 0.7rem; margin-top: 0.2rem;"></div>
                 </div>
                 <div class="modal-form-group">
                     <label>Last Name / Rank *</label>
                     <input type="text" id="user-form-lastname" placeholder="e.g. Sharma">
+                    <div id="user-err-lastname" style="display: none; color: #f87171; font-size: 0.7rem; margin-top: 0.2rem;"></div>
                 </div>
             </div>
 
@@ -2605,19 +3019,21 @@
                 <div class="modal-form-group">
                     <label>Official Email *</label>
                     <input type="email" id="user-form-email" placeholder="officer@amc.gov.in">
+                    <div id="user-err-email" style="display: none; color: #f87171; font-size: 0.7rem; margin-top: 0.2rem;"></div>
                 </div>
                 <div class="modal-form-group">
-                    <label>Mobile Number</label>
+                    <label>Mobile Number *</label>
                     <input type="text" id="user-form-phone" placeholder="+91 94150 12001">
+                    <div id="user-err-phone" style="display: none; color: #f87171; font-size: 0.7rem; margin-top: 0.2rem;"></div>
                 </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                 <div class="modal-form-group">
-                    <label>Account Status</label>
+                    <label>Active Status (Active?) *</label>
                     <select id="user-form-suspended">
-                        <option value="0">Active</option>
-                        <option value="1">Inactive / Suspended</option>
+                        <option value="0">Yes — Active Account</option>
+                        <option value="1">No — Permanently Suspended</option>
                     </select>
                 </div>
                 <div class="modal-form-group">
@@ -2631,10 +3047,14 @@
             </div>
 
             <div class="modal-form-group">
-                <label style="margin-bottom: 0.5rem; display: block; font-weight: 600;">Assigned Courses</label>
+                <label style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; font-weight: 600;">
+                    <span>Assigned Courses *</span>
+                    <span style="font-size: 0.75rem; color: var(--gold-light); font-weight: 400;">(Select at least one course)</span>
+                </label>
                 <div id="user-form-courses-container" class="form-courses-checklist" style="background: var(--bg-main); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.75rem; max-height: 160px; overflow-y: auto;">
                     <!-- Rendered by JS -->
                 </div>
+                <div id="user-err-courses" style="display: none; color: #f87171; font-size: 0.7rem; margin-top: 0.35rem;"></div>
             </div>
 
             <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: 1.5rem;">
@@ -2646,6 +3066,184 @@
                     <button type="button" class="btn-modal cancel" style="flex: 0 0 auto; width: auto; min-width: 105px; padding: 0.7rem 1.35rem; font-size: 0.88rem; font-weight: 600; border-radius: 8px; cursor: pointer; white-space: nowrap;" onclick="closeModal('modal-user-form')">Cancel</button>
                     <button type="button" class="btn-modal primary" style="flex: 0 0 auto; width: auto; min-width: 130px; padding: 0.7rem 1.5rem; font-size: 0.88rem; font-weight: 700; border-radius: 8px; cursor: pointer; white-space: nowrap;" onclick="submitUserForm()">Save User</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Bulk User Upload (CSV / Excel) -->
+    <div class="modal-overlay" id="modal-bulk-user-upload">
+        <div class="modal-box bulk-user-modal-box" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
+            <button type="button" class="modal-close-btn" onclick="closeModal('modal-bulk-user-upload')" title="Close (Esc)" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h2 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color: var(--gold-light);">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Bulk Upload Users (CSV / Excel)
+            </h2>
+            <p style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                Upload a spreadsheet (.csv, .xlsx, .tsv) containing officer records. All accounts, passwords, roles, and course assignments will be added automatically.
+            </p>
+
+            <!-- Format Guide & Template Download -->
+            <div class="bulk-format-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.95rem; flex-wrap: wrap; gap: 0.6rem;">
+                    <div>
+                        <span class="bulk-format-title">
+                            Standard Spreadsheet Columns
+                        </span>
+                        <div class="bulk-format-sub">
+                            Headers match the Add User form fields. The first row must contain these column names:
+                        </div>
+                    </div>
+                    <button type="button" onclick="downloadSampleUserTemplate()" class="btn-download-template" title="Download formatted template with comments & instructions">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span class="btn-download-template-text">Download Sample Template (.XLSX)</span>
+                        <span class="btn-download-template-badge">Notes &amp; Dropdowns</span>
+                    </button>
+                </div>
+
+                <!-- Structured Column Badges Grid matching Add User Form Fields -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.6rem; margin-bottom: 0.85rem;">
+                    <!-- 1. Username -->
+                    <div class="bulk-col-badge">
+                        <div class="bulk-col-label">USERNAME *</div>
+                        <code class="bulk-col-code">username</code>
+                    </div>
+                    <!-- 2. Password -->
+                    <div class="bulk-col-badge">
+                        <div class="bulk-col-label">PASSWORD *</div>
+                        <code class="bulk-col-code">password</code>
+                    </div>
+                    <!-- 3. First Name -->
+                    <div class="bulk-col-badge">
+                        <div class="bulk-col-label">FIRST NAME / INITIALS *</div>
+                        <code class="bulk-col-code">firstname</code>
+                    </div>
+                    <!-- 4. Last Name -->
+                    <div class="bulk-col-badge">
+                        <div class="bulk-col-label">LAST NAME / RANK *</div>
+                        <code class="bulk-col-code">lastname</code>
+                    </div>
+                    <!-- 5. Official Email -->
+                    <div class="bulk-col-badge">
+                        <div class="bulk-col-label">OFFICIAL EMAIL *</div>
+                        <code class="bulk-col-code">email</code>
+                    </div>
+                    <!-- 6. Mobile Number -->
+                    <div class="bulk-col-badge">
+                        <div class="bulk-col-label">MOBILE NUMBER *</div>
+                        <code class="bulk-col-code">mobile</code>
+                    </div>
+                    <!-- 7. Active Status -->
+                    <div class="bulk-col-badge">
+                        <div class="bulk-col-label">ACTIVE STATUS (YES / NO) *</div>
+                        <code class="bulk-col-code">status</code>
+                    </div>
+                    <!-- 8. Role / Permissions -->
+                    <div class="bulk-col-badge">
+                        <div class="bulk-col-label">ROLE / PERMISSIONS *</div>
+                        <code class="bulk-col-code">role</code>
+                    </div>
+                    <!-- 9. Assigned Courses -->
+                    <div class="bulk-col-badge">
+                        <div class="bulk-col-label">ASSIGNED COURSES *</div>
+                        <code class="bulk-col-code">courses</code>
+                    </div>
+                </div>
+
+                <!-- Dedicated Rules Box with Explicit Heading -->
+                <div class="bulk-rules-box">
+                    <div class="bulk-rules-header">
+                        <div class="bulk-rules-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                <path d="m9 12 2 2 4-4"></path>
+                            </svg>
+                            <span>Mandatory Validation &amp; Compliance Rules</span>
+                        </div>
+                        <span class="bulk-rules-badge">ALL 9 FIELDS REQUIRED</span>
+                    </div>
+
+                    <div class="bulk-rules-list">
+                        <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <span style="color: #10b981; font-weight: 800; font-size: 0.85rem; line-height: 1.2;">✓</span>
+                            <div><strong>ALL 9 FIELDS ARE MANDATORY:</strong> Every record in the spreadsheet must contain complete data across all columns. Blank cells will trigger row rejection.</div>
+                        </div>
+                        <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <span style="color: #ef4444; font-weight: 800; font-size: 0.85rem; line-height: 1.2;">🔒</span>
+                            <div><strong>STRICT PASSWORD POLICY:</strong> Min 12 chars, containing at least 1 uppercase (A-Z), 1 lowercase (a-z), 1 number (0-9), and 1 special symbol (!@#$%^&amp;*). E.g. <code>Officer@2026!</code>.</div>
+                        </div>
+                        <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <span style="color: #0284c7; font-weight: 800; font-size: 0.85rem; line-height: 1.2;">✉️</span>
+                            <div><strong>OFFICIAL EMAIL &amp; MOBILE:</strong> Valid official email (e.g. <code>officer@amc.gov.in</code>) and at least 10-digit mobile number are required.</div>
+                        </div>
+                        <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <span style="color: #d4af37; font-weight: 800; font-size: 0.85rem; line-height: 1.2;">🎖️</span>
+                            <div><strong>ROLE / PERMISSIONS:</strong> Must be <code>student</code> (Student Officer), <code>courseadmin</code> (Course Admin), or <code>instituteadmin</code> (Institute Admin).</div>
+                        </div>
+                        <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <span style="color: #059669; font-weight: 800; font-size: 0.85rem; line-height: 1.2;">⚡</span>
+                            <div><strong>ACTIVE STATUS (YES / NO):</strong> Set <code>Yes</code> for Active accounts, or <code>No</code> for Permanently Suspended accounts. (Also accepts <code>active</code> / <code>suspended</code>).</div>
+                        </div>
+                        <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <span style="color: #8b5cf6; font-weight: 800; font-size: 0.85rem; line-height: 1.2;">📚</span>
+                            <div><strong>ASSIGNED COURSES:</strong> Required for active officers (e.g. <code>MOBC</code>; <code>MOJCC</code>). For Permanently Suspended accounts, course assignment is optional (can be <code>None</code> or blank).</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drop Zone -->
+            <div id="bulk-upload-dropzone" class="bulk-dropzone-box" onclick="document.getElementById('bulk-user-file-input').click()">
+                <input type="file" id="bulk-user-file-input" accept=".csv, .xlsx, .xls, .tsv, .txt" style="display: none;" onchange="handleBulkFileSelect(event)">
+                <div id="bulk-upload-prompt">
+                    <svg class="bulk-dropzone-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="12" y1="18" x2="12" y2="12"></line>
+                        <line x1="9" y1="15" x2="15" y2="15"></line>
+                    </svg>
+                    <div class="bulk-dropzone-title">Choose or Drag &amp; Drop CSV / Excel File</div>
+                    <div class="bulk-dropzone-sub">Supports .CSV, .XLSX, and .TSV spreadsheets up to 15MB</div>
+                </div>
+                <div id="bulk-file-info" style="display: none; align-items: center; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
+                    <span class="badge" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); padding: 0.4rem 0.8rem; font-size: 0.85rem; font-weight: 600;" id="bulk-file-name-display">
+                        filename.csv
+                    </span>
+                    <button type="button" class="btn-admin" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;" onclick="event.stopPropagation(); resetBulkFileInput();">Change File</button>
+                </div>
+            </div>
+
+            <!-- Preview Card -->
+            <div id="bulk-preview-container" style="display: none; margin-bottom: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-main);" id="bulk-preview-summary">
+                        Parsed 0 rows
+                    </span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">Sample rows preview:</span>
+                </div>
+                <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; overflow-x: auto; max-height: 180px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem;" id="bulk-preview-table">
+                        <thead id="bulk-preview-thead" style="background: rgba(255,255,255,0.04); text-align: left;"></thead>
+                        <tbody id="bulk-preview-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Progress / Status indicator -->
+            <div id="bulk-upload-status" style="display: none; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1.25rem; font-size: 0.84rem;"></div>
+
+            <!-- Modal Action Buttons -->
+            <div class="modal-actions" style="display: flex; gap: 0.85rem; align-items: center; justify-content: center; width: 100%; margin-top: 1.5rem;">
+                <button type="button" class="btn-modal cancel" id="btn-cancel-bulk-upload" onclick="closeModal('modal-bulk-user-upload')" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; text-align: center; font-weight: 600; padding: 0.75rem; border-radius: 8px;">Cancel</button>
+                <button type="button" class="btn-modal primary" id="btn-submit-bulk-upload" onclick="handleBulkActionClick()" disabled style="display: none; flex: 1; align-items: center; justify-content: center; text-align: center; gap: 0.5rem; font-weight: 700; padding: 0.75rem; border-radius: 8px;" data-state="import">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <span>Import Users</span>
+                </button>
             </div>
         </div>
     </div>
@@ -3065,7 +3663,470 @@
         <div class="footer-compliance">RESTRICTED • FOR OFFICIAL DEFENCE USE ONLY • AIR-GAPPED ON-PREMISE</div>
     </footer>
 
-    <script src="js/wifi-guard.js"></script>
-    <script src="js/portal.js"></script>
+    <script src="js/wifi-guard.js?v=20261116"></script>
+    <script src="js/portal.js?v=20261117_v13"></script>
+    <script>
+    // Direct Global Bindings for Bulk User Upload (Guaranteed Zero-Cache Execution)
+    window.selectedBulkUserFile = window.selectedBulkUserFile || null;
+
+    function formatBulkFileSize(bytes) {
+        if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
+        if (bytes >= 1024) return (bytes / 1024).toFixed(0) + ' KB';
+        return bytes + ' B';
+    }
+
+    window.openBulkUserModal = function() {
+        // Close Add User form if open
+        const userModal = document.getElementById('modal-user-form');
+        if (userModal) userModal.classList.remove('visible');
+
+        resetBulkFileInput();
+        const modal = document.getElementById('modal-bulk-user-upload');
+        if (modal) modal.classList.add('visible');
+        if (typeof updateBodyScrollState === 'function') updateBodyScrollState();
+    };
+
+    window.resetBulkFileInput = function() {
+        selectedBulkUserFile = null;
+        const fileInput = document.getElementById('bulk-user-file-input');
+        if (fileInput) fileInput.value = '';
+
+        const prompt = document.getElementById('bulk-upload-prompt');
+        const info = document.getElementById('bulk-file-info');
+        const preview = document.getElementById('bulk-preview-container');
+        const status = document.getElementById('bulk-upload-status');
+        const submitBtn = document.getElementById('btn-submit-bulk-upload');
+        const cancelBtn = document.getElementById('btn-cancel-bulk-upload');
+        if (cancelBtn) cancelBtn.textContent = 'Cancel';
+
+        if (prompt) prompt.style.display = 'block';
+        if (info) info.style.display = 'none';
+        if (preview) preview.style.display = 'none';
+        if (status) {
+            status.style.display = 'none';
+            status.innerHTML = '';
+        }
+        if (submitBtn) {
+            submitBtn.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.dataset.state = 'import';
+            submitBtn.innerHTML = `
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <span>Import Users</span>
+            `;
+        }
+    };
+
+    window.downloadSampleUserTemplate = function() {
+        const a = document.createElement('a');
+        a.href = 'ekalavya_users_template.xlsx';
+        a.download = 'ekalavya_officers_bulk_upload_template.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        if (typeof showToast === 'function') {
+            showToast('Sample template downloaded with rules as notes and interactive dropdowns', 'success');
+        }
+    };
+
+    window.downloadSampleUserXlsx = function() {
+        window.downloadSampleUserTemplate();
+    };
+
+    window.downloadSampleUserCsv = function() {
+        const csvContent = "username,password,firstname,lastname,email,mobile,status,role,courses\n" +
+            "AMC010,Officer@2026!,Vikram,Singh,vikram.singh@amc.gov.in,+91 94150 12001,Yes,student,MOBC\n" +
+            "AMC011,Officer@2026!,Pooja,Nair,pooja.nair@amc.gov.in,+91 94150 12002,Yes,student,BNOC\n" +
+            "AMC012,Officer@2026!,Rajesh,Sharma,rajesh.sharma@amc.gov.in,+91 94150 12003,Yes,courseadmin,MOBC;MOJCC\n" +
+            "AMC013,Officer@2026!,Sunita,Verma,sunita.verma@amc.gov.in,+91 94150 12004,No,student,None\n";
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "ekalavya_users_template.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        if (typeof showToast === 'function') showToast('Sample user template (.csv) downloaded', 'success');
+    };
+
+    window.handleBulkFileSelect = function(event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!['csv', 'xlsx', 'xls', 'tsv', 'txt'].includes(ext)) {
+            if (typeof showToast === 'function') showToast('Please upload a valid .csv, .xlsx, or .tsv spreadsheet', 'error');
+            resetBulkFileInput();
+            return;
+        }
+
+        if (file.size > 15 * 1024 * 1024) {
+            if (typeof showToast === 'function') showToast('File size exceeds 15MB limit', 'error');
+            resetBulkFileInput();
+            return;
+        }
+
+        selectedBulkUserFile = file;
+
+        const prompt = document.getElementById('bulk-upload-prompt');
+        const info = document.getElementById('bulk-file-info');
+        const nameDisplay = document.getElementById('bulk-file-name-display');
+        const submitBtn = document.getElementById('btn-submit-bulk-upload');
+
+        if (prompt) prompt.style.display = 'none';
+        if (info) info.style.display = 'flex';
+        if (nameDisplay) {
+            nameDisplay.textContent = `${file.name} (${formatBulkFileSize(file.size)})`;
+        }
+        if (submitBtn) {
+            submitBtn.style.display = 'inline-flex';
+            submitBtn.disabled = false;
+            submitBtn.dataset.state = 'import';
+            submitBtn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <span>Import Users</span>
+            `;
+        }
+
+        if (['csv', 'tsv', 'txt'].includes(ext)) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                parseAndRenderCsvPreview(e.target.result, ext === 'tsv' ? '\t' : ',');
+            };
+            reader.readAsText(file);
+        } else {
+            const preview = document.getElementById('bulk-preview-container');
+            const summary = document.getElementById('bulk-preview-summary');
+            const thead = document.getElementById('bulk-preview-thead');
+            const tbody = document.getElementById('bulk-preview-tbody');
+            if (preview && summary && thead && tbody) {
+                summary.textContent = `Excel Spreadsheet (.${ext.toUpperCase()}) selected`;
+                thead.innerHTML = `<tr><th style="padding: 0.5rem 0.75rem;">Status</th><th style="padding: 0.5rem 0.75rem;">File Details</th></tr>`;
+                tbody.innerHTML = `<tr><td style="padding: 0.6rem 0.75rem; color: #4ade80;">Ready to Import</td><td style="padding: 0.6rem 0.75rem;">Click "Import Users" to automatically extract all user records and course enrolments.</td></tr>`;
+                preview.style.display = 'block';
+            }
+        }
+    };
+
+    function validatePasswordSecurityPolicy(pwd) {
+        const s = String(pwd || '');
+        return {
+            length: s.length >= 12,
+            upper: /[A-Z]/.test(s),
+            lower: /[a-z]/.test(s),
+            digit: /[0-9]/.test(s),
+            special: /[^a-zA-Z0-9]/.test(s),
+            isValid: (s.length >= 12 && /[A-Z]/.test(s) && /[a-z]/.test(s) && /[0-9]/.test(s) && /[^a-zA-Z0-9]/.test(s))
+        };
+    }
+    window.validatePasswordSecurityPolicy = validatePasswordSecurityPolicy;
+
+    function validateUserFormPasswordLive(pwd) {
+        const res = validatePasswordSecurityPolicy(pwd);
+        const setStatus = (id, valid) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const icon = el.querySelector('.pwd-chk-icon');
+            if (valid) {
+                el.style.color = '#4ade80';
+                if (icon) {
+                    icon.textContent = '✓';
+                    icon.style.fontWeight = '700';
+                }
+            } else {
+                el.style.color = 'var(--text-muted)';
+                if (icon) {
+                    icon.textContent = '•';
+                    icon.style.fontWeight = 'normal';
+                }
+            }
+        };
+
+        setStatus('pwd-chk-len', res.length);
+        setStatus('pwd-chk-upper', res.upper);
+        setStatus('pwd-chk-lower', res.lower);
+        setStatus('pwd-chk-digit', res.digit);
+        setStatus('pwd-chk-special', res.special);
+
+        const statusEl = document.getElementById('user-password-policy-status');
+        const isCreate = !document.getElementById('user-form-id').value;
+
+        if (statusEl) {
+            if (!pwd) {
+                if (isCreate) {
+                    statusEl.textContent = 'Required';
+                    statusEl.style.color = '#f87171';
+                } else {
+                    statusEl.textContent = 'Unchanged';
+                    statusEl.style.color = 'var(--text-muted)';
+                }
+            } else if (res.isValid) {
+                statusEl.textContent = '✓ Valid Password';
+                statusEl.style.color = '#4ade80';
+            } else {
+                statusEl.textContent = 'Requirements Not Met';
+                statusEl.style.color = '#f87171';
+            }
+        }
+    }
+    window.validateUserFormPasswordLive = validateUserFormPasswordLive;
+
+    function parseAndRenderCsvPreview(text, delimiter) {
+        const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0 && !line.trim().startsWith('#') && !line.trim().startsWith('//'));
+        if (lines.length === 0) return;
+
+        const preview = document.getElementById('bulk-preview-container');
+        const summary = document.getElementById('bulk-preview-summary');
+        const thead = document.getElementById('bulk-preview-thead');
+        const tbody = document.getElementById('bulk-preview-tbody');
+        if (!preview || !summary || !thead || !tbody) return;
+
+        const safeEsc = typeof esc === 'function' ? esc : function(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        };
+
+        const rawHeaders = lines[0].split(delimiter).map(h => h.trim().replace(/^["']|["']$/g, ''));
+        const normHeaders = rawHeaders.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+        let headerHtml = '<tr>';
+        rawHeaders.forEach(h => {
+            headerHtml += `<th style="padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--border-subtle);">${safeEsc(h)}</th>`;
+        });
+        headerHtml += '</tr>';
+        thead.innerHTML = headerHtml;
+
+        let totalInvalidCells = 0;
+        let bodyHtml = '';
+        const sampleRows = lines.slice(1, 6);
+
+        sampleRows.forEach(line => {
+            const cells = line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ''));
+            bodyHtml += '<tr>';
+            cells.forEach((val, idx) => {
+                const colKey = normHeaders[idx] || '';
+                let isValid = true;
+                let errMsg = '';
+
+                if (!val || val.trim().length === 0) {
+                    isValid = false;
+                    errMsg = 'Required field missing: this field cannot be blank';
+                } else if (colKey.includes('user')) {
+                    if (val.length < 3 || val.length > 50 || !/^[a-zA-Z0-9._-]+$/.test(val)) {
+                        isValid = false;
+                        errMsg = 'Username must be 3-50 alphanumeric characters (dot, underscore, hyphen permitted)';
+                    }
+                } else if (colKey.includes('pass')) {
+                    const pwdChk = validatePasswordSecurityPolicy(val);
+                    if (!pwdChk.isValid) {
+                        isValid = false;
+                        errMsg = 'Password fails strict security policy: must be min 12 characters with at least 1 uppercase, 1 lowercase, 1 number, and 1 special symbol (!@#$%^&*)';
+                    }
+                } else if (colKey.includes('first')) {
+                    if (val.length < 2 || val.length > 50) {
+                        isValid = false;
+                        errMsg = 'First Name / Initials must be 2-50 characters';
+                    }
+                } else if (colKey.includes('last') || colKey.includes('rank')) {
+                    if (val.length < 2 || val.length > 50) {
+                        isValid = false;
+                        errMsg = 'Last Name / Rank must be 2-50 characters';
+                    }
+                } else if (colKey.includes('email')) {
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+                        isValid = false;
+                        errMsg = 'Valid official email address is required (e.g. officer@amc.gov.in)';
+                    }
+                } else if (colKey.includes('mobile') || colKey.includes('phone')) {
+                    const cleanPhone = val.replace(/\D/g, '');
+                    if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+                        isValid = false;
+                        errMsg = 'Mobile number must contain at least 10 valid digits';
+                    }
+                } else if (colKey.includes('status') || colKey.includes('suspend') || colKey.includes('active')) {
+                    const s = val.toLowerCase();
+                    if (!['yes', 'no', 'y', 'n', 'active', 'suspended', 'inactive', 'permanently suspended', '0', '1'].includes(s)) {
+                        isValid = false;
+                        errMsg = "Active Status must be 'Yes' (Active) or 'No' (Permanently Suspended)";
+                    }
+                } else if (colKey.includes('role') || colKey.includes('perm')) {
+                    const r = val.toLowerCase();
+                    if (!['student', 'courseadmin', 'instituteadmin', 'officer', 'faculty', 'admin'].includes(r)) {
+                        isValid = false;
+                        errMsg = 'Role must be student, courseadmin, or instituteadmin';
+                    }
+                } else if (colKey.includes('course')) {
+                    let rowIsSuspended = false;
+                    rawHeaders.forEach((h, hIdx) => {
+                        const hk = h.toLowerCase();
+                        if (hk.includes('status') || hk.includes('suspend') || hk.includes('active')) {
+                            const sv = (cells[hIdx] || '').toString().trim().toLowerCase();
+                            if (['no', 'n', 'suspended', 'inactive', '1', 'permanently suspended'].includes(sv)) {
+                                rowIsSuspended = true;
+                            }
+                        }
+                    });
+
+                    if (!rowIsSuspended && (val.trim().length === 0 || val.trim().toLowerCase() === 'none')) {
+                        isValid = false;
+                        errMsg = 'Assigned courses required for active accounts (e.g. MOBC, MOJCC)';
+                    }
+                }
+
+                if (!isValid) totalInvalidCells++;
+
+                const cellStyle = isValid
+                    ? `padding: 0.45rem 0.6rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: ${idx === 0 ? 'var(--gold-light)' : 'var(--text-main)'};`
+                    : `padding: 0.45rem 0.6rem; border-bottom: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.12); color: #fca5a5; font-weight: 600;`;
+
+                const maskVal = (colKey.includes('pass') && val) ? '••••••••' : val;
+                bodyHtml += `<td style="${cellStyle}" title="${errMsg || 'Valid'}">${safeEsc(maskVal || 'EMPTY *')}${!isValid ? ' ⚠️' : ''}</td>`;
+            });
+            bodyHtml += '</tr>';
+        });
+        tbody.innerHTML = bodyHtml;
+
+        const totalRows = lines.length - 1;
+        if (totalInvalidCells > 0) {
+            summary.innerHTML = `<span style="color: #fca5a5; font-weight: 600;">⚠️ Detected ${totalRows} data row(s). Validation warnings detected (missing required fields or password policy failure).</span>`;
+        } else {
+            summary.innerHTML = `<span style="color: #86efac; font-weight: 600;">✓ Detected ${totalRows} data row(s). All required columns and password validation verified.</span>`;
+        }
+        preview.style.display = 'block';
+    }
+
+    window.submitBulkUserUpload = async function() {
+        if (!selectedBulkUserFile) {
+            if (typeof showToast === 'function') showToast('Please select a spreadsheet file first', 'error');
+            return;
+        }
+
+        const submitBtn = document.getElementById('btn-submit-bulk-upload');
+        const statusBox = document.getElementById('bulk-upload-status');
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `
+                <svg class="spinner" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path></svg>
+                <span>Importing Users...</span>
+            `;
+        }
+
+        if (statusBox) {
+            statusBox.style.display = 'block';
+            statusBox.style.background = 'rgba(59, 130, 246, 0.12)';
+            statusBox.style.border = '1px solid rgba(59, 130, 246, 0.3)';
+            statusBox.style.color = '#93c5fd';
+            statusBox.innerHTML = 'Uploading and processing spreadsheet records...';
+        }
+
+        const safeEsc = typeof esc === 'function' ? esc : function(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        };
+
+        try {
+            const formData = new FormData();
+            formData.append('file', selectedBulkUserFile);
+
+            const token = (typeof csrfToken !== 'undefined' && csrfToken) ? csrfToken : (sessionStorage.getItem('ek_csrf_token') || '');
+            const headers = {};
+            if (token) {
+                headers['X-CSRF-Token'] = token;
+            }
+
+            const res = await fetch('/api/users/bulk-upload', {
+                method: 'POST',
+                headers: headers,
+                body: formData
+            });
+
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                const count = data.data?.created_count || 0;
+                const skipped = data.data?.skipped_count || 0;
+                const errors = data.data?.error_count || 0;
+
+                if (statusBox) {
+                    statusBox.style.background = 'rgba(34, 197, 94, 0.12)';
+                    statusBox.style.border = '1px solid rgba(34, 197, 94, 0.3)';
+                    statusBox.style.color = '#86efac';
+                    statusBox.innerHTML = `
+                        <div style="font-weight: 700; margin-bottom: 0.35rem;">✓ ${safeEsc(data.message)}</div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">
+                            • Created: <strong style="color: #4ade80;">${count}</strong> |
+                            • Skipped (Duplicates): <strong style="color: #facc15;">${skipped}</strong> |
+                            • Errors: <strong style="color: #f87171;">${errors}</strong>
+                        </div>
+                    `;
+                }
+
+                if (typeof showToast === 'function') showToast(data.message || `Successfully imported ${count} users`, 'success');
+                if (typeof loadUsers === 'function') loadUsers();
+                const cancelBtn = document.getElementById('btn-cancel-bulk-upload');
+                if (cancelBtn) cancelBtn.textContent = 'Close';
+
+                if (submitBtn) {
+                    submitBtn.style.display = 'inline-flex';
+                    submitBtn.disabled = false;
+                    submitBtn.dataset.state = 'completed';
+                    submitBtn.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Completed</span>
+                    `;
+                }
+            } else {
+                if (statusBox) {
+                    statusBox.style.background = 'rgba(239, 68, 68, 0.12)';
+                    statusBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                    statusBox.style.color = '#fca5a5';
+                    statusBox.innerHTML = `<strong>Error:</strong> ${safeEsc(data.message || 'Bulk upload failed')}`;
+                }
+                if (typeof showToast === 'function') showToast(data.message || 'Bulk upload failed', 'error');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<span>Retry Import</span>`;
+                }
+            }
+        } catch (e) {
+            if (statusBox) {
+                statusBox.style.background = 'rgba(239, 68, 68, 0.12)';
+                statusBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                statusBox.style.color = '#fca5a5';
+                statusBox.innerHTML = `<strong>Connection error:</strong> ${safeEsc(e.message)}`;
+            }
+            if (typeof showToast === 'function') showToast('Connection error: ' + e.message, 'error');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<span>Retry Import</span>`;
+            }
+        }
+    };
+
+    window.goToUserManagementFromBulk = function() {
+        closeModal('modal-bulk-user-upload');
+        if (typeof switchTab === 'function') {
+            switchTab('users');
+        }
+        if (typeof loadUsers === 'function') {
+            loadUsers();
+        }
+    };
+
+    window.handleBulkActionClick = function() {
+        const btn = document.getElementById('btn-submit-bulk-upload');
+        if (btn && btn.dataset.state === 'completed') {
+            goToUserManagementFromBulk();
+        } else {
+            submitBulkUserUpload();
+        }
+    };
+    </script>
 </body>
 </html>

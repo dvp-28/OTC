@@ -3006,4 +3006,338 @@ select option:checked {
 .btn-modal.danger:hover {
   background: #b91c1c !important;
 }
+
+/* ============================================================
+   BULK USER UPLOAD MODAL - HIGH-CONTRAST THEME STYLING
+   ============================================================ */
+.bulk-format-box {
+  background: linear-gradient(145deg, rgba(18, 26, 42, 0.95), rgba(11, 16, 26, 0.98));
+  border: 1.5px solid rgba(212, 175, 55, 0.35);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+[data-theme="light"] .bulk-format-box,
+body.theme-light .bulk-format-box {
+  background: #f1f5f9 !important;
+  border: 2px solid #cbd5e1 !important;
+  border-left: 6px solid #8b1e2f !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08) !important;
+}
+
+.bulk-format-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--gold-light, #f3d779);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+[data-theme="light"] .bulk-format-title,
+body.theme-light .bulk-format-title {
+  color: #8b1e2f !important;
+}
+
+.bulk-format-sub {
+  font-size: 0.76rem;
+  color: var(--text-muted, #94a3b8);
+  margin-top: 0.2rem;
+}
+[data-theme="light"] .bulk-format-sub,
+body.theme-light .bulk-format-sub {
+  color: #334155 !important;
+  font-weight: 600 !important;
+}
+
+/* Download Template Button */
+.btn-download-template {
+  font-size: 0.8rem;
+  padding: 0.5rem 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  border: 1.5px solid rgba(212, 175, 55, 0.45);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.18), rgba(212, 175, 55, 0.05));
+  color: var(--gold-light, #f3d779);
+  border-radius: 8px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+.btn-download-template:hover {
+  background: rgba(212, 175, 55, 0.25);
+  border-color: var(--gold-light, #f3d779);
+}
+.btn-download-template-badge {
+  font-size: 0.68rem;
+  background: rgba(34, 197, 94, 0.22);
+  color: #86efac;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 700;
+}
+[data-theme="light"] .btn-download-template,
+body.theme-light .btn-download-template {
+  background: #ffffff !important;
+  border: 2px solid #b45309 !important;
+  color: #78350f !important;
+  box-shadow: 0 2px 6px rgba(180, 83, 9, 0.15) !important;
+}
+[data-theme="light"] .btn-download-template:hover,
+body.theme-light .btn-download-template:hover {
+  background: #fef3c7 !important;
+  border-color: #92400e !important;
+}
+[data-theme="light"] .btn-download-template-badge,
+body.theme-light .btn-download-template-badge {
+  background: #dcfce7 !important;
+  color: #166534 !important;
+  border: 1px solid #4ade80 !important;
+}
+
+/* Column Badges Grid */
+.bulk-col-badge {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  transition: all 0.2s ease;
+}
+.bulk-col-badge:hover {
+  border-color: rgba(212, 175, 55, 0.5);
+  background: rgba(212, 175, 55, 0.08);
+}
+[data-theme="light"] .bulk-col-badge,
+body.theme-light .bulk-col-badge {
+  background: #ffffff !important;
+  border: 1.5px solid #94a3b8 !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04) !important;
+}
+[data-theme="light"] .bulk-col-badge:hover,
+body.theme-light .bulk-col-badge:hover {
+  border-color: #8b1e2f !important;
+  box-shadow: 0 3px 10px rgba(139, 30, 47, 0.14) !important;
+  transform: translateY(-1px);
+}
+
+.bulk-col-label {
+  font-size: 0.69rem;
+  font-weight: 800;
+  color: var(--gold-light, #f3d779);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+[data-theme="light"] .bulk-col-label,
+body.theme-light .bulk-col-label {
+  color: #8b1e2f !important;
+}
+
+.bulk-col-code {
+  font-size: 0.82rem;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.1);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-weight: 700;
+  font-family: monospace;
+}
+[data-theme="light"] .bulk-col-code,
+body.theme-light .bulk-col-code {
+  color: #0369a1 !important;
+  background: #e0f2fe !important;
+  border: 1px solid #7dd3fc !important;
+}
+
+/* Rules Box - Prominent, Authoritative Military LMS Rules Card */
+.bulk-rules-box {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.09) 0%, rgba(139, 30, 47, 0.08) 100%);
+  border: 1.5px solid rgba(212, 175, 55, 0.4);
+  border-left: 5px solid var(--gold-light, #d4af37);
+  border-radius: 10px;
+  padding: 1.1rem 1.25rem;
+  margin-top: 1rem;
+}
+[data-theme="light"] .bulk-rules-box,
+body.theme-light .bulk-rules-box {
+  background: #fef3c7 !important;
+  border: 2px solid #d97706 !important;
+  border-left: 6px solid #b45309 !important;
+  box-shadow: 0 4px 16px rgba(217, 119, 6, 0.16) !important;
+}
+
+.bulk-rules-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1.5px solid rgba(212, 175, 55, 0.3);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+[data-theme="light"] .bulk-rules-header,
+body.theme-light .bulk-rules-header {
+  border-bottom: 1.5px solid #d97706 !important;
+}
+
+.bulk-rules-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--gold-light, #f3d779);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+[data-theme="light"] .bulk-rules-title,
+body.theme-light .bulk-rules-title {
+  color: #78350f !important;
+}
+[data-theme="light"] .bulk-rules-title svg,
+body.theme-light .bulk-rules-title svg {
+  color: #b45309 !important;
+  stroke: #b45309 !important;
+}
+
+.bulk-rules-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1.5px solid rgba(239, 68, 68, 0.45);
+  letter-spacing: 0.5px;
+}
+[data-theme="light"] .bulk-rules-badge,
+body.theme-light .bulk-rules-badge {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+  border: 1.5px solid #ef4444 !important;
+}
+
+.bulk-rules-list {
+  display: grid;
+  gap: 0.55rem;
+  font-size: 0.77rem;
+  line-height: 1.55;
+  color: var(--text-main, #e2e8f0);
+}
+[data-theme="light"] .bulk-rules-list,
+body.theme-light .bulk-rules-list {
+  color: #0f172a !important;
+}
+[data-theme="light"] .bulk-rules-list strong,
+body.theme-light .bulk-rules-list strong {
+  color: #78350f !important;
+  font-weight: 800 !important;
+}
+[data-theme="light"] .bulk-rules-list code,
+body.theme-light .bulk-rules-list code {
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  color: #8b1e2f !important;
+  font-weight: 700 !important;
+  padding: 0.1rem 0.4rem !important;
+  border-radius: 4px !important;
+}
+
+/* Dropzone Box */
+.bulk-dropzone-box {
+  border: 2px dashed rgba(212, 175, 55, 0.35);
+  border-radius: 12px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  margin-bottom: 1.25rem;
+}
+.bulk-dropzone-box:hover {
+  border-color: var(--gold-light, #f3d779);
+  background: rgba(212, 175, 55, 0.06);
+}
+.bulk-dropzone-icon {
+  color: var(--gold-light, #f3d779);
+  margin-bottom: 0.75rem;
+}
+.bulk-dropzone-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-main, #e2e8f0);
+  margin-bottom: 0.25rem;
+}
+.bulk-dropzone-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted, #94a3b8);
+}
+[data-theme="light"] .bulk-dropzone-box,
+body.theme-light .bulk-dropzone-box {
+  border: 2px dashed #64748b !important;
+  background: #f8fafc !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+}
+[data-theme="light"] .bulk-dropzone-box:hover,
+body.theme-light .bulk-dropzone-box:hover {
+  border-color: #8b1e2f !important;
+  background: #fff1f2 !important;
+}
+[data-theme="light"] .bulk-dropzone-icon,
+body.theme-light .bulk-dropzone-icon {
+  color: #8b1e2f !important;
+}
+[data-theme="light"] .bulk-dropzone-title,
+body.theme-light .bulk-dropzone-title {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+[data-theme="light"] .bulk-dropzone-sub,
+body.theme-light .bulk-dropzone-sub {
+  color: #475569 !important;
+  font-weight: 500 !important;
+}
+
+/* User Status Badges */
+.badge-status-suspended {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+[data-theme="light"] .badge-status-suspended,
+body.theme-light .badge-status-suspended {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+  border-color: #f87171 !important;
+}
+
+.badge-status-active {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+[data-theme="light"] .badge-status-active,
+body.theme-light .badge-status-active {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+  border-color: #86efac !important;
+}
+
  

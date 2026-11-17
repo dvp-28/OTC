@@ -1,0 +1,6 @@
+username,password,firstname,lastname,email,mobile,status,role,courses
+AMC101,weakpass,Kavita,Reddy,kavita.reddy@amc.gov.in,+91 94150 12101,active,student,MOBC
+AMC102,Officer@2026!,,Kumar,suresh.kumar@amc.gov.in,+91 94150 12102,active,student,BNOC
+AMC103,Officer@2026!,Anita,Desai,not-an-email,+91 94150 12103,active,student,MOBC
+AMC104,Officer@2026!,Rohan,Mehta,rohan.mehta@amc.gov.in,12345,active,student,MOBC
+AMC105,Officer@2026!,Sunil,Gupta,sunil.gupta@amc.gov.in,+91 94150 12105,active,student,
