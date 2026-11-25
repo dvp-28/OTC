@@ -201,7 +201,7 @@ function applyTimeFormatUI(format) {
         btn.setAttribute('title', is12 ? 'Current: 12-Hour (AM/PM) • Click to switch to 24-Hour' : 'Current: 24-Hour • Click to switch to 12-Hour (AM/PM)');
     }
 
-    // Settings popup buttons active state
+    // Settings popup buttons active state (if present)
     const opt12 = document.getElementById('opt-time-12h');
     const opt24 = document.getElementById('opt-time-24h');
     if (opt12) {
