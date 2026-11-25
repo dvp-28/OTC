@@ -2115,7 +2115,11 @@ try {
                 $cRes->free();
             }
 
-            // Pre-scan for duplicate mobiles within the file
+            // Pre-scan for duplicate usernames and duplicate mobiles within the file
+            $userCounts = [];
+            $userDetails = [];
+            $dupUsernames = [];
+
             $mobCounts = [];
             $mobDetails = [];
             $dupMobiles = [];
@@ -2128,6 +2132,21 @@ try {
                 $uName = ($uIdx >= 0 && isset($r[$uIdx])) ? trim((string)$r[$uIdx]) : '';
                 if ($uName === '') continue;
                 $totalDataRows++;
+
+                // Track duplicate username within the file
+                $uKey = strtolower($uName);
+                if (!isset($userCounts[$uKey])) {
+                    $userCounts[$uKey] = 1;
+                    $userDetails[$uKey] = [
+                        'row' => $i + 1,
+                        'username' => $uName,
+                        'rows' => [$i + 1]
+                    ];
+                } else {
+                    $userCounts[$uKey]++;
+                    $dupUsernames[$uKey] = true;
+                    $userDetails[$uKey]['rows'][] = $i + 1;
+                }
 
                 $mIdx = $colMap['mobile'] ?? -1;
                 $rawM = ($mIdx >= 0 && isset($r[$mIdx])) ? trim((string)$r[$mIdx]) : '';
@@ -2188,6 +2207,16 @@ try {
                 $uIdx = $colMap['username'] ?? -1;
                 $uName = ($uIdx >= 0 && isset($sampleRow[$uIdx])) ? trim((string)$sampleRow[$uIdx]) : '';
 
+                // Validate username (duplicate in file)
+                if ($uName !== '') {
+                    $uKey = strtolower($uName);
+                    if (isset($dupUsernames[$uKey])) {
+                        $otherRows = array_values(array_filter($userDetails[$uKey]['rows'], fn($rNum) => $rNum !== ($i + 1)));
+                        $rowStr = !empty($otherRows) ? ' (e.g. Row ' . implode(', ', $otherRows) . ')' : '';
+                        $rErrors['username'] = "Duplicate username '{$uName}' detected: Identical username is entered for multiple users in this file{$rowStr}. Duplicate usernames are not allowed.";
+                    }
+                }
+
                 // Validate mobile
                 $mIdx = $colMap['mobile'] ?? -1;
                 if ($mIdx >= 0 && isset($sampleRow[$mIdx])) {
@@ -2243,6 +2272,8 @@ try {
                     'col_map' => $colMap,
                     'sample_rows' => $sampleRows,
                     'total_rows' => $totalDataRows,
+                    'duplicate_usernames' => array_keys($dupUsernames),
+                    'duplicate_username_details' => $userDetails,
                     'duplicate_mobiles' => array_keys($dupMobiles),
                     'duplicate_details' => $mobDetails,
                     'db_duplicate_mobiles' => $dbDuplicateMobiles,
@@ -2369,7 +2400,8 @@ try {
             $errors = [];
             $totalDataRows = 0;
 
-            // Phase 1: Pre-scan spreadsheet for duplicate mobile numbers within the uploaded file
+            // Phase 1: Pre-scan spreadsheet for duplicate usernames & mobile numbers within the uploaded file
+            $fileUsernameOccurrences = []; // uKey => [ ['row' => rowNum, 'username' => username] ]
             $fileMobileOccurrences = []; // clean10 => [ ['row' => rowNum, 'username' => username, 'mobile' => mobile] ]
             for ($k = $startIdx; $k < count($rows); $k++) {
                 $kRow = $rows[$k];
@@ -2377,6 +2409,12 @@ try {
                 $uIdx = $colMap['username'] ?? -1;
                 $uName = ($uIdx >= 0 && isset($kRow[$uIdx])) ? trim((string)$kRow[$uIdx]) : '';
                 if ($uName === '') continue;
+
+                $uKey = strtolower($uName);
+                $fileUsernameOccurrences[$uKey][] = [
+                    'row' => $k + 1,
+                    'username' => $uName
+                ];
 
                 $mIdx = $colMap['mobile'] ?? -1;
                 $rMob = ($mIdx >= 0 && isset($kRow[$mIdx])) ? trim((string)$kRow[$mIdx]) : '';
@@ -2388,6 +2426,13 @@ try {
                         'username' => $uName,
                         'mobile' => normalize_phone_number($rMob)
                     ];
+                }
+            }
+
+            $duplicateUsernamesInFile = [];
+            foreach ($fileUsernameOccurrences as $uKey => $occurrences) {
+                if (count($occurrences) > 1) {
+                    $duplicateUsernamesInFile[$uKey] = $occurrences;
                 }
             }
 
@@ -2414,6 +2459,24 @@ try {
 
                 if (!preg_match('/^[a-zA-Z0-9._-]{3,50}$/', $username)) {
                     $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => 'Username must be 3-50 alphanumeric characters (dot, underscore, hyphen permitted)'];
+                    continue;
+                }
+
+                // Check 1b: Duplicate username within the uploaded spreadsheet
+                $uKey = strtolower($username);
+                if (isset($duplicateUsernamesInFile[$uKey])) {
+                    $occurrences = $duplicateUsernamesInFile[$uKey];
+                    $otherRows = [];
+                    foreach ($occurrences as $occ) {
+                        if ($occ['row'] !== ($i + 1)) {
+                            $otherRows[] = "Row {$occ['row']}";
+                        }
+                    }
+                    $errors[] = [
+                        'row' => $i + 1,
+                        'username' => $username,
+                        'error' => "Duplicate username '{$username}'. Identical username is entered for multiple users in this file (" . implode(', ', $otherRows) . "). Duplicate usernames are not allowed."
+                    ];
                     continue;
                 }
 

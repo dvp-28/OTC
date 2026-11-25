@@ -478,6 +478,29 @@
             text-decoration: underline;
         }
 
+        /* Prevent horizontal scrollbar on classroom playlist and modules */
+        .modules-sidebar,
+        #classroom-modules-sidebar {
+            overflow-x: hidden !important;
+        }
+        .module-list,
+        #classroom-section-list {
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            scrollbar-width: thin;
+        }
+        #classroom-section-list::-webkit-scrollbar {
+            width: 6px;
+            height: 0px !important;
+        }
+        #classroom-section-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        [data-theme="light"] #classroom-section-list::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.18);
+        }
+
         /* YouTube-style Classroom Playlist Items */
         .yt-playlist-item {
             display: flex;
@@ -490,11 +513,13 @@
             cursor: pointer;
             transition: all 0.2s ease;
             position: relative;
+            box-sizing: border-box;
+            max-width: 100%;
+            overflow: hidden;
         }
         .yt-playlist-item:hover {
             background: rgba(255, 255, 255, 0.06);
             border-color: rgba(212, 175, 55, 0.3);
-            transform: translateX(2px);
         }
         .yt-playlist-item.active {
             background: rgba(136, 0, 21, 0.18) !important;
@@ -513,6 +538,114 @@
             background: #fff1f2 !important;
             border-color: #be123c !important;
             box-shadow: inset 3px 0 0 #be123c;
+        }
+
+        /* Player Central Loading Animation (YouTube-Style) */
+        .player-loader-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            background: rgba(0, 0, 0, 0.72);
+            backdrop-filter: blur(4px);
+            z-index: 10;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        .player-loader-overlay.active {
+            display: flex !important;
+        }
+        .player-loader-spinner {
+            position: relative;
+            width: 58px;
+            height: 58px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .player-spinner-ring-outer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 3.5px solid rgba(255, 255, 255, 0.12);
+            border-top-color: var(--amc-crimson, #be123c);
+            border-right-color: var(--gold-primary, #d4af37);
+            animation: player-spin-outer 0.9s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+        }
+        .player-spinner-ring-inner {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px dashed rgba(212, 175, 55, 0.65);
+            border-bottom-color: transparent;
+            animation: player-spin-inner 1.4s linear infinite reverse;
+        }
+        .player-spinner-icon {
+            color: var(--gold-primary, #d4af37);
+            filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.6));
+            animation: pulse-icon 1.2s ease-in-out infinite alternate;
+        }
+        .player-loader-text {
+            color: #ffffff;
+            font-size: 0.86rem;
+            font-weight: 600;
+            letter-spacing: 0.6px;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+        @keyframes player-spin-outer {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes player-spin-inner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes pulse-icon {
+            0% { transform: scale(0.9); opacity: 0.8; }
+            100% { transform: scale(1.15); opacity: 1; }
+        }
+
+        /* Global Top Operation Loading Bar */
+        .global-top-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: transparent;
+            z-index: 999999;
+            pointer-events: none;
+            overflow: hidden;
+            display: none;
+        }
+        .global-top-loader.active {
+            display: block !important;
+        }
+        .global-top-loader.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -35%;
+            width: 35%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, var(--amc-crimson, #be123c), var(--gold-primary, #d4af37), transparent);
+            animation: top-bar-sweep 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        @keyframes top-bar-sweep {
+            0% { left: -35%; width: 35%; }
+            50% { left: 40%; width: 50%; }
+            100% { left: 100%; width: 35%; }
         }
 
         .playing-pulse-indicator {
@@ -3111,6 +3244,9 @@
 </head>
 <body>
 
+    <!-- Global Top Operation Progress / Loader Bar -->
+    <div id="global-top-loader" class="global-top-loader"></div>
+
     <!-- Top Navigation Bar -->
     <header class="top-bar">
         <div class="brand-wrapper">
@@ -3628,6 +3764,18 @@
                             <audio id="classroom-html5-audio" preload="metadata" style="display: none;"></audio>
                             <canvas id="tactical-video-canvas" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: 1; pointer-events: none; background: #000;"></canvas>
 
+                            <!-- Video Player Central Loader Animation (YouTube-Style) -->
+                            <div class="player-loader-overlay" id="player-loader-overlay">
+                                <div class="player-loader-spinner">
+                                    <div class="player-spinner-ring-outer"></div>
+                                    <div class="player-spinner-ring-inner"></div>
+                                    <div class="player-spinner-icon">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+                                    </div>
+                                </div>
+                                <div class="player-loader-text" id="player-loader-text">Loading presentation stream...</div>
+                            </div>
+
                             <!-- YouTube Seek Ripple Indicators (Left -10s & Right +10s) -->
                             <div class="yt-seek-ripple left" id="yt-seek-ripple-left">
                                 <div class="yt-seek-circle">
@@ -3756,7 +3904,7 @@
                     <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0;">Institute Admin access — manage registered officers, roles, and course assignments.</p>
                 </div>
                 <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
-                    <button class="btn-admin" onclick="openBulkUserModal()" style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 1rem; font-weight: 600; border-color: rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.08); color: var(--text-main); cursor: pointer;">
+                    <button class="btn-admin gold" onclick="openBulkUserModal()" style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 1rem; font-weight: 600;">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="17 8 12 3 7 8"></polyline>
@@ -4785,7 +4933,7 @@
     </footer>
 
     <script src="js/wifi-guard.js?v=20261125_v2"></script>
-    <script src="js/portal.js?v=20261125_v8"></script>
+    <script src="js/portal.js?v=20261125_v10"></script>
     <script>
     // Direct Global Bindings for Bulk User Upload (Guaranteed Zero-Cache Execution)
     window.selectedBulkUserFile = window.selectedBulkUserFile || null;
@@ -4969,6 +5117,39 @@
             const rawHeaders = Array.isArray(pData.headers) ? pData.headers : Object.values(pData.headers || {});
             const sampleRows = Array.isArray(pData.sample_rows) ? pData.sample_rows : Object.values(pData.sample_rows || {});
             const totalRows = pData.total_rows || sampleRows.length;
+
+            const dupUsernames = new Set(Array.isArray(pData.duplicate_usernames) ? pData.duplicate_usernames.map(u => String(u).toLowerCase()) : Object.values(pData.duplicate_usernames || {}).map(u => String(u).toLowerCase()));
+            const dupUserDetails = pData.duplicate_username_details || {};
+
+            // Client-side scan across sample rows for duplicate usernames as fallback
+            const normHeaders = rawHeaders.map(h => String(h || '').toLowerCase().replace(/[^a-z0-9]/g, ''));
+            const userColIdx = normHeaders.findIndex(nh => nh.includes('user'));
+            const localUserSeen = {};
+            sampleRows.forEach((rObj, rIdx) => {
+                const rCells = Array.isArray(rObj) ? rObj : Object.values(rObj || {});
+                if (userColIdx !== -1 && rCells[userColIdx]) {
+                    const uVal = String(rCells[userColIdx]).trim();
+                    if (uVal.length > 0) {
+                        const uk = uVal.toLowerCase();
+                        if (!localUserSeen[uk]) {
+                            localUserSeen[uk] = { username: uVal, rows: [rIdx + 1] };
+                        } else {
+                            localUserSeen[uk].rows.push(rIdx + 1);
+                            dupUsernames.add(uk);
+                            if (!dupUserDetails[uk]) {
+                                dupUserDetails[uk] = localUserSeen[uk];
+                            } else {
+                                dupUserDetails[uk].rows = Array.from(new Set([...(dupUserDetails[uk].rows || []), ...localUserSeen[uk].rows]));
+                            }
+                        }
+                    }
+                }
+            });
+
+            const hasFileDupUsernames = (dupUsernames.size > 0);
+            window.selectedBulkFileHasDuplicateUsernames = hasFileDupUsernames;
+            window.selectedBulkFileDuplicateUsernamesList = Array.from(dupUsernames).map(uk => (dupUserDetails[uk] && dupUserDetails[uk].username) ? dupUserDetails[uk].username : uk);
+
             const dupMobiles = new Set(Array.isArray(pData.duplicate_mobiles) ? pData.duplicate_mobiles : Object.values(pData.duplicate_mobiles || {}));
             const dupDetails = pData.duplicate_details || {};
             const dbDupMobiles = pData.db_duplicate_mobiles || {};
@@ -4994,7 +5175,6 @@
             let bodyHtml = '';
             let totalInvalidCells = 0;
             const warningReasons = new Set();
-            const normHeaders = rawHeaders.map(h => String(h || '').toLowerCase().replace(/[^a-z0-9]/g, ''));
 
             sampleRows.forEach((rowObj, rIdx) => {
                 const cells = Array.isArray(rowObj) ? rowObj : Object.values(rowObj || {});
@@ -5013,6 +5193,11 @@
                         if (sVal.length < 3 || sVal.length > 50 || !/^[a-zA-Z0-9._-]+$/.test(sVal)) {
                             isValid = false;
                             errMsg = 'Username must be 3-50 alphanumeric characters (dot, underscore, hyphen permitted)';
+                        } else if (dupUsernames.has(sVal.toLowerCase())) {
+                            isValid = false;
+                            const uInfo = dupUserDetails[sVal.toLowerCase()];
+                            const rowsInfo = (uInfo && uInfo.rows && uInfo.rows.length > 0) ? ` (e.g. Rows ${uInfo.rows.join(', ')})` : '';
+                            errMsg = `Duplicate username detected: Identical username (${sVal}) is entered for multiple users in this file${rowsInfo}. Duplicate usernames are not allowed.`;
                         }
                     } else if (colKey.includes('pass')) {
                         const pwdChk = validatePasswordSecurityPolicy(val);
@@ -5083,6 +5268,10 @@
 
                     // Check backend row validation errors
                     if (rowValInfo && rowValInfo.errors) {
+                        if (colKey.includes('user') && rowValInfo.errors.username) {
+                            isValid = false;
+                            errMsg = rowValInfo.errors.username;
+                        }
                         if (colKey.includes('mobile') && rowValInfo.errors.mobile) {
                             isValid = false;
                             errMsg = rowValInfo.errors.mobile;
@@ -5099,7 +5288,13 @@
                         else if (colKey.includes('role') || colKey.includes('perm')) warningReasons.add('Role / Permissions');
                         else if (colKey.includes('email')) warningReasons.add('Email address');
                         else if (colKey.includes('mobile') || colKey.includes('phone') || colKey.includes('contact')) warningReasons.add('Mobile number');
-                        else if (colKey.includes('user')) warningReasons.add('Username format');
+                        else if (colKey.includes('user')) {
+                            if (dupUsernames.has(String(val).trim().toLowerCase()) || (rowValInfo && rowValInfo.errors && rowValInfo.errors.username)) {
+                                warningReasons.add('Duplicate usernames');
+                            } else {
+                                warningReasons.add('Username format');
+                            }
+                        }
                         else if (colKey.includes('first') || colKey.includes('last')) warningReasons.add('Name fields');
                         else if (colKey.includes('status')) warningReasons.add('Active status');
                         else if (colKey.includes('course')) warningReasons.add('Assigned courses');
@@ -5117,10 +5312,17 @@
             });
             tbody.innerHTML = bodyHtml;
 
-            const hasErrors = (totalInvalidCells > 0 || hasFileDupMobiles || hasDbDupMobiles || (pData.error_count && pData.error_count > 0));
+            const hasErrors = (totalInvalidCells > 0 || hasFileDupUsernames || hasFileDupMobiles || hasDbDupMobiles || (pData.error_count && pData.error_count > 0));
             window.selectedBulkFileHasErrors = hasErrors;
 
-            if (hasFileDupMobiles || hasDbDupMobiles) {
+            if (hasFileDupUsernames && (hasFileDupMobiles || hasDbDupMobiles)) {
+                const allDupUserStr = window.selectedBulkFileDuplicateUsernamesList.join(', ');
+                const allDupMobStr = window.selectedBulkFileDuplicateMobilesList.join(', ');
+                summary.innerHTML = `<span style="color: #fca5a5; font-weight: 700;">⚠️ Detected ${totalRows} data row(s). Validation Error: Duplicate username(s) [${safeEsc(allDupUserStr)}] and mobile number(s) [${safeEsc(allDupMobStr)}] detected. Duplicate values are strictly not allowed.</span>`;
+            } else if (hasFileDupUsernames) {
+                const allDupUserStr = window.selectedBulkFileDuplicateUsernamesList.join(', ');
+                summary.innerHTML = `<span style="color: #fca5a5; font-weight: 700;">⚠️ Detected ${totalRows} data row(s). Validation Error: Duplicate username(s) detected: ${safeEsc(allDupUserStr)}. Duplicate usernames are not allowed.</span>`;
+            } else if (hasFileDupMobiles || hasDbDupMobiles) {
                 const allDupStr = window.selectedBulkFileDuplicateMobilesList.join(', ');
                 summary.innerHTML = `<span style="color: #fca5a5; font-weight: 700;">⚠️ Detected ${totalRows} data row(s). Validation Error: Duplicate mobile number(s) detected: ${safeEsc(allDupStr)}. Mobile numbers must be globally unique across all accounts.</span>`;
             } else if (hasErrors) {
@@ -5129,7 +5331,7 @@
                     : Array.from(warningReasons).join(', ');
                 summary.innerHTML = `<span style="color: #fca5a5; font-weight: 600;">⚠️ Detected ${totalRows} data row(s). Validation warnings detected in ${safeEsc(reasonStr || 'highlighted fields')}.</span>`;
             } else {
-                summary.innerHTML = `<span style="color: #86efac; font-weight: 600;">✓ Detected ${totalRows} data row(s). All required columns, unique mobile numbers, and course codes verified.</span>`;
+                summary.innerHTML = `<span style="color: #86efac; font-weight: 600;">✓ Detected ${totalRows} data row(s). All required columns, unique usernames, unique mobile numbers, and course codes verified.</span>`;
             }
         } catch (err) {
             console.error('Spreadsheet preview failed:', err);
@@ -5312,15 +5514,31 @@
             }
         });
 
-        // Pre-scan all data rows to detect duplicate mobile numbers
+        // Pre-scan all data rows to detect duplicate usernames and mobile numbers
         const dataLines = lines.slice(1);
         const totalRows = dataLines.length;
+        const userMap = {};
+        const dupUsernames = new Set();
+        const dupUserDetails = {};
         const mobileMap = {};
         const dupMobiles = new Set();
         const dupDetails = {};
 
         dataLines.forEach((line, rIdx) => {
             const cells = line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ''));
+            if (userColIdx !== -1 && cells[userColIdx]) {
+                const rawU = cells[userColIdx].trim();
+                const uKey = rawU.toLowerCase();
+                if (uKey.length > 0) {
+                    if (!userMap[uKey]) {
+                        userMap[uKey] = { username: rawU, row: rIdx + 2, rows: [rIdx + 2] };
+                    } else {
+                        userMap[uKey].rows.push(rIdx + 2);
+                        dupUsernames.add(uKey);
+                        dupUserDetails[uKey] = userMap[uKey];
+                    }
+                }
+            }
             if (mobileColIdx !== -1 && cells[mobileColIdx]) {
                 const rawMob = cells[mobileColIdx].trim();
                 const cleanMob = rawMob.replace(/\D/g, '');
@@ -5338,6 +5556,8 @@
             }
         });
 
+        window.selectedBulkFileHasDuplicateUsernames = (dupUsernames.size > 0);
+        window.selectedBulkFileDuplicateUsernamesList = Array.from(dupUsernames).map(uKey => (dupUserDetails[uKey] && dupUserDetails[uKey].username) ? dupUserDetails[uKey].username : uKey);
         window.selectedBulkFileHasDuplicateMobiles = (dupMobiles.size > 0);
         window.selectedBulkFileDuplicateMobilesList = Array.from(dupMobiles).map(n10 => (dupDetails[n10] && dupDetails[n10].mobile) ? dupDetails[n10].mobile : n10);
 
@@ -5368,6 +5588,11 @@
                     if (val.length < 3 || val.length > 50 || !/^[a-zA-Z0-9._-]+$/.test(val)) {
                         isValid = false;
                         errMsg = 'Username must be 3-50 alphanumeric characters (dot, underscore, hyphen permitted)';
+                    } else if (dupUsernames.has(val.toLowerCase())) {
+                        isValid = false;
+                        const uInfo = dupUserDetails[val.toLowerCase()];
+                        const rowsInfo = (uInfo && uInfo.rows && uInfo.rows.length > 0) ? ` (Rows ${uInfo.rows.join(', ')})` : '';
+                        errMsg = `Duplicate username detected: Identical username (${val}) is entered for multiple users in this file${rowsInfo}. Duplicate usernames are not allowed.`;
                     }
                 } else if (colKey.includes('pass')) {
                     const pwdChk = validatePasswordSecurityPolicy(val);
@@ -5440,7 +5665,10 @@
                     else if (colKey.includes('role') || colKey.includes('perm')) warningReasons.add('Role / Permissions');
                     else if (colKey.includes('email')) warningReasons.add('Email address');
                     else if (colKey.includes('mobile') || colKey.includes('phone') || colKey.includes('contact')) warningReasons.add('Mobile number');
-                    else if (colKey.includes('user')) warningReasons.add('Username format');
+                    else if (colKey.includes('user')) {
+                        if (dupUsernames.has(val.toLowerCase())) warningReasons.add('Duplicate usernames');
+                        else warningReasons.add('Username format');
+                    }
                     else if (colKey.includes('first') || colKey.includes('last')) warningReasons.add('Name fields');
                     else if (colKey.includes('status')) warningReasons.add('Active status');
                     else if (colKey.includes('course')) warningReasons.add('Assigned courses');
@@ -5458,7 +5686,17 @@
         });
         tbody.innerHTML = bodyHtml;
 
-        if (dupMobiles.size > 0) {
+        if (dupUsernames.size > 0 && dupMobiles.size > 0) {
+            const dupUserListStr = Array.from(dupUsernames).map(uKey => dupUserDetails[uKey] ? `${dupUserDetails[uKey].username} (Rows ${dupUserDetails[uKey].rows.join(', ')})` : uKey).join('; ');
+            const dupMobListStr = Array.from(dupMobiles).map(n10 => {
+                const info = dupDetails[n10];
+                return info ? `${info.mobile} (${info.usernames.join(', ')})` : n10;
+            }).join('; ');
+            summary.innerHTML = `<span style="color: #fca5a5; font-weight: 700;">⚠️ Detected ${totalRows} data row(s). Validation Error: Duplicate usernames (${safeEsc(dupUserListStr)}) and duplicate mobiles (${safeEsc(dupMobListStr)}) detected. Duplicate entries are strictly not allowed.</span>`;
+        } else if (dupUsernames.size > 0) {
+            const dupUserListStr = Array.from(dupUsernames).map(uKey => dupUserDetails[uKey] ? `${dupUserDetails[uKey].username} (Rows ${dupUserDetails[uKey].rows.join(', ')})` : uKey).join('; ');
+            summary.innerHTML = `<span style="color: #fca5a5; font-weight: 700;">⚠️ Detected ${totalRows} data row(s). Validation Error: Duplicate username(s) detected: ${safeEsc(dupUserListStr)}. Duplicate usernames are not allowed.</span>`;
+        } else if (dupMobiles.size > 0) {
             const dupListStr = Array.from(dupMobiles).map(n10 => {
                 const info = dupDetails[n10];
                 return info ? `${info.mobile} (${info.usernames.join(', ')})` : n10;
@@ -5468,7 +5706,7 @@
             const reasonStr = Array.from(warningReasons).join(', ');
             summary.innerHTML = `<span style="color: #fca5a5; font-weight: 600;">⚠️ Detected ${totalRows} data row(s). Validation warnings detected in ${safeEsc(reasonStr || 'highlighted fields')}.</span>`;
         } else {
-            summary.innerHTML = `<span style="color: #86efac; font-weight: 600;">✓ Detected ${totalRows} data row(s). All required columns and unique mobile numbers verified.</span>`;
+            summary.innerHTML = `<span style="color: #86efac; font-weight: 600;">✓ Detected ${totalRows} data row(s). All required columns, unique usernames, and unique mobile numbers verified.</span>`;
         }
         preview.style.display = 'block';
     }
@@ -5488,11 +5726,23 @@
             return d.innerHTML;
         };
 
-        if (window.selectedBulkFileHasDuplicateMobiles) {
-            const dupList = (window.selectedBulkFileDuplicateMobilesList && window.selectedBulkFileDuplicateMobilesList.length > 0)
+        if (window.selectedBulkFileHasDuplicateUsernames || window.selectedBulkFileHasDuplicateMobiles) {
+            const dupUserList = (window.selectedBulkFileDuplicateUsernamesList && window.selectedBulkFileDuplicateUsernamesList.length > 0)
+                ? window.selectedBulkFileDuplicateUsernamesList.join(', ')
+                : '';
+            const dupMobList = (window.selectedBulkFileDuplicateMobilesList && window.selectedBulkFileDuplicateMobilesList.length > 0)
                 ? window.selectedBulkFileDuplicateMobilesList.join(', ')
-                : 'detected numbers';
-            const errMsg = `Import blocked: Duplicate mobile numbers detected (${dupList}). Each user must have a unique mobile number. Please resolve duplicates in your spreadsheet and upload again.`;
+                : '';
+
+            let errMsg = '';
+            if (dupUserList && dupMobList) {
+                errMsg = `Import blocked: Duplicate usernames (${dupUserList}) and duplicate mobile numbers (${dupMobList}) detected. Each user must have a unique username and unique mobile number. Duplicate usernames and numbers are not allowed. Please resolve duplicates in your spreadsheet and upload again.`;
+            } else if (dupUserList) {
+                errMsg = `Import blocked: Duplicate usernames detected (${dupUserList}). Each user must have a unique username. Duplicate usernames are not allowed. Please resolve duplicates in your spreadsheet and upload again.`;
+            } else {
+                errMsg = `Import blocked: Duplicate mobile numbers detected (${dupMobList}). Each user must have a unique mobile number. Duplicate mobile numbers are strictly prohibited. Please resolve duplicates in your spreadsheet and upload again.`;
+            }
+
             if (statusBox) {
                 statusBox.style.display = 'block';
                 statusBox.style.background = 'rgba(239, 68, 68, 0.15)';
@@ -5504,7 +5754,7 @@
                 `;
             }
             if (typeof showToast === 'function') {
-                showToast(`Duplicate mobile number(s) detected: ${dupList}. Import blocked.`, 'error');
+                showToast(dupUserList ? `Duplicate username(s) detected: ${dupUserList}. Import blocked.` : `Duplicate mobile number(s) detected: ${dupMobList}. Import blocked.`, 'error');
             }
             if (submitBtn) {
                 submitBtn.disabled = false;

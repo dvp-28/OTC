@@ -888,12 +888,12 @@ function renderClassroomPlaylist(ppts) {
 
         item.innerHTML = `
             ${iconCol}
-            <div class="module-info" style="flex: 1; min-width: 0;">
-                <div style="display: flex; align-items: center; gap: 0.4rem; justify-content: space-between;">
-                    <span class="module-name" style="font-weight: 600; font-size: 0.88rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${esc(ppt.title)}</span>
+            <div class="module-info" style="flex: 1; min-width: 0; overflow: hidden;">
+                <div style="display: flex; align-items: center; gap: 0.4rem; justify-content: space-between; overflow: hidden; width: 100%;">
+                    <span class="module-name" style="font-weight: 600; font-size: 0.88rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${esc(ppt.title)}</span>
                     ${isPlayingThis ? '<span style="font-size: 0.64rem; font-weight: 700; color: var(--amc-crimson); text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; background: rgba(136,0,21,0.15); padding: 1px 5px; border-radius: 3px;">Playing</span>' : ''}
                 </div>
-                <div style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.74rem; color: var(--text-muted); margin-top: 3px;">
+                <div style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.74rem; color: var(--text-muted); margin-top: 3px; overflow: hidden;">
                     <span>${slideCnt} ${slideCnt === 1 ? 'Slide' : 'Slides'}</span>
                     ${mediaTag ? `<span>•</span> ${mediaTag}` : ''}
                 </div>
@@ -925,12 +925,45 @@ function playPrevPlaylistPpt() {
 window.playPrevPlaylistPpt = playPrevPlaylistPpt;
 
 // ============================================================
+// APPLICATION & PLAYER LOADER CONTROLLERS
+// ============================================================
+function showPlayerLoader(text) {
+    const overlay = document.getElementById('player-loader-overlay');
+    const label = document.getElementById('player-loader-text');
+    if (label && text) label.textContent = text;
+    if (overlay) overlay.classList.add('active');
+}
+
+function hidePlayerLoader() {
+    const overlay = document.getElementById('player-loader-overlay');
+    if (overlay) overlay.classList.remove('active');
+}
+window.showPlayerLoader = showPlayerLoader;
+window.hidePlayerLoader = hidePlayerLoader;
+
+function showGlobalLoader() {
+    const el = document.getElementById('global-top-loader');
+    if (el) el.classList.add('active');
+}
+
+function hideGlobalLoader() {
+    const el = document.getElementById('global-top-loader');
+    if (el) el.classList.remove('active');
+}
+window.showGlobalLoader = showGlobalLoader;
+window.hideGlobalLoader = hideGlobalLoader;
+
+// ============================================================
 // VIDEO THEATER & PLAYER CONTROLLER
 // ============================================================
 function playPptVideo(pptId, pptTitle) {
     activePlayingPptId = parseInt(pptId);
     activePlayingPptTitle = pptTitle || 'Course Presentation';
     updateOfficerWatermark();
+
+    // Show loading animation on video player and top progress bar
+    showPlayerLoader(`Loading "${activePlayingPptTitle}"...`);
+    showGlobalLoader();
 
     // Immediately update sidebar playlist to highlight currently playing presentation (YouTube-style)
     renderClassroomPlaylist(currentLoadedPpts);
@@ -1018,6 +1051,10 @@ function playPptVideo(pptId, pptTitle) {
         if (audioEl) { audioEl.pause(); audioEl.style.display = 'none'; audioEl.removeAttribute('src'); }
         if (canvas) canvas.style.display = 'block';
         videoDuration = 1800;
+        setTimeout(() => {
+            hidePlayerLoader();
+            hideGlobalLoader();
+        }, 350);
     }
 
     // Reset video progress to beginning
@@ -1039,6 +1076,8 @@ function playPptVideo(pptId, pptTitle) {
 
 function closeClassroomVideo() {
     pauseVideoPlayback();
+    hidePlayerLoader();
+    hideGlobalLoader();
     activePlayingPptId = null;
     activePlayingPptTitle = '';
     renderClassroomPlaylist(currentLoadedPpts);
@@ -1540,6 +1579,31 @@ function setupVideoPlayerEvents() {
             e.stopPropagation();
             handleVideoScreenClick(e);
         });
+        videoEl.addEventListener('loadstart', () => {
+            showPlayerLoader('Connecting to stream...');
+            showGlobalLoader();
+        });
+        videoEl.addEventListener('waiting', () => {
+            showPlayerLoader('Buffering stream...');
+        });
+        videoEl.addEventListener('seeking', () => {
+            showPlayerLoader('Seeking...');
+        });
+        videoEl.addEventListener('seeked', () => {
+            hidePlayerLoader();
+        });
+        videoEl.addEventListener('canplay', () => {
+            hidePlayerLoader();
+            hideGlobalLoader();
+        });
+        videoEl.addEventListener('playing', () => {
+            hidePlayerLoader();
+            hideGlobalLoader();
+        });
+        videoEl.addEventListener('error', () => {
+            hidePlayerLoader();
+            hideGlobalLoader();
+        });
         videoEl.addEventListener('loadedmetadata', () => {
             if (activeMediaMode === 'video' && videoEl.duration && !isNaN(videoEl.duration)) {
                 videoDuration = Math.round(videoEl.duration) || 1800;
@@ -1564,6 +1628,25 @@ function setupVideoPlayerEvents() {
     // Bind real HTML5 Audio element events
     const audioEl = document.getElementById('classroom-html5-audio');
     if (audioEl) {
+        audioEl.addEventListener('loadstart', () => {
+            showPlayerLoader('Loading audio stream...');
+            showGlobalLoader();
+        });
+        audioEl.addEventListener('waiting', () => {
+            showPlayerLoader('Buffering audio...');
+        });
+        audioEl.addEventListener('canplay', () => {
+            hidePlayerLoader();
+            hideGlobalLoader();
+        });
+        audioEl.addEventListener('playing', () => {
+            hidePlayerLoader();
+            hideGlobalLoader();
+        });
+        audioEl.addEventListener('error', () => {
+            hidePlayerLoader();
+            hideGlobalLoader();
+        });
         audioEl.addEventListener('loadedmetadata', () => {
             if (activeMediaMode === 'audio' && audioEl.duration && !isNaN(audioEl.duration)) {
                 videoDuration = Math.round(audioEl.duration) || 1800;
@@ -1671,6 +1754,7 @@ async function loadCoursePpts(courseId) {
         </div>
     `;
 
+    showGlobalLoader();
     try {
         const res = await fetch('/api/course-ppts?course_id=' + courseId);
         const data = await res.json();
@@ -1723,6 +1807,8 @@ async function loadCoursePpts(courseId) {
                 <button class="btn-card" style="padding: 0.35rem 0.85rem; font-size: 0.8rem;" onclick="loadCoursePpts(${courseId})">Retry</button>
             </div>
         `;
+    } finally {
+        hideGlobalLoader();
     }
 }
 
