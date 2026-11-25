@@ -6,7 +6,7 @@
     <title>Portal | Dronacharya LMS - Officers Training College</title>
     <meta name="description" content="Dronacharya LMS Officer Portal - Role-based access to courses, classroom, and administration.">
     <link rel="stylesheet" href="css/style.css?v=20261117_v13">
-    <link rel="stylesheet" href="css/wifi-guard.css">
+    <link rel="stylesheet" href="css/wifi-guard.css?v=20261125_v2">
     <style>
         /* Bulk Upload Modal High-Contrast Light Theme Direct Rules */
         [data-theme="light"] .bulk-format-box,
@@ -425,7 +425,7 @@
         .users-table td { padding: 0.85rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.85rem; }
         .users-table tr:hover td { background: rgba(255,255,255,0.02); }
 
-        .ppt-table { width: 100%; border-collapse: collapse; margin-top: 0.25rem; }
+        .ppt-table { width: 100%; border-collapse: collapse; margin-top: 0.25rem; table-layout: fixed; }
         .ppt-table th {
             background: rgba(15, 23, 42, 0.85);
             padding: 0.85rem 1rem;
@@ -476,6 +476,43 @@
         .ppt-title-link:hover {
             color: var(--gold-light) !important;
             text-decoration: underline;
+        }
+
+        /* YouTube-style Classroom Playlist Items */
+        .yt-playlist-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 0.85rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        .yt-playlist-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(212, 175, 55, 0.3);
+            transform: translateX(2px);
+        }
+        .yt-playlist-item.active {
+            background: rgba(136, 0, 21, 0.18) !important;
+            border-color: var(--amc-crimson) !important;
+            box-shadow: inset 3px 0 0 var(--amc-crimson);
+        }
+        [data-theme="light"] .yt-playlist-item {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+        }
+        [data-theme="light"] .yt-playlist-item:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        [data-theme="light"] .yt-playlist-item.active {
+            background: #fff1f2 !important;
+            border-color: #be123c !important;
+            box-shadow: inset 3px 0 0 #be123c;
         }
 
         .playing-pulse-indicator {
@@ -1458,6 +1495,128 @@
             box-shadow: 0 4px 14px rgba(136, 0, 21, 0.25);
         }
 
+        .btn-slider-delete {
+            background: rgba(220, 38, 38, 0.15);
+            border: 1px solid rgba(220, 38, 38, 0.45);
+            color: #fca5a5;
+        }
+
+        .btn-slider-delete:hover {
+            background: #dc2626;
+            border-color: #ef4444;
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+        }
+
+        [data-theme="light"] .btn-slider-delete {
+            background: rgba(220, 38, 38, 0.08);
+            border-color: rgba(220, 38, 38, 0.3);
+            color: #dc2626;
+        }
+
+        [data-theme="light"] .btn-slider-delete:hover {
+            background: #dc2626;
+            border-color: #dc2626;
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(220, 38, 38, 0.25);
+        }
+
+        /* Unified Manage Portraits Icon & Dropdown */
+        .btn-slider-manage {
+            background: rgba(212, 175, 55, 0.14);
+            border: 1px solid rgba(212, 175, 55, 0.45);
+            color: var(--gold-light, #f3d779);
+            padding: 0.38rem 0.58rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-slider-manage:hover {
+            background: linear-gradient(135deg, #d4af37, #aa820a);
+            border-color: #ffd700;
+            color: #0b1120;
+            box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35);
+        }
+
+        [data-theme="light"] .btn-slider-manage {
+            background: rgba(136, 0, 21, 0.08);
+            border-color: rgba(136, 0, 21, 0.3);
+            color: #880015;
+        }
+
+        [data-theme="light"] .btn-slider-manage:hover {
+            background: #880015;
+            border-color: #880015;
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(136, 0, 21, 0.25);
+        }
+
+        .cmd-manage-menu {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            z-index: 1000;
+            min-width: 175px;
+            background: #0f172a;
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            border-radius: 10px;
+            padding: 0.35rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.65), 0 0 15px rgba(212, 175, 55, 0.15);
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        [data-theme="light"] .cmd-manage-menu {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .cmd-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            width: 100%;
+            padding: 0.55rem 0.75rem;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.15s ease;
+        }
+
+        [data-theme="light"] .cmd-menu-item {
+            color: #1e293b;
+        }
+
+        .cmd-menu-item:hover {
+            background: rgba(212, 175, 55, 0.15);
+            color: #f3d779;
+        }
+
+        [data-theme="light"] .cmd-menu-item:hover {
+            background: #f8fafc;
+            color: #880015;
+        }
+
+        .cmd-menu-item.delete:hover {
+            background: rgba(220, 38, 38, 0.15);
+            color: #fca5a5;
+        }
+
+        [data-theme="light"] .cmd-menu-item.delete:hover {
+            background: #fff5f5;
+            color: #dc2626;
+        }
+
         /* Upload Dropzone & Previews */
         .cmd-upload-dropzone {
             border: 2px dashed rgba(212, 175, 55, 0.4);
@@ -1737,6 +1896,678 @@
 
         [data-theme="light"] .slider-tip {
             color: #64748b;
+        }
+
+        /* ============================================================ */
+        /* CURRENT LEADERSHIP EXECUTIVE DAIS (DISTINCT FROM ROLL OF HONOUR) */
+        /* ============================================================ */
+        .otc-commanders-section.current-commanders {
+            background: linear-gradient(135deg, rgba(14, 23, 42, 0.98) 0%, rgba(9, 15, 28, 0.99) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.45);
+            border-top: 4px solid #10b981;
+            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55), 0 0 25px rgba(16, 185, 129, 0.08);
+            margin-bottom: 2.25rem;
+        }
+
+        [data-theme="light"] .otc-commanders-section.current-commanders {
+            background: linear-gradient(135deg, #ffffff 0%, #f4fbf7 100%);
+            border: 1.5px solid rgba(16, 185, 129, 0.35);
+            border-top: 4px solid #059669;
+            box-shadow: 0 14px 35px rgba(16, 185, 129, 0.08);
+        }
+
+        .current-commanders-dais {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 2.25rem;
+            padding: 2.25rem 1.25rem;
+            min-height: 240px;
+            background: radial-gradient(circle at center, rgba(16, 185, 129, 0.06) 0%, rgba(5, 9, 17, 0.55) 75%);
+            border-radius: 12px;
+            border: 1px solid rgba(212, 175, 55, 0.22);
+            position: relative;
+        }
+
+        [data-theme="light"] .current-commanders-dais {
+            background: radial-gradient(circle at center, rgba(16, 185, 129, 0.08) 0%, #f8fafc 85%);
+            border-color: rgba(16, 185, 129, 0.25);
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.03);
+        }
+
+        /* Executive Leadership Card */
+        .curr-cmd-executive-card {
+            width: 240px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: linear-gradient(180deg, #131b2e 0%, #0b1120 100%);
+            border: 2px solid var(--gold-primary, #d4af37);
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.65), 0 0 24px rgba(212, 175, 55, 0.22);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        [data-theme="light"] .curr-cmd-executive-card {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid #b8860b;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12), 0 0 18px rgba(16, 185, 129, 0.15);
+        }
+
+        .curr-cmd-executive-card:hover {
+            transform: translateY(-8px) scale(1.03);
+            border-color: #ffd700;
+            box-shadow: 0 22px 46px rgba(0, 0, 0, 0.8), 0 0 32px rgba(212, 175, 55, 0.45);
+        }
+
+        [data-theme="light"] .curr-cmd-executive-card:hover {
+            border-color: #059669;
+            box-shadow: 0 20px 40px rgba(5, 150, 105, 0.25), 0 0 22px rgba(184, 134, 11, 0.35);
+        }
+
+        .curr-cmd-photo-frame {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 3/4;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .curr-cmd-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.4s ease;
+        }
+
+        .curr-cmd-executive-card:hover .curr-cmd-photo {
+            transform: scale(1.05);
+        }
+
+        .curr-cmd-ribbon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff;
+            font-size: 0.62rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            padding: 3px 8px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+            text-transform: uppercase;
+            backdrop-filter: blur(4px);
+            z-index: 2;
+        }
+
+        .curr-cmd-hover-action {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            color: #fff;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            gap: 0.35rem;
+            backdrop-filter: blur(2px);
+        }
+
+        .curr-cmd-executive-card:hover .curr-cmd-hover-action {
+            opacity: 1;
+        }
+
+        .curr-cmd-plaque {
+            padding: 0.85rem 0.8rem;
+            text-align: center;
+            background: linear-gradient(180deg, rgba(20, 30, 48, 0.95) 0%, rgba(10, 15, 26, 0.98) 100%);
+            border-top: 1px solid rgba(212, 175, 55, 0.4);
+        }
+
+        [data-theme="light"] .curr-cmd-plaque {
+            background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
+            border-top: 1px solid rgba(184, 134, 11, 0.35);
+        }
+
+        .curr-cmd-plaque-title {
+            font-size: 0.86rem;
+            font-weight: 800;
+            color: #f3d779;
+            line-height: 1.25;
+            letter-spacing: 0.02em;
+            margin-bottom: 0.25rem;
+        }
+
+        [data-theme="light"] .curr-cmd-plaque-title {
+            color: #0f172a;
+        }
+
+        .curr-cmd-plaque-sub {
+            font-size: 0.7rem;
+            color: var(--text-muted, #94a3b8);
+            line-height: 1.3;
+        }
+
+        /* ============================================================ */
+        /* COMMANDANT'S PROFILE & EXECUTIVE LEADERSHIP DOSSIER MODAL    */
+        /* ============================================================ */
+        .commandant-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(5, 10, 18, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        [data-theme="light"] .commandant-modal-overlay {
+            background: rgba(15, 23, 42, 0.65);
+        }
+
+        .commandant-page-dialog {
+            background: linear-gradient(180deg, #101827 0%, #0c121e 100%);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 920px;
+            max-height: 90vh;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(212, 175, 55, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .commandant-page-dialog::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #8b1e2f 0%, #d4af37 35%, #fef08a 50%, #d4af37 65%, #8b1e2f 100%);
+            z-index: 25;
+        }
+
+        [data-theme="light"] .commandant-page-dialog {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.2), 0 4px 20px rgba(139, 30, 47, 0.08);
+        }
+
+        .commandant-page-nav-bar {
+            background: rgba(16, 24, 39, 0.88);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.18);
+            padding: 0.85rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            z-index: 20;
+            position: relative;
+        }
+
+        [data-theme="light"] .commandant-page-nav-bar {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .commandant-nav-branding {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            min-width: 0;
+        }
+
+        .commandant-nav-crest {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+        }
+
+        .commandant-nav-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .commandant-nav-tag {
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--gold-light, #f3d779);
+            line-height: 1;
+        }
+
+        [data-theme="light"] .commandant-nav-tag {
+            color: #8b1e2f;
+        }
+
+        .commandant-nav-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-main, #f8fafc);
+            line-height: 1.2;
+        }
+
+        [data-theme="light"] .commandant-nav-title {
+            color: #0f172a;
+        }
+
+        .commandant-nav-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: rgba(16, 185, 129, 0.12);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            margin-left: 0.5rem;
+        }
+
+        [data-theme="light"] .commandant-nav-status {
+            background: #ecfdf5;
+            color: #059669;
+            border-color: #a7f3d0;
+        }
+
+        .commandant-nav-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        .btn-commandant-edit {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.18), rgba(212, 175, 55, 0.06));
+            color: #fef08a;
+            border: 1.5px solid rgba(212, 175, 55, 0.45);
+            padding: 0.45rem 0.95rem;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-commandant-edit:hover {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.28), rgba(212, 175, 55, 0.12));
+            border-color: var(--gold-primary, #d4af37);
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25);
+        }
+
+        [data-theme="light"] .btn-commandant-edit {
+            background: #8b1e2f;
+            border: 1.5px solid #8b1e2f;
+            color: #ffffff;
+        }
+
+        [data-theme="light"] .btn-commandant-edit:hover {
+            background: #a32238;
+            border-color: #a32238;
+            box-shadow: 0 4px 12px rgba(139, 30, 47, 0.25);
+        }
+
+        .commandant-page-sheet {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 2rem 2.5rem 2.5rem 2.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            background: radial-gradient(circle at 50% 12%, rgba(212, 175, 55, 0.06) 0%, transparent 60%), #0d1422;
+            color: var(--text-main, #f8fafc);
+        }
+
+        [data-theme="light"] .commandant-page-sheet {
+            background: radial-gradient(circle at 50% 12%, rgba(139, 30, 47, 0.04) 0%, transparent 60%), #f8fafc;
+            color: #0f172a;
+        }
+
+        .commandant-profile-head {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 0.5rem;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .commandant-photo-frame {
+            width: 175px;
+            height: 225px;
+            border: 2.5px solid #d4af37;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            position: relative;
+            box-shadow: 0 14px 35px rgba(0, 0, 0, 0.7), 0 0 25px rgba(212, 175, 55, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        [data-theme="light"] .commandant-photo-frame {
+            border-color: #8b1e2f;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18), 0 0 18px rgba(139, 30, 47, 0.15);
+        }
+
+        .commandant-photo-frame:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.8), 0 0 35px rgba(212, 175, 55, 0.35);
+        }
+
+        .commandant-photo-accent-corner {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .commandant-photo-accent-corner.tl { top: 4px; left: 4px; border-top: 2px solid #fef08a; border-left: 2px solid #fef08a; }
+        .commandant-photo-accent-corner.tr { top: 4px; right: 4px; border-top: 2px solid #fef08a; border-right: 2px solid #fef08a; }
+        .commandant-photo-accent-corner.bl { bottom: 4px; left: 4px; border-bottom: 2px solid #fef08a; border-left: 2px solid #fef08a; }
+        .commandant-photo-accent-corner.br { bottom: 4px; right: 4px; border-bottom: 2px solid #fef08a; border-right: 2px solid #fef08a; }
+
+        .commandant-detail-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center top;
+            display: block;
+        }
+
+        .commandant-page-banner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 52px;
+            flex-shrink: 0;
+            background: linear-gradient(90deg, #58101a 0%, #8b1e2f 30%, #af1d36 50%, #8b1e2f 70%, #58101a 100%);
+            color: #ffffff;
+            font-size: 1.15rem;
+            font-weight: 800;
+            text-align: center;
+            padding: 0.85rem 1.5rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            border: 1.5px solid rgba(212, 175, 55, 0.65);
+            border-radius: 10px;
+            box-shadow: 0 6px 20px rgba(139, 30, 47, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        [data-theme="light"] .commandant-page-banner {
+            background: linear-gradient(90deg, #6b1422 0%, #8b1e2f 30%, #aa2239 50%, #8b1e2f 70%, #6b1422 100%);
+            color: #ffffff;
+            border: 1.5px solid #d4af37;
+            box-shadow: 0 4px 16px rgba(139, 30, 47, 0.25);
+        }
+
+        .commandant-page-banner::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: shimmer 4s infinite;
+            pointer-events: none;
+        }
+
+        .commandant-page-banner span {
+            position: relative;
+            z-index: 2;
+            display: inline-block;
+            line-height: 1.4;
+            color: #ffffff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+            letter-spacing: 0.06em;
+            word-break: break-word;
+        }
+
+        .commandant-bio-title-group {
+            text-align: center;
+            margin: 0.5rem 0 0.25rem 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.35rem;
+            flex-shrink: 0;
+        }
+
+        .commandant-bio-pre-tag {
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--gold-light, #f3d779);
+            display: inline-block;
+            margin-bottom: 0.1rem;
+        }
+
+        [data-theme="light"] .commandant-bio-pre-tag {
+            color: #8b1e2f;
+        }
+
+        .commandant-bio-title {
+            font-size: 1.35rem;
+            font-weight: 900;
+            color: var(--gold-light, #fef08a);
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            line-height: 1.3;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="light"] .commandant-bio-title {
+            color: #8b1e2f;
+            text-shadow: none;
+        }
+
+        .commandant-bio-sub {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--text-muted, #94a3b8);
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            line-height: 1.4;
+        }
+
+        [data-theme="light"] .commandant-bio-sub {
+            color: #475569;
+        }
+
+        .commandant-bio-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            width: 100%;
+            max-width: 320px;
+            margin-top: 0.4rem;
+        }
+
+        .commandant-bio-divider-line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.4), transparent);
+        }
+
+        [data-theme="light"] .commandant-bio-divider-line {
+            background: linear-gradient(90deg, transparent, rgba(139, 30, 47, 0.3), transparent);
+        }
+
+        .commandant-bio-divider-star {
+            color: var(--gold-primary, #d4af37);
+            font-size: 0.85rem;
+            line-height: 1;
+        }
+
+        [data-theme="light"] .commandant-bio-divider-star {
+            color: #8b1e2f;
+        }
+
+        .commandant-bio-body {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .commandant-bio-paragraph {
+            display: flex;
+            gap: 1.15rem;
+            align-items: flex-start;
+            flex-shrink: 0;
+            background: rgba(18, 26, 42, 0.65);
+            border: 1px solid rgba(212, 175, 55, 0.16);
+            border-left: 3.5px solid var(--gold-primary, #d4af37);
+            border-radius: 10px;
+            padding: 1.15rem 1.35rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .commandant-bio-paragraph:hover {
+            transform: translateY(-1px);
+            border-color: rgba(212, 175, 55, 0.35);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        }
+
+        [data-theme="light"] .commandant-bio-paragraph {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #8b1e2f;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+        }
+
+        [data-theme="light"] .commandant-bio-paragraph:hover {
+            border-color: #cbd5e1;
+            border-left-color: #8b1e2f;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+        }
+
+        .commandant-bio-num {
+            min-width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.22), rgba(212, 175, 55, 0.08));
+            border: 1.5px solid var(--gold-primary, #d4af37);
+            color: var(--gold-light, #fef08a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+            flex-shrink: 0;
+            margin-top: 0.1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="light"] .commandant-bio-num {
+            background: linear-gradient(135deg, #8b1e2f, #aa2239);
+            border: 1.5px solid #8b1e2f;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(139, 30, 47, 0.25);
+        }
+
+        .commandant-bio-text {
+            flex: 1;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: var(--text-main, #f8fafc);
+            text-align: justify;
+        }
+
+        [data-theme="light"] .commandant-bio-text {
+            color: #1e293b;
+        }
+
+        @media (max-width: 768px) {
+            .commandant-page-dialog {
+                max-height: 94vh;
+                border-radius: 12px;
+            }
+            .commandant-page-nav-bar {
+                padding: 0.75rem 1rem;
+            }
+            .commandant-nav-status {
+                display: none;
+            }
+            .commandant-page-sheet {
+                padding: 1.25rem 1.25rem 1.75rem 1.25rem;
+                gap: 1.15rem;
+            }
+            .commandant-photo-frame {
+                width: 140px;
+                height: 180px;
+            }
+            .commandant-page-banner {
+                font-size: 0.95rem;
+                padding: 0.6rem 0.85rem;
+            }
+            .commandant-bio-title {
+                font-size: 1.15rem;
+            }
+            .commandant-bio-sub {
+                font-size: 0.82rem;
+            }
+            .commandant-bio-paragraph {
+                padding: 0.95rem 1rem;
+                gap: 0.85rem;
+            }
+            .commandant-bio-num {
+                min-width: 28px;
+                height: 28px;
+                font-size: 0.72rem;
+            }
+            .commandant-bio-text {
+                font-size: 0.88rem;
+                line-height: 1.6;
+            }
         }
 
         /* Lightbox Modal */
@@ -2304,6 +3135,12 @@
                 <span id="theme-label-text">Light</span>
             </button>
 
+            <!-- Time Format Switcher (12-Hour AM/PM vs 24-Hour) -->
+            <button class="login-theme-toggle" id="time-format-toggle-btn" onclick="toggleTimeFormat()" title="Switch Time Format (12-Hour AM/PM / 24-Hour)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--gold-light);"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span id="time-format-label-text">12-Hour</span>
+            </button>
+
             <!-- Administration Quick Actions Settings Button (Top-Right) -->
             <div class="settings-dropdown-wrapper" id="admin-settings-wrapper" style="display:none;">
                 <button class="btn-settings-trigger" id="admin-settings-trigger" onclick="toggleAdminQuickActionsMenu(event)" title="Administration Quick Actions" style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.4rem 0.8rem;">
@@ -2373,6 +3210,20 @@
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                             <span>Manage Users & Batches</span>
                         </button>
+                    </div>
+
+                    <div class="menu-divider"></div>
+
+                    <!-- Time Format Settings (12-Hour AM/PM vs 24-Hour) -->
+                    <div style="padding: 0.55rem 0.95rem;">
+                        <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gold-light); margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            <span>Display Time Format</span>
+                        </div>
+                        <div style="display: flex; gap: 0.4rem; background: rgba(0,0,0,0.25); padding: 3px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                            <button type="button" id="opt-time-12h" onclick="setTimeFormat('12h');" style="flex: 1; padding: 0.35rem 0.5rem; font-size: 0.75rem; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s; background: var(--gold-primary); color: #000;">12-Hour (AM/PM)</button>
+                            <button type="button" id="opt-time-24h" onclick="setTimeFormat('24h');" style="flex: 1; padding: 0.35rem 0.5rem; font-size: 0.75rem; font-weight: 500; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-muted);">24-Hour</button>
+                        </div>
                     </div>
 
                     <div class="menu-divider"></div>
@@ -2608,6 +3459,57 @@
                 </div>
             </div>
 
+            <!-- Current Commanders / Present Leadership Section -->
+            <div class="otc-commanders-section current-commanders" id="otc-current-commanders-section">
+                <div class="commanders-section-header">
+                    <div class="commanders-title-group">
+                        <div class="commanders-eyebrow">
+                            <span class="eyebrow-pip" style="background: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);"></span>
+                            <span style="color: #10b981; font-weight: 700; letter-spacing: 0.12em;">CURRENT LEADERSHIP • APEX COMMAND</span>
+                        </div>
+                        <h2 class="commanders-heading">
+                            Current Commanders of Officers Training College
+                        </h2>
+                        <p class="commanders-subtitle">
+                            Commandant and executive leadership guiding Officers Training College, AMC Centre and College, Lucknow
+                        </p>
+                    </div>
+
+                    <div class="commanders-controls">
+                        <!-- Unified Image Control Dropdown (Add & Delete) for Current Commanders -->
+                        <div class="cmd-manage-dropdown-wrapper" id="curr-cmd-manage-wrapper" style="position: relative; display: inline-flex;">
+                            <button type="button" class="btn-slider-ctrl btn-slider-manage" id="curr-cmd-manage-btn" onclick="toggleCurrentCommanderManageMenu(event)" title="Portrait Controls: Add or Delete Image" aria-label="Portrait Controls">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+
+                            <div class="cmd-manage-menu" id="curr-cmd-manage-menu" style="display: none;">
+                                <button type="button" class="cmd-menu-item" onclick="openAddCurrentCommanderModal(); closeCurrentCommanderManageMenu();">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--gold-light, #f3d779);"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                    <span>Add Image</span>
+                                </button>
+                                <button type="button" class="cmd-menu-item delete" onclick="openDeleteCurrentCommanderModal(); closeCurrentCommanderManageMenu();">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #f87171;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    <span>Delete Image</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Executive Leadership Dais (Prominent, Centered Showcase) -->
+                <div class="current-commanders-dais" id="curr-cmd-slider-track">
+                    <!-- Populated dynamically with executive leadership cards -->
+                </div>
+
+                <div class="commanders-slider-footer" style="margin-top: 0.85rem;">
+                    <div class="slider-tip">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        <span>Click any portrait to view profile details &amp; bio-data</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Previous Commanders / Roll of Honour Auto-Slider Section -->
             <div class="otc-commanders-section" id="otc-commanders-section">
                 <div class="commanders-section-header">
@@ -2625,10 +3527,25 @@
                     </div>
 
                     <div class="commanders-controls">
-                        <button type="button" class="btn-slider-ctrl btn-slider-add" id="cmd-slider-add-btn" onclick="openAddCommanderModal()" title="Add Previous Commander Image" aria-label="Add Commander Image" style="display: none;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            <span>Add Image</span>
-                        </button>
+                        <!-- Unified Image Control Dropdown (Add & Delete) -->
+                        <div class="cmd-manage-dropdown-wrapper" id="cmd-manage-wrapper" style="position: relative; display: inline-flex;">
+                            <button type="button" class="btn-slider-ctrl btn-slider-manage" id="cmd-manage-btn" onclick="toggleCommanderManageMenu(event)" title="Portrait Controls: Add or Delete Image" aria-label="Portrait Controls">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+
+                            <div class="cmd-manage-menu" id="cmd-manage-menu" style="display: none;">
+                                <button type="button" class="cmd-menu-item" onclick="openAddCommanderModal(); closeCommanderManageMenu();">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--gold-light, #f3d779);"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                    <span>Add Image</span>
+                                </button>
+                                <button type="button" class="cmd-menu-item delete" onclick="openDeleteCommanderModal(); closeCommanderManageMenu();">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #f87171;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    <span>Delete Image</span>
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="slider-nav-arrows">
                             <button type="button" class="btn-slider-arrow" id="cmd-slider-prev-btn" onclick="stepCommanderSlider(-1)" title="Scroll Previous" aria-label="Previous">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
@@ -2807,14 +3724,10 @@
 
                     <aside class="modules-sidebar" id="classroom-modules-sidebar">
                         <div class="sidebar-header">
-                            <h3 class="sidebar-title">Course Sections</h3>
+                            <h3 class="sidebar-title" id="classroom-sidebar-title">Course Playlist &amp; Chapters</h3>
                             <p class="sidebar-sub" id="sidebar-course-name">Select a course from Courses tab</p>
                         </div>
                         <ul class="module-list" id="classroom-section-list"></ul>
-                        <!-- Add Section button for admins -->
-                        <div id="classroom-add-section-btn" style="display:none; margin-top: 0.75rem;">
-                            <button class="btn-admin gold" style="width:100%;" onclick="openAddSectionModal()">+ Add Section</button>
-                        </div>
                     </aside>
                 </div>
             </div>
@@ -3454,6 +4367,115 @@
         </div>
     </div>
 
+    <!-- Modal: Current Commander Profile & Bio-Data (Commandant's Page) -->
+    <div id="modal-current-commander-details" class="commandant-modal-overlay" style="display:none;" onclick="handleCurrentCommanderDetailsOverlayClick(event)">
+        <div class="commandant-page-dialog">
+            <!-- Navigation Header Bar with Branding, Edit & Close Controls -->
+            <div class="commandant-page-nav-bar">
+                <div class="commandant-nav-branding">
+                    <img src="college-crest.png" alt="OTC Crest" class="commandant-nav-crest" onerror="this.style.display='none'">
+                    <div class="commandant-nav-meta">
+                        <span class="commandant-nav-tag">OFFICERS TRAINING COLLEGE &bull; APEX COMMAND</span>
+                        <span class="commandant-nav-title">Commandant Leadership Dossier</span>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                    <button type="button" class="btn-commandant-edit" id="btn-edit-current-commander-bio" onclick="openEditCurrentCommanderBioModal()" style="display:none;" title="Edit Commander Bio-Data">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        <span>Edit Bio-Data</span>
+                    </button>
+                    <button type="button" class="commander-modal-btn-close" onclick="closeCurrentCommanderDetails()" title="Close (Esc)" aria-label="Close" style="position: static;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scrollable Content Sheet -->
+            <div class="commandant-page-sheet">
+                <!-- Center Top Portrait with Executive Frame -->
+                <div class="commandant-profile-head">
+                    <div class="commandant-photo-frame">
+                        <div class="commandant-photo-accent-corner tl"></div>
+                        <div class="commandant-photo-accent-corner tr"></div>
+                        <div class="commandant-photo-accent-corner bl"></div>
+                        <div class="commandant-photo-accent-corner br"></div>
+                        <img id="curr-cmd-detail-photo" src="" alt="Commandant Portrait" class="commandant-detail-photo" onerror="this.src='previouscomd/sample_commander.jpg'">
+                    </div>
+                </div>
+
+                <!-- Ceremonial Regimental Banner -->
+                <div class="commandant-page-banner" id="curr-cmd-detail-banner">
+                    <span>AMC CENTRE &amp; COLLEGE COMMANDANT'S PAGE</span>
+                </div>
+
+                <!-- Bio-Data Section Heading -->
+                <div class="commandant-bio-title-group">
+                    <span class="commandant-bio-pre-tag">OFFICIAL MILITARY BIOGRAPHY</span>
+                    <div id="curr-cmd-detail-bio-title" class="commandant-bio-title">BIO-DATA : LT GEN SHIVINDER SINGH</div>
+                    <div id="curr-cmd-detail-bio-sub" class="commandant-bio-sub">COMDT AMC CENTRE AND COLLEGE AND OIC RECORDS</div>
+                    <div class="commandant-bio-divider">
+                        <span class="commandant-bio-divider-line"></span>
+                        <span class="commandant-bio-divider-star">&#9733;</span>
+                        <span class="commandant-bio-divider-line"></span>
+                    </div>
+                </div>
+
+                <!-- Numbered Bio Paragraphs -->
+                <div id="curr-cmd-detail-body" class="commandant-bio-body">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Current Commander Details & Bio-Data (Institute Admin only) -->
+    <div id="modal-edit-current-commander-bio" class="modal-overlay" style="display:none; z-index: 10500;" onclick="handleEditCurrentCommanderBioOverlayClick(event)">
+        <div class="modal-box" style="max-width: 680px; max-height: 85vh; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <img src="college-crest.png" alt="OTC Crest" style="width: 36px; height: 36px; object-fit: contain;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--text-main);">Edit Commandant Details & Bio-Data</h2>
+                        <p style="margin: 0.2rem 0 0 0; font-size: 0.78rem; color: var(--text-muted);">Update official rank, appointment, page banner, and biographical career points</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-modal-close" onclick="closeEditCurrentCommanderBioModal()" title="Close">&times;</button>
+            </div>
+
+            <form id="form-edit-current-commander-bio" onsubmit="submitEditCurrentCommanderBio(event)" style="display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; padding-right: 0.25rem;">
+                <input type="hidden" id="edit-curr-cmd-id" value="">
+                <input type="hidden" id="edit-curr-cmd-db-id" value="">
+                <input type="hidden" id="edit-curr-cmd-type" value="">
+
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem; text-transform: uppercase;">Commandant Rank & Name</label>
+                    <input type="text" id="edit-curr-cmd-name" class="form-input" style="width: 100%;" required placeholder="e.g. Lt Gen Shivinder Singh, AVSM">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem; text-transform: uppercase;">Official Appointment / Role</label>
+                    <input type="text" id="edit-curr-cmd-role" class="form-input" style="width: 100%;" required placeholder="e.g. Comdt AMC C & C & OIC Records">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem; text-transform: uppercase;">Commandant's Page Banner Text</label>
+                    <input type="text" id="edit-curr-cmd-banner" class="form-input" style="width: 100%;" placeholder="e.g. AMC CENTRE & COLLEGE COMMANDANT'S PAGE">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem; text-transform: uppercase;">Bio-Data Career Points (Numbered paragraphs)</label>
+                    <textarea id="edit-curr-cmd-biodata" class="form-input" rows="8" style="width: 100%; font-size: 0.82rem; line-height: 1.5; font-family: inherit; resize: vertical;" placeholder="1.  Alumnus of AFMC Pune...&#10;&#10;2.  Served with IPKF in Sri Lanka..."></textarea>
+                    <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem;">Separate paragraphs with blank lines. Numbered format (1., 2., 3.) is automatically structured.</div>
+                </div>
+
+                <div class="modal-actions" style="margin-top: 0.5rem;">
+                    <button type="button" class="btn-modal cancel" onclick="closeEditCurrentCommanderBioModal()">Cancel</button>
+                    <button type="submit" class="btn-modal primary" id="btn-save-curr-cmd-bio" style="background: linear-gradient(135deg, #10b981, #059669); border: 1px solid #10b981; color: #fff; font-weight: 700;">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Lightbox Modal for Enlarged Commander Portraits -->
     <div id="commander-lightbox-modal" class="commander-modal-overlay" style="display:none;" onclick="handleCommanderLightboxOverlayClick(event)">
         <div class="commander-modal-dialog">
@@ -3534,16 +4556,6 @@
                     </div>
                 </div>
 
-                <div class="modal-form-group" style="margin-top: 1.25rem;">
-                    <label for="cmd-input-title">Commander Title / Designation <span style="font-weight: normal; opacity: 0.7;">(Optional)</span></label>
-                    <input type="text" id="cmd-input-title" placeholder="Previous Commander of Officers Training College">
-                </div>
-
-                <div class="modal-form-group">
-                    <label for="cmd-input-subtitle">Unit / Institution Remarks <span style="font-weight: normal; opacity: 0.7;">(Optional)</span></label>
-                    <input type="text" id="cmd-input-subtitle" placeholder="Officers Training College, AMC Centre and College, Lucknow">
-                </div>
-
                 <!-- Progress Bar -->
                 <div id="cmd-upload-progress" style="display: none; margin-top: 1rem;">
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 0.35rem; color: var(--text-muted);">
@@ -3563,6 +4575,129 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal: Delete Previous Commander Portrait -->
+    <div id="modal-delete-commander" class="modal-overlay" onclick="handleCommanderDeleteModalOverlayClick(event)">
+        <div class="modal-box" style="max-width: 760px; max-height: 85vh; display: flex; flex-direction: column; border-color: rgba(220, 38, 38, 0.4); box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 25px rgba(220, 38, 38, 0.15);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <img src="college-crest.png" alt="OTC Crest" style="width: 36px; height: 36px; object-fit: contain;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text-main);">Delete Commander Portrait</h2>
+                        <p style="margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--text-muted);">Choose a portrait to remove from the Roll of Honour slider</p>
+                    </div>
+                </div>
+                <button type="button" class="modal-close-btn" onclick="closeDeleteCommanderModal()" title="Close (Esc)" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+
+            <div id="cmd-delete-grid" style="overflow-y: auto; flex: 1; min-height: 220px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.85rem; padding: 0.5rem 0.25rem;">
+                <!-- Populated dynamically via JS -->
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color, rgba(255,255,255,0.08)); flex-shrink: 0;">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteCommanderModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Current Commander Portrait -->
+    <div id="modal-add-current-commander" class="modal-overlay" onclick="handleCurrentCommanderModalOverlayClick(event)">
+        <div class="modal-box" style="max-width: 540px; border-color: rgba(212, 175, 55, 0.4); box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 25px rgba(212, 175, 55, 0.15);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <img src="college-crest.png" alt="OTC Crest" style="width: 36px; height: 36px; object-fit: contain;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text-main);">Add Current Commander</h2>
+                        <p style="margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--text-muted);">Upload portrait photo for the Current Commanders section</p>
+                    </div>
+                </div>
+                <button type="button" class="modal-close-btn" onclick="closeAddCurrentCommanderModal()" title="Close (Esc)" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+
+            <form id="form-add-current-commander" onsubmit="submitAddCurrentCommander(event)">
+                <div id="curr-cmd-upload-error" style="display: none; margin-bottom: 1rem; padding: 0.65rem 0.85rem; border-radius: 8px; font-size: 0.82rem; background: rgba(220, 38, 38, 0.15); border: 1px solid rgba(220, 38, 38, 0.4); color: #fca5a5;"></div>
+
+                <!-- Dropzone -->
+                <div class="cmd-upload-dropzone" id="curr-cmd-upload-dropzone" onclick="document.getElementById('curr-cmd-file-input').click()">
+                    <input type="file" id="curr-cmd-file-input" name="image" accept="image/jpeg,image/png,image/webp" style="display: none;" onchange="handleCurrentCommanderFileSelect(event)">
+                    <div id="curr-cmd-dropzone-prompt">
+                        <div style="width: 52px; height: 52px; margin: 0 auto 0.75rem; border-radius: 50%; background: rgba(212, 175, 55, 0.12); display: flex; align-items: center; justify-content: center; color: var(--gold-light, #f3d779);">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        </div>
+                        <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-main); margin-bottom: 0.35rem;">
+                            Click to browse portrait or drag &amp; drop here
+                        </div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">
+                            High-resolution portrait photo • JPG, PNG or WEBP (Max 15MB)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selected Image Preview -->
+                <div id="curr-cmd-preview-container" class="cmd-preview-container" style="display: none;">
+                    <div class="cmd-preview-img-frame">
+                        <img id="curr-cmd-preview-img" src="" alt="Portrait Preview">
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div id="curr-cmd-preview-name" style="font-weight: 700; font-size: 0.88rem; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">photo.jpg</div>
+                        <div id="curr-cmd-preview-size" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">0 KB</div>
+                        <button type="button" onclick="document.getElementById('curr-cmd-file-input').click()" style="margin-top: 0.5rem; background: none; border: none; padding: 0; color: var(--gold-light, #f3d779); font-size: 0.78rem; font-weight: 600; cursor: pointer; text-decoration: underline;">
+                            Change portrait photo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div id="curr-cmd-upload-progress" style="display: none; margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 0.35rem; color: var(--text-muted);">
+                        <span>Uploading commander portrait...</span>
+                        <span id="curr-cmd-upload-percent">0%</span>
+                    </div>
+                    <div style="height: 6px; width: 100%; background: rgba(255, 255, 255, 0.1); border-radius: 999px; overflow: hidden;">
+                        <div id="curr-cmd-upload-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #d4af37, #f3d779); transition: width 0.2s ease;"></div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-modal cancel" onclick="closeAddCurrentCommanderModal()" id="curr-cmd-modal-cancel-btn">Cancel</button>
+                    <button type="submit" class="btn-modal primary" id="curr-cmd-modal-submit-btn" style="background: linear-gradient(135deg, #d4af37, #aa820a); border: 1px solid #d4af37; color: #0b1120; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span id="curr-cmd-modal-submit-text">Add Commander</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Delete Current Commander Portrait -->
+    <div id="modal-delete-current-commander" class="modal-overlay" onclick="handleCurrentCommanderDeleteModalOverlayClick(event)">
+        <div class="modal-box" style="max-width: 760px; max-height: 85vh; display: flex; flex-direction: column; border-color: rgba(220, 38, 38, 0.4); box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 25px rgba(220, 38, 38, 0.15);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <img src="college-crest.png" alt="OTC Crest" style="width: 36px; height: 36px; object-fit: contain;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text-main);">Delete Current Commander Portrait</h2>
+                        <p style="margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--text-muted);">Choose a portrait to remove from the Current Commanders slider</p>
+                    </div>
+                </div>
+                <button type="button" class="modal-close-btn" onclick="closeDeleteCurrentCommanderModal()" title="Close (Esc)" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+
+            <div id="curr-cmd-delete-grid" style="overflow-y: auto; flex: 1; min-height: 220px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.85rem; padding: 0.5rem 0.25rem;">
+                <!-- Populated dynamically via JS -->
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color, rgba(255,255,255,0.08)); flex-shrink: 0;">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteCurrentCommanderModal()">Close</button>
+            </div>
         </div>
     </div>
 
@@ -3663,8 +4798,8 @@
         <div class="footer-compliance">RESTRICTED • FOR OFFICIAL DEFENCE USE ONLY • AIR-GAPPED ON-PREMISE</div>
     </footer>
 
-    <script src="js/wifi-guard.js?v=20261116"></script>
-    <script src="js/portal.js?v=20261117_v13"></script>
+    <script src="js/wifi-guard.js?v=20261125_v2"></script>
+    <script src="js/portal.js?v=20261125_v7"></script>
     <script>
     // Direct Global Bindings for Bulk User Upload (Guaranteed Zero-Cache Execution)
     window.selectedBulkUserFile = window.selectedBulkUserFile || null;
@@ -3688,6 +4823,8 @@
 
     window.resetBulkFileInput = function() {
         selectedBulkUserFile = null;
+        window.selectedBulkFileHasDuplicateMobiles = false;
+        window.selectedBulkFileDuplicateMobilesList = [];
         const fileInput = document.getElementById('bulk-user-file-input');
         if (fileInput) fileInput.value = '';
 
@@ -3770,6 +4907,8 @@
         }
 
         selectedBulkUserFile = file;
+        window.selectedBulkFileHasDuplicateMobiles = false;
+        window.selectedBulkFileDuplicateMobilesList = [];
 
         const prompt = document.getElementById('bulk-upload-prompt');
         const info = document.getElementById('bulk-file-info');
@@ -3791,25 +4930,307 @@
             `;
         }
 
-        if (['csv', 'tsv', 'txt'].includes(ext)) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                parseAndRenderCsvPreview(e.target.result, ext === 'tsv' ? '\t' : ',');
-            };
-            reader.readAsText(file);
-        } else {
-            const preview = document.getElementById('bulk-preview-container');
-            const summary = document.getElementById('bulk-preview-summary');
-            const thead = document.getElementById('bulk-preview-thead');
-            const tbody = document.getElementById('bulk-preview-tbody');
-            if (preview && summary && thead && tbody) {
-                summary.textContent = `Excel Spreadsheet (.${ext.toUpperCase()}) selected`;
-                thead.innerHTML = `<tr><th style="padding: 0.5rem 0.75rem;">Status</th><th style="padding: 0.5rem 0.75rem;">File Details</th></tr>`;
-                tbody.innerHTML = `<tr><td style="padding: 0.6rem 0.75rem; color: #4ade80;">Ready to Import</td><td style="padding: 0.6rem 0.75rem;">Click "Import Users" to automatically extract all user records and course enrolments.</td></tr>`;
-                preview.style.display = 'block';
+        fetchSpreadsheetPreview(file, ext);
+    };
+
+    window.fetchExcelPreview = function(file, ext) {
+        fetchSpreadsheetPreview(file, ext);
+    };
+
+    async function fetchSpreadsheetPreview(file, ext) {
+        const preview = document.getElementById('bulk-preview-container');
+        const summary = document.getElementById('bulk-preview-summary');
+        const thead = document.getElementById('bulk-preview-thead');
+        const tbody = document.getElementById('bulk-preview-tbody');
+        if (!preview || !summary || !thead || !tbody) return;
+
+        summary.innerHTML = `<span style="color: var(--text-muted);">Reading and validating spreadsheet (.${ext.toUpperCase()})...</span>`;
+        thead.innerHTML = `<tr><th style="padding: 0.5rem 0.75rem;">Status</th><th style="padding: 0.5rem 0.75rem;">File Details</th></tr>`;
+        tbody.innerHTML = `<tr><td style="padding: 0.6rem 0.75rem; color: #93c5fd;">Parsing spreadsheet...</td><td style="padding: 0.6rem 0.75rem;">Scanning rows, validating accounts, and checking for duplicate mobile numbers...</td></tr>`;
+        preview.style.display = 'block';
+
+        const safeEsc = typeof esc === 'function' ? esc : function(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        };
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const token = (typeof csrfToken !== 'undefined' && csrfToken) ? csrfToken : (sessionStorage.getItem('ek_csrf_token') || '');
+            if (token) formData.append('csrf_token', token);
+            const headers = {};
+            if (token) headers['X-CSRF-Token'] = token;
+
+            const res = await fetch('/api/users/bulk-preview', {
+                method: 'POST',
+                headers: headers,
+                body: formData
+            });
+
+            if (!res.ok) {
+                const errBody = await res.json().catch(() => ({}));
+                throw new Error(errBody.message || ('Preview service returned HTTP ' + res.status));
+            }
+
+            const json = await res.json();
+            if (json.status !== 'success' || !json.data) {
+                throw new Error(json.message || 'Invalid spreadsheet data');
+            }
+
+            const pData = json.data;
+            const rawHeaders = Array.isArray(pData.headers) ? pData.headers : Object.values(pData.headers || {});
+            const sampleRows = Array.isArray(pData.sample_rows) ? pData.sample_rows : Object.values(pData.sample_rows || {});
+            const totalRows = pData.total_rows || sampleRows.length;
+            const dupMobiles = new Set(Array.isArray(pData.duplicate_mobiles) ? pData.duplicate_mobiles : Object.values(pData.duplicate_mobiles || {}));
+            const dupDetails = pData.duplicate_details || {};
+            const dbDupMobiles = pData.db_duplicate_mobiles || {};
+            const rowValidations = Array.isArray(pData.row_validations) ? pData.row_validations : Object.values(pData.row_validations || {});
+
+            const hasFileDupMobiles = (dupMobiles.size > 0);
+            const hasDbDupMobiles = (Object.keys(dbDupMobiles).length > 0);
+            window.selectedBulkFileHasDuplicateMobiles = (hasFileDupMobiles || hasDbDupMobiles);
+
+            const fileDupList = Array.from(dupMobiles).map(n10 => (dupDetails[n10] && dupDetails[n10].mobile) ? dupDetails[n10].mobile : n10);
+            const dbDupList = Object.entries(dbDupMobiles).map(([n10, uname]) => `${n10} (already registered to ${uname})`);
+            window.selectedBulkFileDuplicateMobilesList = [...fileDupList, ...dbDupList];
+
+            // Render header
+            let headerHtml = '<tr>';
+            rawHeaders.forEach(h => {
+                headerHtml += `<th style="padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--border-subtle);">${safeEsc(h)}</th>`;
+            });
+            headerHtml += '</tr>';
+            thead.innerHTML = headerHtml;
+
+            // Render sample rows
+            let bodyHtml = '';
+            let totalInvalidCells = 0;
+            const warningReasons = new Set();
+            const normHeaders = rawHeaders.map(h => String(h || '').toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+            sampleRows.forEach((rowObj, rIdx) => {
+                const cells = Array.isArray(rowObj) ? rowObj : Object.values(rowObj || {});
+                const rowValInfo = rowValidations[rIdx] || null;
+                bodyHtml += '<tr>';
+                cells.forEach((val, idx) => {
+                    const colKey = normHeaders[idx] || '';
+                    let isValid = true;
+                    let errMsg = '';
+
+                    if (val === null || val === undefined || String(val).trim().length === 0) {
+                        isValid = false;
+                        errMsg = 'Required field missing: this field cannot be blank';
+                    } else if (colKey.includes('user')) {
+                        const sVal = String(val).trim();
+                        if (sVal.length < 3 || sVal.length > 50 || !/^[a-zA-Z0-9._-]+$/.test(sVal)) {
+                            isValid = false;
+                            errMsg = 'Username must be 3-50 alphanumeric characters (dot, underscore, hyphen permitted)';
+                        }
+                    } else if (colKey.includes('pass')) {
+                        const pwdChk = validatePasswordSecurityPolicy(val);
+                        if (!pwdChk.isValid) {
+                            isValid = false;
+                            errMsg = 'Password fails strict security policy: must be min 12 characters with at least 1 uppercase, 1 lowercase, 1 number, and 1 special symbol (!@#$%^&*)';
+                        }
+                    } else if (colKey.includes('first')) {
+                        if (String(val).length < 2 || String(val).length > 50) {
+                            isValid = false;
+                            errMsg = 'First Name / Initials must be 2-50 characters';
+                        }
+                    } else if (colKey.includes('last') || colKey.includes('rank')) {
+                        if (String(val).length < 2 || String(val).length > 50) {
+                            isValid = false;
+                            errMsg = 'Last Name / Rank must be 2-50 characters';
+                        }
+                    } else if (colKey.includes('email')) {
+                        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val))) {
+                            isValid = false;
+                            errMsg = 'Valid official email address is required (e.g. officer@amc.gov.in)';
+                        }
+                    } else if (colKey.includes('mobile') || colKey.includes('phone') || colKey.includes('contact')) {
+                        const cleanPhone = String(val).replace(/\D/g, '');
+                        if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+                            isValid = false;
+                            errMsg = 'Mobile number must contain at least 10 valid digits';
+                        } else {
+                            const norm10 = cleanPhone.slice(-10);
+                            if (dupMobiles.has(norm10)) {
+                                isValid = false;
+                                const firstInfo = dupDetails[norm10];
+                                errMsg = `Duplicate mobile number detected: Identical number (${val}) is used in multiple rows (e.g. Row ${firstInfo ? firstInfo.row : '?'}). Mobile numbers must be unique across all accounts.`;
+                            } else if (dbDupMobiles[norm10]) {
+                                isValid = false;
+                                errMsg = `Mobile number already registered in database: Identical number (${val}) is already registered to user "${dbDupMobiles[norm10]}". Mobile numbers must be globally unique.`;
+                            }
+                        }
+                    } else if (colKey.includes('status') || colKey.includes('suspend') || colKey.includes('active')) {
+                        const s = String(val).toLowerCase();
+                        if (!['yes', 'no', 'y', 'n', 'active', 'suspended', 'inactive', 'permanently suspended', '0', '1'].includes(s)) {
+                            isValid = false;
+                            errMsg = "Active Status must be 'Yes' (Active) or 'No' (Permanently Suspended)";
+                        }
+                    } else if (colKey.includes('role') || colKey.includes('perm')) {
+                        const roleChk = validateRoleValue(val);
+                        if (!roleChk.isValid) {
+                            isValid = false;
+                            errMsg = 'Role must be student (Student Officer), courseadmin (Course Admin), or instituteadmin (Institute Admin)';
+                        }
+                    } else if (colKey.includes('course')) {
+                        let rowIsSuspended = false;
+                        normHeaders.forEach((nh, hIdx) => {
+                            if (nh.includes('status') || nh.includes('suspend') || nh.includes('active')) {
+                                const sv = String(cells[hIdx] || '').trim().toLowerCase();
+                                if (['no', 'n', 'suspended', 'inactive', '1', 'permanently suspended'].includes(sv)) {
+                                    rowIsSuspended = true;
+                                }
+                            }
+                        });
+
+                        const sVal = String(val).trim();
+                        if (!rowIsSuspended && (sVal.length === 0 || sVal.toLowerCase() === 'none' || sVal.toLowerCase() === 'nil' || sVal === '-')) {
+                            isValid = false;
+                            errMsg = 'Assigned courses required for active accounts (e.g. MOBC, MOJCC)';
+                        }
+                    }
+
+                    // Check backend row validation errors
+                    if (rowValInfo && rowValInfo.errors) {
+                        if (colKey.includes('mobile') && rowValInfo.errors.mobile) {
+                            isValid = false;
+                            errMsg = rowValInfo.errors.mobile;
+                        }
+                        if (colKey.includes('course') && rowValInfo.errors.courses) {
+                            isValid = false;
+                            errMsg = rowValInfo.errors.courses;
+                        }
+                    }
+
+                    if (!isValid) {
+                        totalInvalidCells++;
+                        if (colKey.includes('pass')) warningReasons.add('Password policy');
+                        else if (colKey.includes('role') || colKey.includes('perm')) warningReasons.add('Role / Permissions');
+                        else if (colKey.includes('email')) warningReasons.add('Email address');
+                        else if (colKey.includes('mobile') || colKey.includes('phone') || colKey.includes('contact')) warningReasons.add('Mobile number');
+                        else if (colKey.includes('user')) warningReasons.add('Username format');
+                        else if (colKey.includes('first') || colKey.includes('last')) warningReasons.add('Name fields');
+                        else if (colKey.includes('status')) warningReasons.add('Active status');
+                        else if (colKey.includes('course')) warningReasons.add('Assigned courses');
+                        else warningReasons.add('Required fields');
+                    }
+
+                    const cellStyle = isValid
+                        ? `padding: 0.45rem 0.6rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: ${idx === 0 ? 'var(--gold-light)' : 'var(--text-main)'};`
+                        : `padding: 0.45rem 0.6rem; border-bottom: 1px solid rgba(239,68,68,0.4); background: rgba(239,68,68,0.18); color: #fca5a5; font-weight: 700;`;
+
+                    const maskVal = (colKey.includes('pass') && val) ? '••••••••' : val;
+                    bodyHtml += `<td style="${cellStyle}" title="${safeEsc(errMsg || 'Valid')}">${safeEsc(maskVal || 'EMPTY *')}${!isValid ? ' ⚠️' : ''}</td>`;
+                });
+                bodyHtml += '</tr>';
+            });
+            tbody.innerHTML = bodyHtml;
+
+            const hasErrors = (totalInvalidCells > 0 || hasFileDupMobiles || hasDbDupMobiles || (pData.error_count && pData.error_count > 0));
+            window.selectedBulkFileHasErrors = hasErrors;
+
+            if (hasFileDupMobiles || hasDbDupMobiles) {
+                const allDupStr = window.selectedBulkFileDuplicateMobilesList.join(', ');
+                summary.innerHTML = `<span style="color: #fca5a5; font-weight: 700;">⚠️ Detected ${totalRows} data row(s). Validation Error: Duplicate mobile number(s) detected: ${safeEsc(allDupStr)}. Mobile numbers must be globally unique across all accounts.</span>`;
+            } else if (hasErrors) {
+                const reasonStr = (pData.error_summary && pData.error_summary.length > 0)
+                    ? pData.error_summary.slice(0, 3).join(' • ')
+                    : Array.from(warningReasons).join(', ');
+                summary.innerHTML = `<span style="color: #fca5a5; font-weight: 600;">⚠️ Detected ${totalRows} data row(s). Validation warnings detected in ${safeEsc(reasonStr || 'highlighted fields')}.</span>`;
+            } else {
+                summary.innerHTML = `<span style="color: #86efac; font-weight: 600;">✓ Detected ${totalRows} data row(s). All required columns, unique mobile numbers, and course codes verified.</span>`;
+            }
+        } catch (err) {
+            console.error('Spreadsheet preview failed:', err);
+            // If it's a CSV file and network failed, try client-side CSV preview as fallback
+            if (['csv', 'tsv', 'txt'].includes(ext)) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    parseAndRenderCsvPreview(e.target.result, ext === 'tsv' ? '\t' : ',');
+                };
+                reader.readAsText(file);
+                return;
+            }
+
+            window.selectedBulkFileHasErrors = true;
+            summary.innerHTML = `<span style="color: #fca5a5; font-weight: 700;">⚠️ Validation Error: Could not inspect spreadsheet. ${safeEsc(err.message || 'Error parsing file')}</span>`;
+            thead.innerHTML = `<tr><th style="padding: 0.5rem 0.75rem; color: #fca5a5;">Validation Status</th><th style="padding: 0.5rem 0.75rem;">Action Required</th></tr>`;
+            tbody.innerHTML = `<tr><td style="padding: 0.6rem 0.75rem; color: #fca5a5; font-weight: 600;">Spreadsheet inspection failed (${safeEsc(file.name)})</td><td style="padding: 0.6rem 0.75rem; color: #fca5a5;">${safeEsc(err.message || 'File could not be parsed')}. Please check the file format or export as CSV and re-upload.</td></tr>`;
+            const submitBtn = document.getElementById('btn-submit-bulk-upload');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.5';
             }
         }
-    };
+    }
+
+    function validateRoleValue(val) {
+        if (!val || (typeof val !== 'string' && typeof val !== 'number')) {
+            return { isValid: false, normalized: null };
+        }
+        const raw = String(val).trim().toLowerCase();
+        if (!raw) return { isValid: false, normalized: null };
+
+        // Strip punctuation, whitespace, brackets, hyphens, underscores
+        const clean = raw.replace(/[^a-z0-9]/g, '');
+
+        // 1. Institute Admin checks (Institute Admin, instituteadmin, instituteadministrator, superadmin, etc.)
+        if (
+            clean === 'instituteadmin' ||
+            clean === 'instituteadministrator' ||
+            clean === 'superadmin' ||
+            clean === 'superadministrator' ||
+            clean === 'instadmin' ||
+            clean.includes('institute') ||
+            clean.includes('superadmin')
+        ) {
+            return { isValid: true, normalized: 'instituteadmin' };
+        }
+
+        // 2. Course Admin checks (Course Admin, courseadmin, courseadministrator, course, instructor, faculty, etc.)
+        if (
+            clean === 'courseadmin' ||
+            clean === 'courseadministrator' ||
+            clean === 'course' ||
+            clean === 'instructor' ||
+            clean === 'faculty' ||
+            clean === 'teacher' ||
+            clean.includes('course') ||
+            clean.includes('instructor') ||
+            clean.includes('faculty') ||
+            clean.includes('teach')
+        ) {
+            return { isValid: true, normalized: 'courseadmin' };
+        }
+
+        // 3. Student / Student Officer checks (Student Officer, student, officer, cadet, trainee)
+        if (
+            clean === 'student' ||
+            clean === 'studentofficer' ||
+            clean === 'officer' ||
+            clean === 'cadet' ||
+            clean === 'trainee' ||
+            clean.includes('student') ||
+            clean.includes('officer') ||
+            clean.includes('cadet') ||
+            clean.includes('trainee')
+        ) {
+            return { isValid: true, normalized: 'student' };
+        }
+
+        // 4. Fallback 'admin' or 'administrator' -> courseadmin
+        if (clean === 'admin' || clean === 'administrator') {
+            return { isValid: true, normalized: 'courseadmin' };
+        }
+
+        return { isValid: false, normalized: null };
+    }
+    window.validateRoleValue = validateRoleValue;
 
     function validatePasswordSecurityPolicy(pwd) {
         const s = String(pwd || '');
@@ -3893,6 +5314,47 @@
         const rawHeaders = lines[0].split(delimiter).map(h => h.trim().replace(/^["']|["']$/g, ''));
         const normHeaders = rawHeaders.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
 
+        // Identify mobile and username columns
+        let mobileColIdx = -1;
+        let userColIdx = -1;
+        normHeaders.forEach((nh, idx) => {
+            if (mobileColIdx === -1 && (nh.includes('mobile') || nh.includes('phone') || nh.includes('contact'))) {
+                mobileColIdx = idx;
+            }
+            if (userColIdx === -1 && (nh.includes('user') || nh.includes('login') || nh.includes('officer'))) {
+                userColIdx = idx;
+            }
+        });
+
+        // Pre-scan all data rows to detect duplicate mobile numbers
+        const dataLines = lines.slice(1);
+        const totalRows = dataLines.length;
+        const mobileMap = {};
+        const dupMobiles = new Set();
+        const dupDetails = {};
+
+        dataLines.forEach((line, rIdx) => {
+            const cells = line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ''));
+            if (mobileColIdx !== -1 && cells[mobileColIdx]) {
+                const rawMob = cells[mobileColIdx].trim();
+                const cleanMob = rawMob.replace(/\D/g, '');
+                if (cleanMob.length >= 10) {
+                    const norm10 = cleanMob.slice(-10);
+                    const uname = userColIdx !== -1 && cells[userColIdx] ? cells[userColIdx].trim() : `Row ${rIdx + 2}`;
+                    if (!mobileMap[norm10]) {
+                        mobileMap[norm10] = { mobile: rawMob, row: rIdx + 2, usernames: [uname] };
+                    } else {
+                        mobileMap[norm10].usernames.push(uname);
+                        dupMobiles.add(norm10);
+                        dupDetails[norm10] = mobileMap[norm10];
+                    }
+                }
+            }
+        });
+
+        window.selectedBulkFileHasDuplicateMobiles = (dupMobiles.size > 0);
+        window.selectedBulkFileDuplicateMobilesList = Array.from(dupMobiles).map(n10 => (dupDetails[n10] && dupDetails[n10].mobile) ? dupDetails[n10].mobile : n10);
+
         let headerHtml = '<tr>';
         rawHeaders.forEach(h => {
             headerHtml += `<th style="padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--border-subtle);">${safeEsc(h)}</th>`;
@@ -3901,6 +5363,7 @@
         thead.innerHTML = headerHtml;
 
         let totalInvalidCells = 0;
+        const warningReasons = new Set();
         let bodyHtml = '';
         const sampleRows = lines.slice(1, 6);
 
@@ -3941,11 +5404,19 @@
                         isValid = false;
                         errMsg = 'Valid official email address is required (e.g. officer@amc.gov.in)';
                     }
-                } else if (colKey.includes('mobile') || colKey.includes('phone')) {
+                } else if (colKey.includes('mobile') || colKey.includes('phone') || colKey.includes('contact')) {
                     const cleanPhone = val.replace(/\D/g, '');
                     if (cleanPhone.length < 10 || cleanPhone.length > 15) {
                         isValid = false;
                         errMsg = 'Mobile number must contain at least 10 valid digits';
+                    } else {
+                        const norm10 = cleanPhone.slice(-10);
+                        if (dupMobiles.has(norm10)) {
+                            isValid = false;
+                            const dInfo = dupDetails[norm10];
+                            const uList = (dInfo && dInfo.usernames && dInfo.usernames.length > 0) ? dInfo.usernames.join(', ') : 'multiple rows';
+                            errMsg = `Duplicate mobile number detected: Identical number (${val}) is used by multiple users (${uList}). Mobile numbers must be unique across all accounts.`;
+                        }
                     }
                 } else if (colKey.includes('status') || colKey.includes('suspend') || colKey.includes('active')) {
                     const s = val.toLowerCase();
@@ -3954,10 +5425,10 @@
                         errMsg = "Active Status must be 'Yes' (Active) or 'No' (Permanently Suspended)";
                     }
                 } else if (colKey.includes('role') || colKey.includes('perm')) {
-                    const r = val.toLowerCase();
-                    if (!['student', 'courseadmin', 'instituteadmin', 'officer', 'faculty', 'admin'].includes(r)) {
+                    const roleChk = validateRoleValue(val);
+                    if (!roleChk.isValid) {
                         isValid = false;
-                        errMsg = 'Role must be student, courseadmin, or instituteadmin';
+                        errMsg = 'Role must be student (Student Officer), courseadmin (Course Admin), or instituteadmin (Institute Admin)';
                     }
                 } else if (colKey.includes('course')) {
                     let rowIsSuspended = false;
@@ -3977,24 +5448,41 @@
                     }
                 }
 
-                if (!isValid) totalInvalidCells++;
+                if (!isValid) {
+                    totalInvalidCells++;
+                    if (colKey.includes('pass')) warningReasons.add('Password policy');
+                    else if (colKey.includes('role') || colKey.includes('perm')) warningReasons.add('Role / Permissions');
+                    else if (colKey.includes('email')) warningReasons.add('Email address');
+                    else if (colKey.includes('mobile') || colKey.includes('phone') || colKey.includes('contact')) warningReasons.add('Mobile number');
+                    else if (colKey.includes('user')) warningReasons.add('Username format');
+                    else if (colKey.includes('first') || colKey.includes('last')) warningReasons.add('Name fields');
+                    else if (colKey.includes('status')) warningReasons.add('Active status');
+                    else if (colKey.includes('course')) warningReasons.add('Assigned courses');
+                    else warningReasons.add('Required fields');
+                }
 
                 const cellStyle = isValid
                     ? `padding: 0.45rem 0.6rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: ${idx === 0 ? 'var(--gold-light)' : 'var(--text-main)'};`
-                    : `padding: 0.45rem 0.6rem; border-bottom: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.12); color: #fca5a5; font-weight: 600;`;
+                    : `padding: 0.45rem 0.6rem; border-bottom: 1px solid rgba(239,68,68,0.4); background: rgba(239,68,68,0.18); color: #fca5a5; font-weight: 700;`;
 
                 const maskVal = (colKey.includes('pass') && val) ? '••••••••' : val;
-                bodyHtml += `<td style="${cellStyle}" title="${errMsg || 'Valid'}">${safeEsc(maskVal || 'EMPTY *')}${!isValid ? ' ⚠️' : ''}</td>`;
+                bodyHtml += `<td style="${cellStyle}" title="${safeEsc(errMsg || 'Valid')}">${safeEsc(maskVal || 'EMPTY *')}${!isValid ? ' ⚠️' : ''}</td>`;
             });
             bodyHtml += '</tr>';
         });
         tbody.innerHTML = bodyHtml;
 
-        const totalRows = lines.length - 1;
-        if (totalInvalidCells > 0) {
-            summary.innerHTML = `<span style="color: #fca5a5; font-weight: 600;">⚠️ Detected ${totalRows} data row(s). Validation warnings detected (missing required fields or password policy failure).</span>`;
+        if (dupMobiles.size > 0) {
+            const dupListStr = Array.from(dupMobiles).map(n10 => {
+                const info = dupDetails[n10];
+                return info ? `${info.mobile} (${info.usernames.join(', ')})` : n10;
+            }).join('; ');
+            summary.innerHTML = `<span style="color: #fca5a5; font-weight: 700;">⚠️ Detected ${totalRows} data row(s). Validation Error: Duplicate mobile number(s) detected: ${safeEsc(dupListStr)}. Duplicate mobile numbers are strictly prohibited.</span>`;
+        } else if (totalInvalidCells > 0) {
+            const reasonStr = Array.from(warningReasons).join(', ');
+            summary.innerHTML = `<span style="color: #fca5a5; font-weight: 600;">⚠️ Detected ${totalRows} data row(s). Validation warnings detected in ${safeEsc(reasonStr || 'highlighted fields')}.</span>`;
         } else {
-            summary.innerHTML = `<span style="color: #86efac; font-weight: 600;">✓ Detected ${totalRows} data row(s). All required columns and password validation verified.</span>`;
+            summary.innerHTML = `<span style="color: #86efac; font-weight: 600;">✓ Detected ${totalRows} data row(s). All required columns and unique mobile numbers verified.</span>`;
         }
         preview.style.display = 'block';
     }
@@ -4007,6 +5495,37 @@
 
         const submitBtn = document.getElementById('btn-submit-bulk-upload');
         const statusBox = document.getElementById('bulk-upload-status');
+
+        const safeEsc = typeof esc === 'function' ? esc : function(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        };
+
+        if (window.selectedBulkFileHasDuplicateMobiles) {
+            const dupList = (window.selectedBulkFileDuplicateMobilesList && window.selectedBulkFileDuplicateMobilesList.length > 0)
+                ? window.selectedBulkFileDuplicateMobilesList.join(', ')
+                : 'detected numbers';
+            const errMsg = `Import blocked: Duplicate mobile numbers detected (${dupList}). Each user must have a unique mobile number. Please resolve duplicates in your spreadsheet and upload again.`;
+            if (statusBox) {
+                statusBox.style.display = 'block';
+                statusBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                statusBox.style.border = '1px solid rgba(239, 68, 68, 0.4)';
+                statusBox.style.color = '#fca5a5';
+                statusBox.innerHTML = `
+                    <div style="font-weight: 700; margin-bottom: 0.35rem;">⚠️ Cannot Import Spreadsheet</div>
+                    <div style="font-size: 0.82rem; line-height: 1.4;">${safeEsc(errMsg)}</div>
+                `;
+            }
+            if (typeof showToast === 'function') {
+                showToast(`Duplicate mobile number(s) detected: ${dupList}. Import blocked.`, 'error');
+            }
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<span>Import Users</span>`;
+            }
+            return;
+        }
 
         if (submitBtn) {
             submitBtn.disabled = true;
@@ -4023,12 +5542,6 @@
             statusBox.style.color = '#93c5fd';
             statusBox.innerHTML = 'Uploading and processing spreadsheet records...';
         }
-
-        const safeEsc = typeof esc === 'function' ? esc : function(s) {
-            const d = document.createElement('div');
-            d.textContent = s;
-            return d.innerHTML;
-        };
 
         try {
             const formData = new FormData();
@@ -4052,22 +5565,70 @@
                 const count = data.data?.created_count || 0;
                 const skipped = data.data?.skipped_count || 0;
                 const errors = data.data?.error_count || 0;
+                const errList = data.data?.errors || [];
 
-                if (statusBox) {
-                    statusBox.style.background = 'rgba(34, 197, 94, 0.12)';
-                    statusBox.style.border = '1px solid rgba(34, 197, 94, 0.3)';
-                    statusBox.style.color = '#86efac';
-                    statusBox.innerHTML = `
-                        <div style="font-weight: 700; margin-bottom: 0.35rem;">✓ ${safeEsc(data.message)}</div>
-                        <div style="font-size: 0.78rem; color: var(--text-muted);">
-                            • Created: <strong style="color: #4ade80;">${count}</strong> |
-                            • Skipped (Duplicates): <strong style="color: #facc15;">${skipped}</strong> |
-                            • Errors: <strong style="color: #f87171;">${errors}</strong>
+                let errHtml = '';
+                if (errList.length > 0) {
+                    errHtml = `
+                        <div style="margin-top: 0.6rem; padding: 0.55rem; background: rgba(0,0,0,0.35); border-radius: 6px; max-height: 140px; overflow-y: auto; font-size: 0.78rem; text-align: left; border: 1px solid rgba(239, 68, 68, 0.3);">
+                            <div style="font-weight: 700; color: #fca5a5; margin-bottom: 0.35rem;">⚠️ Rejected Record(s) Details:</div>
+                            ${errList.map(e => `<div style="color: #fca5a5; margin-bottom: 3px; line-height: 1.35;">• Row ${safeEsc(e.row || e.line || '?')}${e.username ? ` (User: <strong>${safeEsc(e.username)}</strong>)` : ''}: ${safeEsc(e.error || '')}</div>`).join('')}
                         </div>
                     `;
                 }
 
-                if (typeof showToast === 'function') showToast(data.message || `Successfully imported ${count} users`, 'success');
+                if (statusBox) {
+                    if (errors > 0 && count === 0) {
+                        statusBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                        statusBox.style.border = '1px solid rgba(239, 68, 68, 0.4)';
+                        statusBox.style.color = '#fca5a5';
+                        statusBox.innerHTML = `
+                            <div style="font-weight: 700; margin-bottom: 0.35rem;">❌ ${safeEsc(data.message)}</div>
+                            <div style="font-size: 0.78rem; color: #fca5a5;">
+                                • Created: <strong style="color: #4ade80;">${count}</strong> |
+                                • Skipped (Duplicates): <strong style="color: #facc15;">${skipped}</strong> |
+                                • Rejected Errors: <strong style="color: #f87171;">${errors}</strong>
+                            </div>
+                            ${errHtml}
+                        `;
+                    } else if (errors > 0) {
+                        statusBox.style.background = 'rgba(245, 158, 11, 0.15)';
+                        statusBox.style.border = '1px solid rgba(245, 158, 11, 0.4)';
+                        statusBox.style.color = '#fde047';
+                        statusBox.innerHTML = `
+                            <div style="font-weight: 700; margin-bottom: 0.35rem;">⚠️ ${safeEsc(data.message)}</div>
+                            <div style="font-size: 0.78rem; color: #fef08a;">
+                                • Created: <strong style="color: #4ade80;">${count}</strong> |
+                                • Skipped (Duplicates): <strong style="color: #facc15;">${skipped}</strong> |
+                                • Rejected Errors: <strong style="color: #f87171;">${errors}</strong>
+                            </div>
+                            ${errHtml}
+                        `;
+                    } else {
+                        statusBox.style.background = 'rgba(34, 197, 94, 0.12)';
+                        statusBox.style.border = '1px solid rgba(34, 197, 94, 0.3)';
+                        statusBox.style.color = '#86efac';
+                        statusBox.innerHTML = `
+                            <div style="font-weight: 700; margin-bottom: 0.35rem;">✓ ${safeEsc(data.message)}</div>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">
+                                • Created: <strong style="color: #4ade80;">${count}</strong> |
+                                • Skipped (Duplicates): <strong style="color: #facc15;">${skipped}</strong> |
+                                • Rejected Errors: <strong style="color: #4ade80;">0</strong>
+                            </div>
+                            ${errHtml}
+                        `;
+                    }
+                }
+
+                if (typeof showToast === 'function') {
+                    if (errors > 0 && count > 0) {
+                        showToast(`Import completed with ${errors} rejected record(s). Check details above.`, 'warning');
+                    } else if (errors > 0) {
+                        showToast(`Import rejected due to validation errors`, 'error');
+                    } else {
+                        showToast(data.message || `Successfully imported ${count} users`, 'success');
+                    }
+                }
                 if (typeof loadUsers === 'function') loadUsers();
                 const cancelBtn = document.getElementById('btn-cancel-bulk-upload');
                 if (cancelBtn) cancelBtn.textContent = 'Close';
@@ -4082,11 +5643,24 @@
                     `;
                 }
             } else {
+                const errList = data.data?.errors || [];
+                let errHtml = '';
+                if (errList.length > 0) {
+                    errHtml = `
+                        <div style="margin-top: 0.6rem; padding: 0.55rem; background: rgba(0,0,0,0.35); border-radius: 6px; max-height: 140px; overflow-y: auto; font-size: 0.78rem; text-align: left; border: 1px solid rgba(239, 68, 68, 0.3);">
+                            <div style="font-weight: 700; color: #fca5a5; margin-bottom: 0.35rem;">Detailed Errors:</div>
+                            ${errList.map(e => `<div style="color: #fca5a5; margin-bottom: 3px; line-height: 1.35;">• Row ${safeEsc(e.row || e.line || '?')}${e.username ? ` (User: <strong>${safeEsc(e.username)}</strong>)` : ''}: ${safeEsc(e.error || '')}</div>`).join('')}
+                        </div>
+                    `;
+                }
                 if (statusBox) {
-                    statusBox.style.background = 'rgba(239, 68, 68, 0.12)';
-                    statusBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                    statusBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    statusBox.style.border = '1px solid rgba(239, 68, 68, 0.4)';
                     statusBox.style.color = '#fca5a5';
-                    statusBox.innerHTML = `<strong>Error:</strong> ${safeEsc(data.message || 'Bulk upload failed')}`;
+                    statusBox.innerHTML = `
+                        <div style="font-weight: 700; margin-bottom: 0.35rem;"><strong>Error:</strong> ${safeEsc(data.message || 'Bulk upload failed')}</div>
+                        ${errHtml}
+                    `;
                 }
                 if (typeof showToast === 'function') showToast(data.message || 'Bulk upload failed', 'error');
                 if (submitBtn) {

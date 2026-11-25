@@ -161,14 +161,143 @@ function applyTheme(theme) {
     }
 }
 
-// Immediately initialize theme on script load
+// ============================================================
+// TIME FORMAT ENGINE (12-Hour AM/PM vs 24-Hour)
+// ============================================================
+let currentLoadedCanUpload = false;
+
+function getTimeFormat() {
+    return localStorage.getItem('otc_time_format') || '12h';
+}
+
+function setTimeFormat(format) {
+    const valid = (format === '24h') ? '24h' : '12h';
+    localStorage.setItem('otc_time_format', valid);
+    try {
+        document.cookie = `otc_time_format=${valid}; path=/; max-age=31536000; SameSite=Lax`;
+    } catch (e) {}
+    applyTimeFormatUI(valid);
+    refreshAllFormattedTimes();
+}
+window.setTimeFormat = setTimeFormat;
+
+function toggleTimeFormat() {
+    const current = getTimeFormat();
+    setTimeFormat(current === '12h' ? '24h' : '12h');
+}
+window.toggleTimeFormat = toggleTimeFormat;
+
+function applyTimeFormatUI(format) {
+    const is12 = (format === '12h');
+    
+    // Header toggle button label
+    const label = document.getElementById('time-format-label-text');
+    if (label) {
+        label.textContent = is12 ? '12-Hour' : '24-Hour';
+    }
+
+    const btn = document.getElementById('time-format-toggle-btn');
+    if (btn) {
+        btn.setAttribute('title', is12 ? 'Current: 12-Hour (AM/PM) • Click to switch to 24-Hour' : 'Current: 24-Hour • Click to switch to 12-Hour (AM/PM)');
+    }
+
+    // Settings popup buttons active state
+    const opt12 = document.getElementById('opt-time-12h');
+    const opt24 = document.getElementById('opt-time-24h');
+    if (opt12) {
+        opt12.style.background = is12 ? 'var(--gold-primary)' : 'transparent';
+        opt12.style.color = is12 ? '#000000' : 'var(--text-muted)';
+        opt12.style.fontWeight = is12 ? '700' : '500';
+    }
+    if (opt24) {
+        opt24.style.background = !is12 ? 'var(--gold-primary)' : 'transparent';
+        opt24.style.color = !is12 ? '#000000' : 'var(--text-muted)';
+        opt24.style.fontWeight = !is12 ? '700' : '500';
+    }
+}
+
+function formatTimeOnly(dateObj) {
+    const d = (dateObj instanceof Date) ? dateObj : new Date(dateObj);
+    if (isNaN(d.getTime())) return '';
+    const is12 = (getTimeFormat() === '12h');
+    const hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+
+    if (is12) {
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        let h12 = hours % 12;
+        if (h12 === 0) h12 = 12;
+        const hStr = String(h12).padStart(2, '0');
+        return `${hStr}:${minutes} ${ampm}`;
+    } else {
+        const hStr = String(hours).padStart(2, '0');
+        return `${hStr}:${minutes}`;
+    }
+}
+
+function formatDateTime(val) {
+    if (!val) return '-';
+    let d;
+    if (typeof val === 'number') {
+        d = new Date(val > 1e11 ? val : val * 1000);
+    } else if (typeof val === 'string') {
+        const trimmed = val.trim();
+        if (/^\d+$/.test(trimmed)) {
+            const num = Number(trimmed);
+            d = new Date(num > 1e11 ? num : num * 1000);
+        } else {
+            d = new Date(trimmed.replace(',', ''));
+            if (isNaN(d.getTime())) {
+                d = new Date(trimmed);
+            }
+        }
+    } else if (val instanceof Date) {
+        d = val;
+    }
+
+    if (!d || isNaN(d.getTime())) {
+        return val;
+    }
+
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    const timeStr = formatTimeOnly(d);
+
+    return `${day} ${month} ${year}, ${timeStr}`;
+}
+window.formatDateTime = formatDateTime;
+window.formatTimeOnly = formatTimeOnly;
+
+function refreshAllFormattedTimes() {
+    document.querySelectorAll('.ppt-time-val').forEach(el => {
+        const rawTime = el.getAttribute('data-raw-time');
+        if (rawTime) {
+            el.textContent = formatDateTime(rawTime);
+        }
+    });
+
+    if (Array.isArray(currentLoadedPpts) && currentLoadedPpts.length > 0) {
+        renderCoursePpts(currentLoadedPpts, currentLoadedCanUpload);
+    }
+}
+
+function initTimeFormat() {
+    const saved = getTimeFormat();
+    applyTimeFormatUI(saved);
+}
+
+// Immediately initialize theme and time format on script load
 initTheme();
+initTimeFormat();
 
 // ============================================================
 // INIT PORTAL
 // ============================================================
 function initPortal() {
     initTheme();
+    initTimeFormat();
     renderUserHeader();
     applyRoleUI();
     updateOfficerWatermark();
@@ -291,17 +420,21 @@ function applyRoleUI() {
         if (addCourseBtnWrapper) addCourseBtnWrapper.style.display = 'block';
     }
 
-    // Add Image option for Previous Commanders is visible EXCLUSIVELY to Institute Admin
-    const cmdAddBtn = document.getElementById('cmd-slider-add-btn');
-    if (cmdAddBtn) {
-        cmdAddBtn.style.display = isInstAdmin ? 'inline-flex' : 'none';
+    // Unified Image Management icon (Add & Delete) for Previous & Current Commanders (Institute Admin only)
+    const cmdManageWrapper = document.getElementById('cmd-manage-wrapper');
+    if (cmdManageWrapper) {
+        cmdManageWrapper.style.display = isInstAdmin ? 'inline-flex' : 'none';
+    }
+    const currCmdManageWrapper = document.getElementById('curr-cmd-manage-wrapper');
+    if (currCmdManageWrapper) {
+        currCmdManageWrapper.style.display = isInstAdmin ? 'inline-flex' : 'none';
+    }
+    const currCmdEditBioBtn = document.getElementById('btn-edit-current-commander-bio');
+    if (currCmdEditBioBtn) {
+        currCmdEditBioBtn.style.display = isInstAdmin ? 'inline-flex' : 'none';
     }
 
-    // Show add section button in classroom for editors
-    if (canEdit) {
-        const addSecBtn = document.getElementById('classroom-add-section-btn');
-        if (addSecBtn) addSecBtn.style.display = 'block';
-    }
+    // Section additions removed - sidebar acts as YouTube playlist for course presentations
 
     // Adjust resume banner text based on role (if banner exists)
     const resumeTagEl = document.getElementById('resume-tag-text');
@@ -703,56 +836,93 @@ async function openClassroom(courseId) {
     const addPptInline = document.getElementById('classroom-add-ppt-inline-wrapper');
     if (addPptInline) addPptInline.style.display = canUpload ? 'block' : 'none';
 
-    // Load sections from DB
-    try {
-        const res = await fetch('/api/sections?course_id=' + activeCourseId);
-        const data = await res.json();
-        if (data.status === 'success') {
-            renderSections(data.data);
-        }
-    } catch (e) {
-        console.warn('Failed to load sections:', e);
-    }
-
-    // Load presentations for this specific course
+    // Load presentations and populate sidebar playlist for this specific course
     loadCoursePpts(activeCourseId);
 }
 
-function renderSections(sections) {
+function renderClassroomPlaylist(ppts) {
     const list = document.getElementById('classroom-section-list');
     if (!list) return;
     list.innerHTML = '';
 
-    if (sections.length === 0) {
-        list.innerHTML = '<li style="padding: 1rem; color: var(--text-muted); font-size: 0.85rem;">No sections yet. ' +
-            (currentUser.can_edit ? 'Use "Add Section" to create content.' : 'Content is being prepared.') + '</li>';
+    const titleEl = document.getElementById('classroom-sidebar-title');
+    if (titleEl) {
+        titleEl.textContent = 'Course Playlist & Chapters';
+    }
+
+    if (!ppts || ppts.length === 0) {
+        list.innerHTML = `
+            <li style="padding: 1.5rem 1rem; text-align: center; color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color: var(--text-dim); margin-bottom: 0.5rem; display: block; margin: 0 auto 0.5rem auto;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                No presentations or lecture chapters uploaded for this course yet.
+            </li>
+        `;
         return;
     }
 
-    sections.forEach((sec, idx) => {
-        if (idx === 0 && !sec.name) return; // skip empty general section
+    ppts.forEach((ppt, idx) => {
+        const isPlayingThis = (activePlayingPptId === parseInt(ppt.id));
+        const safeTitle = escJs(ppt.title);
+        const slideCnt = parseInt(ppt.slide_count) || 1;
+
         const item = document.createElement('li');
-        item.className = 'module-item' + (idx === 1 ? ' active' : '');
+        item.className = 'module-item yt-playlist-item' + (isPlayingThis ? ' active playing' : '');
+        item.setAttribute('data-ppt-id', ppt.id);
+        item.setAttribute('title', `Play "${esc(ppt.title)}"`);
         item.onclick = () => {
-            document.querySelectorAll('.module-item').forEach(m => m.classList.remove('active'));
-            item.classList.add('active');
-            const secTitle = sec.name || 'Section ' + sec.section;
-            document.getElementById('classroom-section-title').textContent = secTitle;
-            const playStatus = document.getElementById('video-play-status');
-            if (playStatus && !isVideoPlaying) {
-                playStatus.textContent = 'Ready: ' + secTitle;
-            }
+            playPptVideo(ppt.id, safeTitle);
         };
+
+        let mediaTag = '';
+        if (ppt.has_media) {
+            if (ppt.media_type === 'video') {
+                mediaTag = `<span class="yt-badge video" style="font-size: 0.68rem; padding: 2px 6px; border-radius: 4px; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35); font-weight: 600;">Video</span>`;
+            } else if (ppt.media_type === 'audio') {
+                mediaTag = `<span class="yt-badge audio" style="font-size: 0.68rem; padding: 2px 6px; border-radius: 4px; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); font-weight: 600;">Audio</span>`;
+            }
+        }
+
+        const iconCol = isPlayingThis 
+            ? `<div class="yt-play-icon" style="color: var(--amc-crimson); display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0; background: rgba(136, 0, 21, 0.2); border-radius: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div>`
+            : `<div class="yt-item-index" style="width: 24px; height: 24px; border-radius: 4px; background: rgba(255,255,255,0.06); color: var(--text-muted); font-size: 0.76rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">${idx + 1}</div>`;
+
         item.innerHTML = `
-            <div class="module-check">${idx < 2 ? '✓' : ''}</div>
-            <div class="module-info">
-                <span class="module-name">${sec.section}. ${esc(sec.name || 'General')}</span>
-                <span class="module-duration">${esc(sec.summary || 'Lecture content')}</span>
+            ${iconCol}
+            <div class="module-info" style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 0.4rem; justify-content: space-between;">
+                    <span class="module-name" style="font-weight: 600; font-size: 0.88rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${esc(ppt.title)}</span>
+                    ${isPlayingThis ? '<span style="font-size: 0.64rem; font-weight: 700; color: var(--amc-crimson); text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; background: rgba(136,0,21,0.15); padding: 1px 5px; border-radius: 3px;">Playing</span>' : ''}
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.74rem; color: var(--text-muted); margin-top: 3px;">
+                    <span>${slideCnt} ${slideCnt === 1 ? 'Slide' : 'Slides'}</span>
+                    ${mediaTag ? `<span>•</span> ${mediaTag}` : ''}
+                </div>
             </div>
         `;
         list.appendChild(item);
     });
 }
+window.renderClassroomPlaylist = renderClassroomPlaylist;
+
+function playNextPlaylistPpt() {
+    if (!currentLoadedPpts || currentLoadedPpts.length === 0) return;
+    const currentIdx = currentLoadedPpts.findIndex(p => parseInt(p.id) === activePlayingPptId);
+    if (currentIdx !== -1 && currentIdx + 1 < currentLoadedPpts.length) {
+        const nextPpt = currentLoadedPpts[currentIdx + 1];
+        playPptVideo(nextPpt.id, nextPpt.title);
+    }
+}
+window.playNextPlaylistPpt = playNextPlaylistPpt;
+
+function playPrevPlaylistPpt() {
+    if (!currentLoadedPpts || currentLoadedPpts.length === 0) return;
+    const currentIdx = currentLoadedPpts.findIndex(p => parseInt(p.id) === activePlayingPptId);
+    if (currentIdx > 0) {
+        const prevPpt = currentLoadedPpts[currentIdx - 1];
+        playPptVideo(prevPpt.id, prevPpt.title);
+    }
+}
+window.playPrevPlaylistPpt = playPrevPlaylistPpt;
 
 // ============================================================
 // VIDEO THEATER & PLAYER CONTROLLER
@@ -761,6 +931,13 @@ function playPptVideo(pptId, pptTitle) {
     activePlayingPptId = parseInt(pptId);
     activePlayingPptTitle = pptTitle || 'Course Presentation';
     updateOfficerWatermark();
+
+    // Immediately update sidebar playlist to highlight currently playing presentation (YouTube-style)
+    renderClassroomPlaylist(currentLoadedPpts);
+
+    // Update section/chapter title in classroom header
+    const secTitle = document.getElementById('classroom-section-title');
+    if (secTitle) secTitle.textContent = activePlayingPptTitle;
 
     // Find the PPT object from loaded cache
     const ppt = currentLoadedPpts.find(p => parseInt(p.id) === activePlayingPptId);
@@ -864,6 +1041,7 @@ function closeClassroomVideo() {
     pauseVideoPlayback();
     activePlayingPptId = null;
     activePlayingPptTitle = '';
+    renderClassroomPlaylist(currentLoadedPpts);
 
     // Stop and reset HTML5 media elements
     const videoEl = document.getElementById('classroom-html5-video');
@@ -1377,6 +1555,8 @@ function setupVideoPlayerEvents() {
         videoEl.addEventListener('ended', () => {
             if (activeMediaMode === 'video') {
                 pauseVideoPlayback();
+                // Play next presentation/chapter in playlist like YouTube
+                playNextPlaylistPpt();
             }
         });
     }
@@ -1399,6 +1579,8 @@ function setupVideoPlayerEvents() {
         audioEl.addEventListener('ended', () => {
             if (activeMediaMode === 'audio') {
                 pauseVideoPlayback();
+                // Play next presentation/chapter in playlist like YouTube
+                playNextPlaylistPpt();
             }
         });
     }
@@ -1517,9 +1699,11 @@ async function loadCoursePpts(courseId) {
                 countBadge.textContent = `${currentLoadedPpts.length} Presentation${currentLoadedPpts.length === 1 ? '' : 's'}`;
             }
             renderCoursePpts(currentLoadedPpts, data.can_upload);
+            renderClassroomPlaylist(currentLoadedPpts);
         } else {
             currentLoadedPpts = [];
             if (countBadge) countBadge.textContent = '0 Presentations';
+            renderClassroomPlaylist([]);
             container.innerHTML = `
                 <div style="padding: 1.5rem; text-align: center; color: #ef4444; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; font-size: 0.88rem;">
                     <div style="font-weight: 600; margin-bottom: 0.35rem;">Unable to load presentations</div>
@@ -1544,6 +1728,7 @@ async function loadCoursePpts(courseId) {
 
 function renderCoursePpts(ppts, canUpload) {
     currentLoadedPpts = ppts || [];
+    currentLoadedCanUpload = !!canUpload;
     const container = document.getElementById('classroom-ppt-container');
     if (!container) return;
 
@@ -1580,10 +1765,10 @@ function renderCoursePpts(ppts, canUpload) {
         <table class="ppt-table">
             <thead>
                 <tr>
-                    <th style="min-width: 260px;">PPT Name</th>
-                    <th style="width: 140px;">Slides</th>
-                    <th style="min-width: 180px;">Upload Date & Time</th>
-                    <th style="min-width: ${canUpload ? '200px' : '110px'}; text-align: right;">Action</th>
+                    <th style="width: 42%; min-width: 240px; text-align: left;">PPT Name</th>
+                    <th style="width: 16%; min-width: 120px; text-align: left;">Slides</th>
+                    <th style="width: 22%; min-width: 170px; text-align: left;">Upload Date & Time</th>
+                    <th style="width: 20%; min-width: ${canUpload ? '180px' : '110px'}; text-align: left;">Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -1605,7 +1790,7 @@ function renderCoursePpts(ppts, canUpload) {
 
         html += `
             <tr class="${isPlayingThis ? 'active-playing-row' : ''}">
-                <td>
+                <td style="text-align: left;">
                     <div style="display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap;">
                         <div class="ppt-title-link" onclick="playPptVideo(${p.id}, '${safeTitle}')" title="Click to watch lecture video">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="color: var(--amc-crimson); flex-shrink: 0;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
@@ -1615,29 +1800,31 @@ function renderCoursePpts(ppts, canUpload) {
                         ${isPlayingThis ? '<span class="playing-pulse-indicator"><span class="playing-dot"></span>PLAYING</span>' : ''}
                     </div>
                 </td>
-                <td>
+                <td style="text-align: left;">
                     <span class="slide-count-badge">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                         <span>${slideCnt} ${slideCnt === 1 ? 'Slide' : 'Slides'}</span>
                     </span>
                 </td>
-                <td>
+                <td style="text-align: left;">
                     <div style="display: flex; align-items: center; gap: 0.45rem; color: var(--text-muted); font-size: 0.84rem;">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-dim); flex-shrink: 0;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                        <span>${esc(p.timecreated_formatted || '-')}</span>
+                        <span class="ppt-time-val" data-raw-time="${p.timecreated || p.timecreated_formatted}">${esc(formatDateTime(p.timecreated || p.timecreated_formatted))}</span>
                     </div>
                 </td>
-                <td style="text-align: right; white-space: nowrap;">
-                    <button class="btn-card" onclick="downloadCoursePpt(${p.id})" style="padding: 0.38rem 0.75rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem;" title="Download presentation file">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        <span>Download</span>
-                    </button>
-                    ${canUpload ? `
-                    <button class="btn-card danger" onclick="openDeletePptModal(${p.id}, '${safeTitle}')" style="padding: 0.38rem 0.7rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem; margin-left: 0.4rem; color: #f87171; border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.1);" title="Delete presentation">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        <span>Delete</span>
-                    </button>
-                    ` : ''}
+                <td style="text-align: left; white-space: nowrap;">
+                    <div style="display: flex; align-items: center; gap: 0.45rem;">
+                        <button class="btn-card" onclick="downloadCoursePpt(${p.id})" style="padding: 0.38rem 0.75rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem;" title="Download presentation file">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Download</span>
+                        </button>
+                        ${canUpload ? `
+                        <button class="btn-card danger" onclick="openDeletePptModal(${p.id}, '${safeTitle}')" style="padding: 0.38rem 0.7rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem; color: #f87171; border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.1);" title="Delete presentation">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            <span>Delete</span>
+                        </button>
+                        ` : ''}
+                    </div>
                 </td>
             </tr>
         `;
@@ -2041,14 +2228,31 @@ function renderUsers(users) {
     }
 
     users.forEach(u => {
-        const roleLabels = (u.roles || []).map(r => {
+        let userRolesList = [];
+        if (Array.isArray(u.roles) && u.roles.length > 0) {
+            userRolesList = u.roles;
+        } else if (u.role) {
+            userRolesList = [{ shortname: u.role, name: u.role_label || u.role }];
+        } else {
+            userRolesList = [{ shortname: 'student', name: 'Student Officer' }];
+        }
+
+        const roleLabels = userRolesList.map(r => {
             let cls = 'stud';
-            let label = r.shortname;
-            if (r.shortname === 'instituteadmin') { cls = 'inst'; label = 'Institute Admin'; }
-            else if (r.shortname === 'courseadmin') { cls = 'course'; label = 'Course Admin'; }
-            else { label = 'Student Officer'; }
+            let label = r.name || r.shortname || 'Student Officer';
+            const s = (r.shortname || r.name || '').toLowerCase();
+            if (s === 'instituteadmin' || s.includes('inst')) {
+                cls = 'inst';
+                label = 'Institute Admin';
+            } else if (s === 'courseadmin' || s.includes('course')) {
+                cls = 'course';
+                label = 'Course Admin';
+            } else {
+                cls = 'stud';
+                label = 'Student Officer';
+            }
             return `<span class="role-tag ${cls}">${esc(label)}</span>`;
-        }).join(' ') || '<span class="role-tag stud">Student Officer</span>';
+        }).join(' ');
 
         const statusTag = u.suspended == 1
             ? `<span class="badge-status-suspended"><span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#ef4444;"></span>Permanently Suspended</span>`
@@ -2206,7 +2410,7 @@ function openEditUserModal(userId) {
     document.getElementById('user-form-suspended').value = user.suspended || '0';
 
     // Primary role
-    let primaryRole = 'student';
+    let primaryRole = user.role || 'student';
     if (user.roles && user.roles.length > 0) {
         const r = user.roles[0].shortname;
         if (['instituteadmin', 'courseadmin', 'student'].includes(r)) {
@@ -2674,20 +2878,25 @@ function getBaselineCommanders() {
     return list;
 }
 
+let commandersLoaded = false;
+
 async function fetchCommandersList() {
     try {
         const res = await fetch('/api/commanders');
         if (res.ok) {
             const data = await res.json();
-            if (data && data.status === 'success' && Array.isArray(data.commanders) && data.commanders.length > 0) {
+            if (data && data.status === 'success' && Array.isArray(data.commanders)) {
                 allCommanders = data.commanders;
+                commandersLoaded = true;
                 return;
             }
         }
     } catch (e) {
         console.warn('Could not fetch commanders list from API, using baseline:', e);
     }
-    allCommanders = getBaselineCommanders();
+    if (!commandersLoaded && (!allCommanders || allCommanders.length === 0)) {
+        allCommanders = getBaselineCommanders();
+    }
 }
 
 function renderCommandersTrack() {
@@ -2695,7 +2904,14 @@ function renderCommandersTrack() {
     if (!track) return;
 
     if (!allCommanders || allCommanders.length === 0) {
-        allCommanders = getBaselineCommanders();
+        track.innerHTML = `
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; min-height:160px; color:var(--text-muted); font-size:0.85rem; text-align:center; padding:1.5rem; gap:0.4rem;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.4;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                <div style="font-weight:600;">No previous commander portraits currently displayed.</div>
+                <div style="font-size:0.75rem; opacity:0.75;">Click the <strong>[ 🖼️ ▾ ]</strong> button above to add a portrait.</div>
+            </div>
+        `;
+        return;
     }
 
     // Render two full sets for seamless infinite loop
@@ -2727,6 +2943,7 @@ async function initCommandersSlider() {
 
     await fetchCommandersList();
     renderCommandersTrack();
+    initCurrentCommandersSlider();
 
     // Normalizing wrap on user scroll (drag or touch)
     viewport.addEventListener('scroll', () => {
@@ -2815,14 +3032,30 @@ function stepCommanderSlider(direction) {
     viewport.scrollBy({ left: direction * stepSize, behavior: 'smooth' });
 }
 
+let activeCommanderLightboxMode = 'previous'; // 'previous' or 'current'
+
 // Lightbox modal methods
 function openCommanderLightbox(index) {
-    if (!allCommanders || allCommanders.length === 0) {
-        allCommanders = getBaselineCommanders();
-    }
+    if (!allCommanders || allCommanders.length === 0) return;
+    activeCommanderLightboxMode = 'previous';
     cmdLightboxIndex = parseInt(index) || 0;
     if (cmdLightboxIndex < 0) cmdLightboxIndex = 0;
     if (cmdLightboxIndex >= allCommanders.length) cmdLightboxIndex = allCommanders.length - 1;
+
+    updateCommanderLightboxView();
+    const modal = document.getElementById('commander-lightbox-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function openCurrentCommanderLightbox(index) {
+    if (!allCurrentCommanders || allCurrentCommanders.length === 0) return;
+    activeCommanderLightboxMode = 'current';
+    cmdLightboxIndex = parseInt(index) || 0;
+    if (cmdLightboxIndex < 0) cmdLightboxIndex = 0;
+    if (cmdLightboxIndex >= allCurrentCommanders.length) cmdLightboxIndex = allCurrentCommanders.length - 1;
 
     updateCommanderLightboxView();
     const modal = document.getElementById('commander-lightbox-modal');
@@ -2848,26 +3081,34 @@ function handleCommanderLightboxOverlayClick(e) {
 
 let lastCmdLightboxNavTime = 0;
 function navigateCommanderLightbox(dir) {
-    if (!allCommanders || allCommanders.length === 0) return;
+    const list = activeCommanderLightboxMode === 'current' ? allCurrentCommanders : allCommanders;
+    if (!list || list.length === 0) return;
     const now = Date.now();
     if (now - lastCmdLightboxNavTime < 150) return;
     lastCmdLightboxNavTime = now;
 
     cmdLightboxIndex += dir;
-    if (cmdLightboxIndex >= allCommanders.length) cmdLightboxIndex = 0;
-    if (cmdLightboxIndex < 0) cmdLightboxIndex = allCommanders.length - 1;
+    if (cmdLightboxIndex >= list.length) cmdLightboxIndex = 0;
+    if (cmdLightboxIndex < 0) cmdLightboxIndex = list.length - 1;
     updateCommanderLightboxView();
 }
 
 function updateCommanderLightboxView() {
     const img = document.getElementById('commander-modal-img');
     const caption = document.getElementById('commander-modal-caption');
-    const cmd = allCommanders[cmdLightboxIndex];
+    const heading = document.querySelector('.commander-modal-heading');
+    const list = activeCommanderLightboxMode === 'current' ? allCurrentCommanders : allCommanders;
+    const cmd = list[cmdLightboxIndex];
     if (!cmd) return;
 
+    if (heading) {
+        heading.textContent = activeCommanderLightboxMode === 'current'
+            ? 'Officers Training College — Current Leadership'
+            : 'Officers Training College — Roll of Honour';
+    }
     if (img) {
         img.src = cmd.image_url;
-        img.alt = cmd.title || 'Previous Commander of Officers Training College';
+        img.alt = cmd.title || (activeCommanderLightboxMode === 'current' ? 'Current Commander of Officers Training College' : 'Previous Commander of Officers Training College');
     }
     if (caption) {
         caption.textContent = cmd.sub_title || 'Officers Training College, AMC Centre and College, Lucknow';
@@ -2885,12 +3126,6 @@ function openAddCommanderModal() {
     selectedCommanderFile = null;
     const fileInput = document.getElementById('cmd-file-input');
     if (fileInput) fileInput.value = '';
-
-    const titleInput = document.getElementById('cmd-input-title');
-    if (titleInput) titleInput.value = '';
-
-    const subInput = document.getElementById('cmd-input-subtitle');
-    if (subInput) subInput.value = '';
 
     const promptEl = document.getElementById('cmd-dropzone-prompt');
     if (promptEl) promptEl.style.display = 'block';
@@ -3025,10 +3260,8 @@ function submitAddCommander(event) {
         return;
     }
 
-    const titleInput = document.getElementById('cmd-input-title');
-    const subInput = document.getElementById('cmd-input-subtitle');
-    const titleVal = titleInput ? titleInput.value.trim() : '';
-    const subVal = subInput ? subInput.value.trim() : '';
+    const titleVal = '';
+    const subVal = '';
 
     const submitBtn = document.getElementById('cmd-modal-submit-btn');
     const submitText = document.getElementById('cmd-modal-submit-text');
@@ -3122,13 +3355,792 @@ function submitAddCommander(event) {
     xhr.send(formData);
 }
 
+// ============================================================
+// COMMANDER IMAGE MANAGEMENT DROPDOWN (Add & Delete Controls)
+// ============================================================
+function toggleCommanderManageMenu(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    const menu = document.getElementById('cmd-manage-menu');
+    if (!menu) return;
+    const isShowing = menu.style.display === 'flex' || menu.style.display === 'block';
+    menu.style.display = isShowing ? 'none' : 'flex';
+}
+
+function closeCommanderManageMenu() {
+    const menu = document.getElementById('cmd-manage-menu');
+    if (menu) menu.style.display = 'none';
+}
+
+// Close commander management dropdown when clicking anywhere outside
+document.addEventListener('click', (e) => {
+    const wrapper = document.getElementById('cmd-manage-wrapper');
+    if (wrapper && !wrapper.contains(e.target)) {
+        closeCommanderManageMenu();
+    }
+    const currWrapper = document.getElementById('curr-cmd-manage-wrapper');
+    if (currWrapper && !currWrapper.contains(e.target)) {
+        closeCurrentCommanderManageMenu();
+    }
+});
+
+// ============================================================
+// DELETE COMMANDER MODAL & ACTIONS (Institute Admin Only)
+// ============================================================
+function openDeleteCommanderModal() {
+    if (!currentUser || currentUser.role !== 'instituteadmin') {
+        showToast('Access restricted: Only Institute Administrators can delete commander portraits.', 'error');
+        return;
+    }
+    const modal = document.getElementById('modal-delete-commander');
+    if (modal) {
+        renderDeleteCommanderGrid();
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeDeleteCommanderModal() {
+    const modal = document.getElementById('modal-delete-commander');
+    if (modal) modal.style.display = 'none';
+    updateBodyScrollState();
+}
+
+function handleCommanderDeleteModalOverlayClick(e) {
+    if (e.target.id === 'modal-delete-commander') {
+        closeDeleteCommanderModal();
+    }
+}
+
+function renderDeleteCommanderGrid() {
+    const grid = document.getElementById('cmd-delete-grid');
+    if (!grid) return;
+    if (!allCommanders || allCommanders.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-muted);">No commander portraits found.</div>';
+        return;
+    }
+    let html = '';
+    allCommanders.forEach((cmd, idx) => {
+        const title = esc(cmd.title || `Commander #${cmd.id}`);
+        const isCustom = cmd.type === 'custom';
+        const typeBadge = isCustom ? '<span style="font-size:0.65rem; background:rgba(212,175,55,0.2); color:#f3d779; padding:2px 6px; border-radius:4px; font-weight:700;">Uploaded</span>' : '';
+        html += `
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius: 8px; padding: 0.5rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.4rem;">
+                <div style="width: 100%; aspect-ratio: 3/4; overflow: hidden; border-radius: 6px; background: #000;">
+                    <img src="${esc(cmd.image_url)}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='previouscomd/1.jpg'">
+                </div>
+                ${typeBadge}
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-main); line-height: 1.2; max-height: 2.4em; overflow: hidden; text-overflow: ellipsis; width: 100%;">
+                    ${title}
+                </div>
+                <button type="button" class="btn-slider-ctrl btn-slider-delete" style="width: 100%; justify-content: center; padding: 0.3rem 0.4rem; font-size: 0.72rem;" onclick="executeDeleteCommander(${idx})">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <span>Delete</span>
+                </button>
+            </div>
+        `;
+    });
+    grid.innerHTML = html;
+}
+
+async function executeDeleteCommander(index) {
+    if (!currentUser || currentUser.role !== 'instituteadmin') {
+        showToast('Access denied: Only Institute Administrators can delete commander portraits.', 'error');
+        return;
+    }
+    const cmd = allCommanders[index];
+    if (!cmd) return;
+    const name = cmd.title || `Commander #${cmd.id}`;
+    if (!confirm(`Are you sure you want to delete "${name}" from the Roll of Honour?`)) {
+        return;
+    }
+    try {
+        const payload = {
+            id: cmd.id,
+            db_id: cmd.db_id || 0,
+            base_id: cmd.base_id || (cmd.type === 'base' ? cmd.id : 0),
+            type: cmd.type || 'base'
+        };
+        const token = csrfToken || sessionStorage.getItem('ek_csrf_token') || '';
+        const res = await fetch('/api/commanders/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': token
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+            showToast(data.message || 'Commander portrait deleted successfully', 'success');
+            await fetchCommandersList();
+            renderCommandersTrack();
+            renderDeleteCommanderGrid();
+            const lbModal = document.getElementById('commander-lightbox-modal');
+            if (lbModal && lbModal.style.display !== 'none') {
+                closeCommanderLightbox();
+            }
+        } else {
+            showToast(data.message || 'Failed to delete portrait', 'error');
+        }
+    } catch (err) {
+        console.error('Error deleting commander portrait:', err);
+        showToast('Network error while deleting commander portrait', 'error');
+    }
+}
+
+async function deleteCurrentLightboxCommander() {
+    await executeDeleteCommander(cmdLightboxIndex);
+}
+
+// ============================================================
+// CURRENT COMMANDERS AUTO-SLIDER, MANAGEMENT & UPLOAD
+// ============================================================
+let allCurrentCommanders = [];
+let currCmdSliderInitialized = false;
+let selectedCurrentCommanderFile = null;
+
+function getBaselineCurrentCommanders() {
+    return [{
+        id: 1,
+        base_id: 1,
+        type: 'base',
+        image_url: 'currentcomd/1.jpg',
+        title: 'Current Commander of Officers Training College',
+        sub_title: 'Officers Training College, AMC Centre and College, Lucknow'
+    }];
+}
+
+let currentCommandersLoaded = false;
+
+async function fetchCurrentCommandersList() {
+    try {
+        const res = await fetch('/api/current-commanders');
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.status === 'success' && Array.isArray(data.commanders)) {
+                allCurrentCommanders = data.commanders;
+                currentCommandersLoaded = true;
+                return;
+            }
+        }
+    } catch (e) {
+        console.warn('Could not fetch current commanders list from API, using baseline:', e);
+    }
+    if (!currentCommandersLoaded && (!allCurrentCommanders || allCurrentCommanders.length === 0)) {
+        allCurrentCommanders = getBaselineCurrentCommanders();
+    }
+}
+
+function renderCurrentCommandersTrack() {
+    const track = document.getElementById('curr-cmd-slider-track');
+    if (!track) return;
+
+    if (!allCurrentCommanders || allCurrentCommanders.length === 0) {
+        track.innerHTML = `
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; min-height:180px; color:var(--text-muted); font-size:0.88rem; text-align:center; padding:2rem; gap:0.5rem;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.4;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                <div style="font-weight:700;">No current commander portraits uploaded yet.</div>
+                <div style="font-size:0.75rem; opacity:0.75;">Click the <strong>[ 🖼️ ▾ ]</strong> button above to upload the active Commandant portrait.</div>
+            </div>
+        `;
+        return;
+    }
+
+    let cardsHtml = '';
+    allCurrentCommanders.forEach((cmd, idx) => {
+        const safeTitle = esc(cmd.title || 'Lt Gen Shivinder Singh, AVSM');
+        const safeSub = esc(cmd.sub_title || 'Comdt AMC C & C & OIC Records');
+        cardsHtml += `
+            <div class="curr-cmd-executive-card" data-idx="${idx}" onclick="openCurrentCommanderDetails(${idx})" title="Click to view details & bio-data">
+                <div class="curr-cmd-photo-frame">
+                    <img src="${esc(cmd.image_url)}" alt="${safeTitle}" loading="lazy" class="curr-cmd-photo" onerror="this.src='previouscomd/sample_commander.jpg'">
+                    <div class="curr-cmd-hover-action">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                        <span>View Details & Bio</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    track.innerHTML = cardsHtml;
+}
+
+let activeCurrentCommanderDetailIndex = 0;
+
+function openCurrentCommanderDetails(index) {
+    if (!allCurrentCommanders || allCurrentCommanders.length === 0) return;
+    const idx = parseInt(index) || 0;
+    activeCurrentCommanderDetailIndex = idx;
+    const cmd = allCurrentCommanders[idx];
+    if (!cmd) return;
+
+    const modal = document.getElementById('modal-current-commander-details');
+    if (!modal) return;
+
+    const photoEl = document.getElementById('curr-cmd-detail-photo');
+    const nameEl = document.getElementById('curr-cmd-detail-name');
+    const roleEl = document.getElementById('curr-cmd-detail-role');
+    const bannerEl = document.getElementById('curr-cmd-detail-banner');
+    const bioTitleEl = document.getElementById('curr-cmd-detail-bio-title');
+    const bioSubEl = document.getElementById('curr-cmd-detail-bio-sub');
+    const bodyEl = document.getElementById('curr-cmd-detail-body');
+    const editBtn = document.getElementById('btn-edit-current-commander-bio');
+
+    const name = cmd.title || 'Lt Gen Shivinder Singh, AVSM';
+    const role = cmd.sub_title || 'Comdt AMC C & C & OIC Records';
+    const banner = cmd.banner_title || "AMC CENTRE & COLLEGE COMMANDANT'S PAGE";
+    const bioData = cmd.bio_data || `1.   Lt Gen Shivinder Singh is an alumnus of the prestigious Armed Forces Medical College, Pune and was commissioned in the Army Medical Corps on 25 Dec 1987.\n\n2.   After completion of internship from Army Hosp R&R, during the initial phase of his service, the Gen Offr served with the Indian Peace Keeping Force (IPKF) in Sri Lanka as MO of 336 Fd Hosp, 36 Div deployed there and then 357 Fd Hosp, 57 Inf Div (IPKF & 3 Corps). The Gen Offr thereafter completed post graduation in Anaesthesiology from AFMC Pune in 1995. The Gen offr did Post Doctoral Certificate Course (Cardiac Critical Care) from the Escorts Heart Institute & Research Centre in 2003, Diploma in Critical Care Medicine from Indian Society of Critical Care Medicine in 2004 and Expeditionary Medical Support Course with US AF, from San Antonio, Texas in 2007. He also did Post Graduate Diploma in Healthcare Management from Baba Bhim Rao Ambedkar University in 2010.\n\n3.   In his 37 yrs of distinguished career, the Gen offr served as a Spl (Anaesthesiology) in multiple AFMS establishments first as a Graded Specialist at 181 MH (HQ, 5 Mtn Div), MH Jaipur, MH Ahmedabad and with UN mission at Sierra Leone and then as a Classified Specialist at Base Hospital Delhi Cantt, AFMC Pune and CH(EC). He was also appointed as Senior Advisor (Anaesthesiology) at CH(WC) Chandimandir, Professor & HOD at AFMC Pune and Consultant (Anaesthesiology) at Army Hosp (R&R) Delhi Cantt. Later he was appointed as Dy Comdt & CI at AMC Centre & College, Lucknow.`;
+
+    if (photoEl) photoEl.src = cmd.image_url;
+    if (nameEl) nameEl.textContent = name;
+    if (roleEl) roleEl.textContent = role;
+    if (bannerEl) bannerEl.innerHTML = `<span>${esc(banner)}</span>`;
+    if (bioTitleEl) bioTitleEl.textContent = `BIO-DATA : ${name.toUpperCase()}`;
+    if (bioSubEl) bioSubEl.textContent = role.toUpperCase();
+
+    // Render numbered bio paragraphs matching the uploaded design
+    if (bodyEl) {
+        const paragraphs = bioData.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+        let bioHtml = '';
+        paragraphs.forEach((p, pIdx) => {
+            const trimmed = p.trim();
+            const numMatch = trimmed.match(/^(\d+)[\.\)]\s*([\s\S]*)$/);
+            let numStr = String(pIdx + 1).padStart(2, '0');
+            let contentStr = trimmed;
+            if (numMatch) {
+                numStr = String(numMatch[1]).padStart(2, '0');
+                contentStr = numMatch[2].trim();
+            }
+            bioHtml += `
+                <div class="commandant-bio-paragraph">
+                    <div class="commandant-bio-num">${esc(numStr)}</div>
+                    <div class="commandant-bio-text">${esc(contentStr)}</div>
+                </div>
+            `;
+        });
+        bodyEl.innerHTML = bioHtml;
+    }
+
+    if (editBtn) {
+        editBtn.style.display = (currentUser && currentUser.role === 'instituteadmin') ? 'inline-flex' : 'none';
+    }
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeCurrentCommanderDetails() {
+    const modal = document.getElementById('modal-current-commander-details');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+function handleCurrentCommanderDetailsOverlayClick(e) {
+    if (e.target.id === 'modal-current-commander-details') {
+        closeCurrentCommanderDetails();
+    }
+}
+
+function openEditCurrentCommanderBioModal() {
+    const cmd = allCurrentCommanders[activeCurrentCommanderDetailIndex];
+    if (!cmd) return;
+
+    const idInput = document.getElementById('edit-curr-cmd-id');
+    const dbIdInput = document.getElementById('edit-curr-cmd-db-id');
+    const typeInput = document.getElementById('edit-curr-cmd-type');
+    const nameInput = document.getElementById('edit-curr-cmd-name');
+    const roleInput = document.getElementById('edit-curr-cmd-role');
+    const bannerInput = document.getElementById('edit-curr-cmd-banner');
+    const bioInput = document.getElementById('edit-curr-cmd-biodata');
+
+    if (idInput) idInput.value = cmd.id || 0;
+    if (dbIdInput) dbIdInput.value = cmd.db_id || 0;
+    if (typeInput) typeInput.value = cmd.type || '';
+    if (nameInput) nameInput.value = cmd.title || 'Lt Gen Shivinder Singh, AVSM';
+    if (roleInput) roleInput.value = cmd.sub_title || 'Comdt AMC C & C & OIC Records';
+    if (bannerInput) bannerInput.value = cmd.banner_title || "AMC CENTRE & COLLEGE COMMANDANT'S PAGE";
+    if (bioInput) bioInput.value = cmd.bio_data || `1.   Lt Gen Shivinder Singh is an alumnus of the prestigious Armed Forces Medical College, Pune and was commissioned in the Army Medical Corps on 25 Dec 1987.\n\n2.   After completion of internship from Army Hosp R&R, during the initial phase of his service, the Gen Offr served with the Indian Peace Keeping Force (IPKF) in Sri Lanka as MO of 336 Fd Hosp, 36 Div deployed there and then 357 Fd Hosp, 57 Inf Div (IPKF & 3 Corps). The Gen Offr thereafter completed post graduation in Anaesthesiology from AFMC Pune in 1995. The Gen offr did Post Doctoral Certificate Course (Cardiac Critical Care) from the Escorts Heart Institute & Research Centre in 2003, Diploma in Critical Care Medicine from Indian Society of Critical Care Medicine in 2004 and Expeditionary Medical Support Course with US AF, from San Antonio, Texas in 2007. He also did Post Graduate Diploma in Healthcare Management from Baba Bhim Rao Ambedkar University in 2010.\n\n3.   In his 37 yrs of distinguished career, the Gen offr served as a Spl (Anaesthesiology) in multiple AFMS establishments first as a Graded Specialist at 181 MH (HQ, 5 Mtn Div), MH Jaipur, MH Ahmedabad and with UN mission at Sierra Leone and then as a Classified Specialist at Base Hospital Delhi Cantt, AFMC Pune and CH(EC). He was also appointed as Senior Advisor (Anaesthesiology) at CH(WC) Chandimandir, Professor & HOD at AFMC Pune and Consultant (Anaesthesiology) at Army Hosp (R&R) Delhi Cantt. Later he was appointed as Dy Comdt & CI at AMC Centre & College, Lucknow.`;
+
+    // Hide details modal so edit box opens directly front-and-center
+    const detailsModal = document.getElementById('modal-current-commander-details');
+    if (detailsModal) {
+        detailsModal.style.display = 'none';
+    }
+
+    const editModal = document.getElementById('modal-edit-current-commander-bio');
+    if (editModal) {
+        editModal.style.display = 'flex';
+        editModal.classList.add('visible');
+    }
+}
+
+function closeEditCurrentCommanderBioModal() {
+    const editModal = document.getElementById('modal-edit-current-commander-bio');
+    if (editModal) {
+        editModal.style.display = 'none';
+        editModal.classList.remove('visible');
+    }
+    // Return to the details modal view
+    openCurrentCommanderDetails(activeCurrentCommanderDetailIndex);
+}
+
+function handleEditCurrentCommanderBioOverlayClick(e) {
+    if (e.target.id === 'modal-edit-current-commander-bio') {
+        closeEditCurrentCommanderBioModal();
+    }
+}
+
+async function submitEditCurrentCommanderBio(e) {
+    if (e) e.preventDefault();
+    if (!currentUser || currentUser.role !== 'instituteadmin') {
+        showToast('Access denied: Only Institute Administrators can edit commander details.', 'error');
+        return;
+    }
+
+    const saveBtn = document.getElementById('btn-save-curr-cmd-bio');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+    }
+
+    try {
+        const payload = {
+            id: parseInt(document.getElementById('edit-curr-cmd-id').value) || 0,
+            db_id: parseInt(document.getElementById('edit-curr-cmd-db-id').value) || 0,
+            type: document.getElementById('edit-curr-cmd-type').value || '',
+            title: document.getElementById('edit-curr-cmd-name').value.trim(),
+            sub_title: document.getElementById('edit-curr-cmd-role').value.trim(),
+            banner_title: document.getElementById('edit-curr-cmd-banner').value.trim(),
+            bio_data: document.getElementById('edit-curr-cmd-biodata').value.trim()
+        };
+
+        const token = csrfToken || sessionStorage.getItem('ek_csrf_token') || '';
+        const res = await fetch('/api/current-commanders/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': token
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+            showToast(data.message || 'Details updated successfully', 'success');
+            const editModal = document.getElementById('modal-edit-current-commander-bio');
+            if (editModal) {
+                editModal.style.display = 'none';
+                editModal.classList.remove('visible');
+            }
+            await fetchCurrentCommandersList();
+            renderCurrentCommandersTrack();
+            openCurrentCommanderDetails(activeCurrentCommanderDetailIndex);
+        } else {
+            showToast(data.message || 'Failed to update details', 'error');
+        }
+    } catch (err) {
+        console.error('Error updating commander details:', err);
+        showToast('Network error while saving details', 'error');
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Changes';
+        }
+    }
+}
+
+async function initCurrentCommandersSlider() {
+    if (currCmdSliderInitialized) return;
+    const track = document.getElementById('curr-cmd-slider-track');
+    if (!track) return;
+
+    currCmdSliderInitialized = true;
+    await fetchCurrentCommandersList();
+    renderCurrentCommandersTrack();
+    initCurrentCommanderUploadDropzone();
+}
+
+function stepCurrentCommanderSlider(direction) {
+    // Retained for backward compatibility
+}
+
+function toggleCurrentCommanderManageMenu(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    const menu = document.getElementById('curr-cmd-manage-menu');
+    if (!menu) return;
+    const isShowing = menu.style.display === 'flex' || menu.style.display === 'block';
+    menu.style.display = isShowing ? 'none' : 'flex';
+}
+
+function closeCurrentCommanderManageMenu() {
+    const menu = document.getElementById('curr-cmd-manage-menu');
+    if (menu) menu.style.display = 'none';
+}
+
+function openAddCurrentCommanderModal() {
+    if (!currentUser || currentUser.role !== 'instituteadmin') {
+        showToast('Access restricted: Only Institute Administrators can add commander portraits.', 'error');
+        return;
+    }
+    selectedCurrentCommanderFile = null;
+    const fileInput = document.getElementById('curr-cmd-file-input');
+    if (fileInput) fileInput.value = '';
+
+    const promptEl = document.getElementById('curr-cmd-dropzone-prompt');
+    if (promptEl) promptEl.style.display = 'block';
+
+    const prevContainer = document.getElementById('curr-cmd-preview-container');
+    if (prevContainer) prevContainer.style.display = 'none';
+
+    const errEl = document.getElementById('curr-cmd-upload-error');
+    if (errEl) {
+        errEl.textContent = '';
+        errEl.style.display = 'none';
+    }
+
+    const progContainer = document.getElementById('curr-cmd-upload-progress');
+    if (progContainer) progContainer.style.display = 'none';
+
+    const submitBtn = document.getElementById('curr-cmd-modal-submit-btn');
+    if (submitBtn) submitBtn.disabled = false;
+
+    const modal = document.getElementById('modal-add-current-commander');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeAddCurrentCommanderModal() {
+    const modal = document.getElementById('modal-add-current-commander');
+    if (modal) modal.style.display = 'none';
+    updateBodyScrollState();
+}
+
+function handleCurrentCommanderModalOverlayClick(e) {
+    if (e.target.id === 'modal-add-current-commander') {
+        closeAddCurrentCommanderModal();
+    }
+}
+
+function initCurrentCommanderUploadDropzone() {
+    const dropzone = document.getElementById('curr-cmd-upload-dropzone');
+    if (!dropzone) return;
+
+    ['dragenter', 'dragover'].forEach(name => {
+        dropzone.addEventListener(name, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.add('drag-active');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(name => {
+        dropzone.addEventListener(name, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove('drag-active');
+        }, false);
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        if (dt && dt.files && dt.files.length > 0) {
+            validateAndSelectCurrentCommanderFile(dt.files[0]);
+        }
+    }, false);
+}
+
+function handleCurrentCommanderFileSelect(e) {
+    if (e.target.files && e.target.files.length > 0) {
+        validateAndSelectCurrentCommanderFile(e.target.files[0]);
+    }
+}
+
+function validateAndSelectCurrentCommanderFile(file) {
+    const errEl = document.getElementById('curr-cmd-upload-error');
+    if (errEl) errEl.style.display = 'none';
+
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type.toLowerCase())) {
+        if (errEl) {
+            errEl.textContent = 'Invalid file type. Please choose a JPG, PNG or WEBP image.';
+            errEl.style.display = 'block';
+        }
+        return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+        if (errEl) {
+            errEl.textContent = 'Selected image is too large. Maximum file size is 15MB.';
+            errEl.style.display = 'block';
+        }
+        return;
+    }
+
+    selectedCurrentCommanderFile = file;
+
+    const promptEl = document.getElementById('curr-cmd-dropzone-prompt');
+    const prevContainer = document.getElementById('curr-cmd-preview-container');
+    const prevImg = document.getElementById('curr-cmd-preview-img');
+    const prevName = document.getElementById('curr-cmd-preview-name');
+    const prevSize = document.getElementById('curr-cmd-preview-size');
+
+    if (promptEl) promptEl.style.display = 'none';
+    if (prevName) prevName.textContent = file.name;
+    if (prevSize) prevSize.textContent = formatCmdFileSize(file.size);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        if (prevImg) prevImg.src = event.target.result;
+        if (prevContainer) prevContainer.style.display = 'flex';
+    };
+    reader.readAsDataURL(file);
+}
+
+function submitAddCurrentCommander(event) {
+    if (event) event.preventDefault();
+
+    if (!currentUser || currentUser.role !== 'instituteadmin') {
+        showToast('Access denied: Only Institute Administrators can upload commander portraits.', 'error');
+        closeAddCurrentCommanderModal();
+        return;
+    }
+
+    const errEl = document.getElementById('curr-cmd-upload-error');
+    if (!selectedCurrentCommanderFile) {
+        if (errEl) {
+            errEl.textContent = 'Please choose a commander portrait image to upload.';
+            errEl.style.display = 'block';
+        }
+        return;
+    }
+
+    const submitBtn = document.getElementById('curr-cmd-modal-submit-btn');
+    const submitText = document.getElementById('curr-cmd-modal-submit-text');
+    const cancelBtn = document.getElementById('curr-cmd-modal-cancel-btn');
+    const progContainer = document.getElementById('curr-cmd-upload-progress');
+    const progBar = document.getElementById('curr-cmd-upload-bar');
+    const progPercent = document.getElementById('curr-cmd-upload-percent');
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (submitText) submitText.textContent = 'Uploading...';
+    if (progContainer) progContainer.style.display = 'block';
+    if (progBar) progBar.style.width = '0%';
+    if (progPercent) progPercent.textContent = '0%';
+    if (errEl) errEl.style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('image', selectedCurrentCommanderFile);
+    formData.append('title', 'Current Commander of Officers Training College');
+    formData.append('sub_title', 'Officers Training College, AMC Centre and College, Lucknow');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/current-commanders/upload', true);
+    const cmdUploadToken = csrfToken || sessionStorage.getItem('ek_csrf_token') || '';
+    if (cmdUploadToken) {
+        xhr.setRequestHeader('X-CSRF-Token', cmdUploadToken);
+    }
+
+    xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            if (progBar) progBar.style.width = percent + '%';
+            if (progPercent) progPercent.textContent = percent + '%';
+        }
+    };
+
+    xhr.onload = () => {
+        let resp = null;
+        try {
+            resp = JSON.parse(xhr.responseText);
+        } catch (ex) {
+            resp = null;
+        }
+
+        if (xhr.status >= 200 && xhr.status < 300 && resp && resp.status === 'success') {
+            if (progBar) progBar.style.width = '100%';
+            if (progPercent) progPercent.textContent = '100%';
+
+            if (resp.commander) {
+                allCurrentCommanders.push(resp.commander);
+            }
+
+            renderCurrentCommandersTrack();
+            showToast(resp.message || 'Current commander portrait added successfully', 'success');
+            closeAddCurrentCommanderModal();
+        } else {
+            const msg = (resp && resp.message) ? resp.message : ('Upload failed (HTTP ' + xhr.status + ')');
+            if (errEl) {
+                errEl.textContent = msg;
+                errEl.style.display = 'block';
+            }
+            showToast(msg, 'error');
+        }
+
+        if (submitBtn) submitBtn.disabled = false;
+        if (cancelBtn) cancelBtn.disabled = false;
+        if (submitText) submitText.textContent = 'Add Commander';
+    };
+
+    xhr.onerror = () => {
+        const msg = 'Network connection error while uploading commander image.';
+        if (errEl) {
+            errEl.textContent = msg;
+            errEl.style.display = 'block';
+        }
+        showToast(msg, 'error');
+        if (submitBtn) submitBtn.disabled = false;
+        if (cancelBtn) cancelBtn.disabled = false;
+        if (submitText) submitText.textContent = 'Add Commander';
+    };
+
+    xhr.send(formData);
+}
+
+// Current Commander Delete functions
+function openDeleteCurrentCommanderModal() {
+    if (!currentUser || currentUser.role !== 'instituteadmin') {
+        showToast('Access restricted: Only Institute Administrators can delete commander portraits.', 'error');
+        return;
+    }
+    const modal = document.getElementById('modal-delete-current-commander');
+    if (modal) {
+        renderDeleteCurrentCommanderGrid();
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeDeleteCurrentCommanderModal() {
+    const modal = document.getElementById('modal-delete-current-commander');
+    if (modal) modal.style.display = 'none';
+    updateBodyScrollState();
+}
+
+function handleCurrentCommanderDeleteModalOverlayClick(e) {
+    if (e.target.id === 'modal-delete-current-commander') {
+        closeDeleteCurrentCommanderModal();
+    }
+}
+
+function renderDeleteCurrentCommanderGrid() {
+    const grid = document.getElementById('curr-cmd-delete-grid');
+    if (!grid) return;
+    if (!allCurrentCommanders || allCurrentCommanders.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-muted);">No current commander portraits found.</div>';
+        return;
+    }
+    let html = '';
+    allCurrentCommanders.forEach((cmd, idx) => {
+        const title = esc(cmd.title || `Commander #${cmd.id}`);
+        const isCustom = cmd.type === 'custom';
+        const typeBadge = isCustom ? '<span style="font-size:0.65rem; background:rgba(212,175,55,0.2); color:#f3d779; padding:2px 6px; border-radius:4px; font-weight:700;">Uploaded</span>' : '';
+        html += `
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius: 8px; padding: 0.5rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.4rem;">
+                <div style="width: 100%; aspect-ratio: 3/4; overflow: hidden; border-radius: 6px; background: #000;">
+                    <img src="${esc(cmd.image_url)}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='previouscomd/sample_commander.jpg'">
+                </div>
+                ${typeBadge}
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-main); line-height: 1.2; max-height: 2.4em; overflow: hidden; text-overflow: ellipsis; width: 100%;">
+                    ${title}
+                </div>
+                <button type="button" class="btn-slider-ctrl btn-slider-delete" style="width: 100%; justify-content: center; padding: 0.3rem 0.4rem; font-size: 0.72rem;" onclick="executeDeleteCurrentCommander(${idx})">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <span>Delete</span>
+                </button>
+            </div>
+        `;
+    });
+    grid.innerHTML = html;
+}
+
+async function executeDeleteCurrentCommander(index) {
+    if (!currentUser || currentUser.role !== 'instituteadmin') {
+        showToast('Access denied: Only Institute Administrators can delete commander portraits.', 'error');
+        return;
+    }
+    const cmd = allCurrentCommanders[index];
+    if (!cmd) return;
+    const name = cmd.title || `Commander #${cmd.id}`;
+    if (!confirm(`Are you sure you want to delete "${name}" from the Current Commanders?`)) {
+        return;
+    }
+    try {
+        const payload = {
+            id: cmd.id,
+            db_id: cmd.db_id || 0,
+            base_id: cmd.base_id || (cmd.type === 'base' ? cmd.id : 0),
+            type: cmd.type || 'base'
+        };
+        const token = csrfToken || sessionStorage.getItem('ek_csrf_token') || '';
+        const res = await fetch('/api/current-commanders/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': token
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+            showToast(data.message || 'Current commander portrait deleted successfully', 'success');
+            await fetchCurrentCommandersList();
+            renderCurrentCommandersTrack();
+            renderDeleteCurrentCommanderGrid();
+            const lbModal = document.getElementById('commander-lightbox-modal');
+            if (lbModal && lbModal.style.display !== 'none' && activeCommanderLightboxMode === 'current') {
+                closeCommanderLightbox();
+            }
+        } else {
+            showToast(data.message || 'Failed to delete portrait', 'error');
+        }
+    } catch (err) {
+        console.error('Error deleting current commander portrait:', err);
+        showToast('Network error while deleting commander portrait', 'error');
+    }
+}
+
 // Global key controls for lightbox & modals
 window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+        const cmdDetailsModal = document.getElementById('modal-current-commander-details');
+        if (cmdDetailsModal && cmdDetailsModal.style.display === 'flex') {
+            closeCurrentCommanderDetails();
+            updateBodyScrollState();
+            return;
+        }
+        const editBioModal = document.getElementById('modal-edit-current-commander-bio');
+        if (editBioModal && editBioModal.style.display === 'flex') {
+            closeEditCurrentCommanderBioModal();
+            updateBodyScrollState();
+            return;
+        }
         const lbModal = document.getElementById('commander-lightbox-modal');
         if (lbModal && (lbModal.style.display === 'flex' || lbModal.classList.contains('visible'))) {
             closeCommanderLightbox();
             updateBodyScrollState();
+            return;
+        }
+        const delModal = document.getElementById('modal-delete-commander');
+        if (delModal && delModal.style.display === 'flex') {
+            closeDeleteCommanderModal();
+            return;
+        }
+        const currDelModal = document.getElementById('modal-delete-current-commander');
+        if (currDelModal && currDelModal.style.display === 'flex') {
+            closeDeleteCurrentCommanderModal();
             return;
         }
         const openModals = document.querySelectorAll('.modal-overlay.visible');
@@ -3136,6 +4148,12 @@ window.addEventListener('keydown', (e) => {
             const topModal = openModals[openModals.length - 1];
             if (topModal.id === 'modal-add-commander') {
                 closeAddCommanderModal();
+            } else if (topModal.id === 'modal-delete-commander') {
+                closeDeleteCommanderModal();
+            } else if (topModal.id === 'modal-add-current-commander') {
+                closeAddCurrentCommanderModal();
+            } else if (topModal.id === 'modal-delete-current-commander') {
+                closeDeleteCurrentCommanderModal();
             } else if (topModal.id === 'modal-wifi-security') {
                 closeWifiSecurityModal();
             } else {

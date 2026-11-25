@@ -16,8 +16,11 @@
     // State container
     const state = {
         isLocked: false,
+        isDismissed: (sessionStorage.getItem('otc_wifi_lockdown_dismissed') === 'true'),
         isPolling: false,
-        pollIntervalMs: 2500,
+        pollIntervalMs: 15000, // 15s interval: avoids aggressive false alarms and network spam
+        consecutiveFailures: 0,
+        failureThreshold: 3, // Require 3 consecutive confirmed failures before locking down
         timerId: null,
         pausedMedia: [],
         lastViolationReason: '',
@@ -58,6 +61,9 @@
 
         overlay.innerHTML = `
             <div class="wifi-lock-card" id="wifi-lock-card">
+                <button type="button" class="btn-wifi-close" onclick="window.WifiGuard.dismissLockdown()" title="Acknowledge & Close" aria-label="Close">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
                 <div class="wifi-lock-header">
                     <img src="/college-crest.png" alt="OTC Crest" class="wifi-lock-emblem" onerror="this.src='/OTC.png'; this.onerror=null;">
                     <div class="wifi-lock-badge">
@@ -121,6 +127,10 @@
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
                         <span>Scan &amp; Re-verify Network</span>
                     </button>
+                    <button type="button" class="btn-wifi-dismiss" id="btn-wifi-dismiss" onclick="window.WifiGuard.dismissLockdown()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Acknowledge &amp; Dismiss</span>
+                    </button>
                 </div>
             </div>
         `;
@@ -149,10 +159,10 @@
     }
 
     // Perform verification against /api/wifi-heartbeat
-    async function checkHeartbeat() {
+    async function checkHeartbeat(forceCheck = false) {
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3500);
+            const timeoutId = setTimeout(() => controller.abort(), 7000);
 
             const res = await fetch('/api/wifi-heartbeat?_t=' + Date.now(), {
                 method: 'GET',
@@ -164,6 +174,7 @@
             if (res.status === 200) {
                 const data = await res.json();
                 if (data.allowed) {
+                    state.consecutiveFailures = 0;
                     if (state.isLocked) {
                         deactivateLockdown(data.data);
                     } else {
@@ -179,23 +190,37 @@
                 errData = await res.json();
             } catch (_) {}
 
+            state.consecutiveFailures++;
             const reason = (errData && errData.message)
                 ? errData.message
                 : 'Connected to an untrusted Wi-Fi network or access point.';
 
-            activateLockdown(reason, errData ? errData.data : null);
+            if (forceCheck || state.consecutiveFailures >= state.failureThreshold) {
+                activateLockdown(reason, errData ? errData.data : null, forceCheck);
+            }
 
         } catch (fetchErr) {
-            // Server is unreachable - client left local Wi-Fi or router dropped
-            activateLockdown('Offline server unreachable. Verify your device is connected to the authorized OTC Wi-Fi network.');
+            state.consecutiveFailures++;
+            // Require 3 consecutive unreachable cycles before alerting to avoid false alarms during normal operations
+            if (forceCheck || state.consecutiveFailures >= state.failureThreshold) {
+                activateLockdown('Offline server unreachable. Verify your device is connected to the authorized OTC Wi-Fi network.', null, forceCheck);
+            }
         }
     }
 
     // Activate Lockdown Screen
-    function activateLockdown(reason, details) {
+    function activateLockdown(reason, details, force = false) {
         state.lastViolationReason = reason;
-        state.isLocked = true;
 
+        // If user already acknowledged or dismissed it for this session, suppress repeated popup
+        if (!force && state.isDismissed) {
+            if (details) {
+                updateDiagnosticsData(details);
+            }
+            return;
+        }
+
+        state.isLocked = true;
         pauseActiveMedia();
 
         const overlay = document.getElementById('wifi-lockdown-overlay');
@@ -243,9 +268,31 @@
         window.dispatchEvent(new CustomEvent('wifiguard:lock', { detail: { reason, details } }));
     }
 
+    // Dismiss / Acknowledge Lockdown (User acknowledged - stops repeated popup)
+    function dismissLockdown() {
+        state.isDismissed = true;
+        try {
+            sessionStorage.setItem('otc_wifi_lockdown_dismissed', 'true');
+        } catch (_) {}
+
+        state.isLocked = false;
+        const overlay = document.getElementById('wifi-lockdown-overlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+        }
+        document.body.classList.remove('wifi-locked');
+
+        window.dispatchEvent(new CustomEvent('wifiguard:dismiss', { detail: { reason: state.lastViolationReason } }));
+    }
+
     // Deactivate Lockdown Screen (Self-Healing / Reconnected)
     function deactivateLockdown(details) {
         state.isLocked = false;
+        state.consecutiveFailures = 0;
+        state.isDismissed = false;
+        try {
+            sessionStorage.removeItem('otc_wifi_lockdown_dismissed');
+        } catch (_) {}
         updateDiagnosticsData(details);
 
         const card = document.getElementById('wifi-lock-card');
@@ -341,7 +388,7 @@
                     <span>Verifying Wi-Fi...</span>
                 `;
             }
-            await checkHeartbeat();
+            await checkHeartbeat(true);
             if (btn) {
                 setTimeout(() => {
                     btn.disabled = false;
@@ -353,8 +400,19 @@
             }
         },
 
+        dismissLockdown: function () {
+            dismissLockdown();
+        },
+
+        resetDismissal: function () {
+            state.isDismissed = false;
+            try {
+                sessionStorage.removeItem('otc_wifi_lockdown_dismissed');
+            } catch (_) {}
+        },
+
         lock: function (reason, details) {
-            activateLockdown(reason || 'Manual security lock triggered.', details);
+            activateLockdown(reason || 'Manual security lock triggered.', details, true);
         },
 
         unlock: function (details) {
@@ -362,15 +420,17 @@
         },
 
         simulateLock: function (seconds = 5) {
-            activateLockdown('SIMULATION TEST: Wi-Fi network change detected (Auto-recovering in ' + seconds + 's)...');
+            activateLockdown('SIMULATION TEST: Wi-Fi network change detected (Auto-recovering in ' + seconds + 's)...', null, true);
             setTimeout(() => {
-                checkHeartbeat();
+                checkHeartbeat(true);
             }, seconds * 1000);
         },
 
         getStatus: function () {
             return {
                 isLocked: state.isLocked,
+                isDismissed: state.isDismissed,
+                consecutiveFailures: state.consecutiveFailures,
                 diagnostics: state.diagnostics,
                 lastReason: state.lastViolationReason
             };

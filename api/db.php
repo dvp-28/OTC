@@ -136,11 +136,11 @@ function refresh_and_validate_user(mysqli $mysqli, array $cachedUser): ?array {
 
         if ($role === 'student') {
             $rStmt2 = $mysqli->prepare("
-                SELECT r.shortname, ctx.instanceid as courseid
+                SELECT r.shortname, ctx.contextlevel, ctx.instanceid as courseid
                 FROM mdl_role_assignments ra
                 JOIN mdl_role r ON r.id = ra.roleid
-                JOIN mdl_context ctx ON ctx.id = ra.contextid
-                WHERE ra.userid = ? AND r.shortname = 'courseadmin' AND ctx.contextlevel = 50
+                LEFT JOIN mdl_context ctx ON ctx.id = ra.contextid
+                WHERE ra.userid = ? AND r.shortname = 'courseadmin'
             ");
             $rStmt2->bind_param('i', $userId);
             $rStmt2->execute();
@@ -148,7 +148,9 @@ function refresh_and_validate_user(mysqli $mysqli, array $cachedUser): ?array {
             while ($cRow = $cRes->fetch_assoc()) {
                 $role = 'courseadmin';
                 $roleLabel = 'Course Admin';
-                $assignedCourses[] = (int)$cRow['courseid'];
+                if (!empty($cRow['courseid']) && (int)($cRow['contextlevel'] ?? 0) === 50) {
+                    $assignedCourses[] = (int)$cRow['courseid'];
+                }
             }
             $rStmt2->close();
         }
@@ -474,8 +476,8 @@ function require_csrf_token(string $action): void {
         return;
     }
 
-    // Login and internal watchdog sync do not have a web session
-    if ($action === 'login' || $action === 'wifi-sync') {
+    // Login, internal watchdog sync, and read-only spreadsheet preview do not have/need CSRF modification
+    if ($action === 'login' || $action === 'wifi-sync' || $action === 'users-bulk-preview') {
         return;
     }
 

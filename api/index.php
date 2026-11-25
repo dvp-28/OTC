@@ -81,6 +81,19 @@ function assign_user_course_enrolment(mysqli $mysqli, int $userId, int $courseId
 
     if ($roleRow) {
         $roleId = (int)$roleRow['id'];
+        // Remove opposing roles in this course context to prevent conflicting role resolution
+        if ($roleShortname === 'courseadmin') {
+            $delOpp = $mysqli->prepare("DELETE ra FROM mdl_role_assignments ra JOIN mdl_role r ON r.id = ra.roleid WHERE ra.contextid = ? AND ra.userid = ? AND r.shortname = 'student'");
+            $delOpp->bind_param('ii', $ctxId, $userId);
+            $delOpp->execute();
+            $delOpp->close();
+        } elseif ($roleShortname === 'student') {
+            $delOpp = $mysqli->prepare("DELETE ra FROM mdl_role_assignments ra JOIN mdl_role r ON r.id = ra.roleid WHERE ra.contextid = ? AND ra.userid = ? AND r.shortname = 'courseadmin'");
+            $delOpp->bind_param('ii', $ctxId, $userId);
+            $delOpp->execute();
+            $delOpp->close();
+        }
+
         $raCheck = $mysqli->prepare("SELECT id FROM mdl_role_assignments WHERE roleid = ? AND contextid = ? AND userid = ? LIMIT 1");
         $raCheck->bind_param('iii', $roleId, $ctxId, $userId);
         $raCheck->execute();
@@ -111,6 +124,22 @@ function normalize_phone_number(?string $raw): string {
     return $raw;
 }
 
+function normalize_user_role(?string $raw): string {
+    if (empty($raw)) return 'student';
+    $clean = strtolower(preg_replace('/[^a-z0-9]/', '', (string)$raw));
+    if ($clean === '') return 'student';
+    if (in_array($clean, ['instituteadmin', 'instituteadministrator', 'superadmin', 'superadministrator', 'instadmin'], true) || strpos($clean, 'inst') !== false || strpos($clean, 'super') !== false) {
+        return 'instituteadmin';
+    }
+    if (in_array($clean, ['courseadmin', 'courseadministrator', 'course', 'instructor', 'faculty', 'teacher'], true) || strpos($clean, 'course') !== false || strpos($clean, 'teach') !== false || strpos($clean, 'faculty') !== false || strpos($clean, 'admin') !== false) {
+        return 'courseadmin';
+    }
+    if (in_array($clean, ['student', 'studentofficer', 'officer', 'cadet', 'trainee'], true) || strpos($clean, 'student') !== false || strpos($clean, 'officer') !== false) {
+        return 'student';
+    }
+    return 'student';
+}
+
 function format_bytes(int $bytes): string {
     if ($bytes >= 1073741824) {
         return number_format($bytes / 1073741824, 2) . ' GB';
@@ -134,9 +163,9 @@ function extract_presentation_slide_count(string $filePath, string $ext): int {
         $zip = new ZipArchive();
         if ($zip->open($filePath) === true) {
             // Zip bomb protection: cap maximum entries, uncompressed size, and compression ratio (SEC-E03)
-            $maxEntries = 1000;
-            $maxTotalUncompressedSize = 100 * 1024 * 1024; // 100 MB
-            $maxRatio = 50;
+            $maxEntries = 2000;
+            $maxTotalUncompressedSize = 150 * 1024 * 1024; // 150 MB
+            $maxRatio = 60;
 
             if ($zip->numFiles > $maxEntries) {
                 $zip->close();
@@ -151,7 +180,7 @@ function extract_presentation_slide_count(string $filePath, string $ext): int {
                     $totalUncompressed += $stat['size'];
                     $compSize = max(1, $stat['comp_size']);
                     $ratio = $stat['size'] / $compSize;
-                    if ($ratio > $maxRatio && $stat['size'] > 1024 * 1024) {
+                    if ($ratio > $maxRatio && $stat['size'] > 2 * 1024 * 1024) {
                         $zip->close();
                         error_log("Zip bomb alert: high compression ratio {$ratio} on entry {$stat['name']}");
                         return 1;
@@ -161,48 +190,94 @@ function extract_presentation_slide_count(string $filePath, string $ext): int {
 
             if ($totalUncompressed > $maxTotalUncompressedSize) {
                 $zip->close();
-                error_log("Zip bomb alert: total uncompressed size {$totalUncompressed} exceeds 100MB limit");
+                error_log("Zip bomb alert: total uncompressed size {$totalUncompressed} exceeds limit");
                 return 1;
             }
 
-            // Check docProps/app.xml for authoritative <Slides>N</Slides>
-            $appXml = $zip->getFromName('docProps/app.xml');
-            if ($appXml !== false) {
-                // XXE safe parsing (SEC-E03)
-                $prevEntityLoader = null;
-                if (function_exists('libxml_disable_entity_loader')) {
-                    $prevEntityLoader = @libxml_disable_entity_loader(true);
-                }
-                if (preg_match('/<Slides>(\d+)<\/Slides>/i', $appXml, $matches)) {
-                    $count = (int)$matches[1];
-                    $zip->close();
-                    if ($prevEntityLoader !== null && function_exists('libxml_disable_entity_loader')) {
-                        @libxml_disable_entity_loader($prevEntityLoader);
-                    }
-                    if ($count > 0) return $count;
-                }
-                if ($prevEntityLoader !== null && function_exists('libxml_disable_entity_loader')) {
-                    @libxml_disable_entity_loader($prevEntityLoader);
+            $sldIdCount = 0;
+            $slideFilesCount = 0;
+            $relsSlideCount = 0;
+            $appSlidesTotal = 0;
+
+            // Method 1 (Primary & Authoritative): Count <p:sldId elements in ppt/presentation.xml (<p:sldIdLst>)
+            // In the OpenXML presentation definition, <p:sldIdLst> defines the exact slides presented
+            $presXml = $zip->getFromName('ppt/presentation.xml');
+            if ($presXml !== false) {
+                if (preg_match_all('/<(?:\w+:)?sldId\b[^>]*>/i', $presXml, $matches)) {
+                    $sldIdCount = count($matches[0]);
                 }
             }
 
-            // Fallback: count individual slide XML files ppt/slides/slide*.xml
-            $count = 0;
+            // Method 2 (Structural file count): Count individual slide parts ppt/slides/slide*.xml
             for ($i = 0; $i < $zip->numFiles; $i++) {
                 $entry = $zip->getNameIndex($i);
                 if ($entry && preg_match('#^ppt/slides/slide\d+\.xml$#i', $entry)) {
-                    $count++;
+                    $slideFilesCount++;
                 }
             }
+
+            // Method 3: Count slide relationships in ppt/_rels/presentation.xml.rels
+            $relsXml = $zip->getFromName('ppt/_rels/presentation.xml.rels');
+            if ($relsXml !== false) {
+                if (preg_match_all('/Type=["\'][^"\']*relationships\/slide["\']/i', $relsXml, $rMatches)) {
+                    $relsSlideCount = count($rMatches[0]);
+                }
+            }
+
+            // Method 4: Read docProps/app.xml (Includes both visible Slides and HiddenSlides)
+            $appXml = $zip->getFromName('docProps/app.xml');
+            if ($appXml !== false) {
+                $visible = 0;
+                $hidden = 0;
+                if (preg_match('/<Slides>(\d+)<\/Slides>/i', $appXml, $m)) {
+                    $visible = (int)$m[1];
+                }
+                if (preg_match('/<HiddenSlides>(\d+)<\/HiddenSlides>/i', $appXml, $m)) {
+                    $hidden = (int)$m[1];
+                }
+                $appSlidesTotal = $visible + $hidden;
+            }
+
             $zip->close();
-            if ($count > 0) return $count;
+
+            // Structural presentation definition (Method 1, 2, 3) takes precedence over metadata
+            $structuralCount = max($sldIdCount, $slideFilesCount, $relsSlideCount);
+            if ($structuralCount > 0) {
+                return max($structuralCount, $appSlidesTotal);
+            }
+
+            if ($appSlidesTotal > 0) {
+                return $appSlidesTotal;
+            }
         }
     } elseif ($ext === 'ppt') {
-        // Binary PowerPoint: slide persist atoms (0x03EE)
-        $content = @file_get_contents($filePath, false, null, 0, 524288);
-        if ($content !== false) {
-            $cnt = substr_count($content, "\x00\x00\xEE\x03");
-            if ($cnt > 0) return $cnt;
+        // Binary PowerPoint (.ppt):
+        // Read file up to 8MB to inspect presentation stream and OLE properties
+        $fileSize = (int)@filesize($filePath);
+        $readLen = ($fileSize > 0) ? min($fileSize, 8 * 1024 * 1024) : 1048576;
+        $content = @file_get_contents($filePath, false, null, 0, $readLen);
+        if ($content !== false && strlen($content) > 0) {
+            $persistCount = substr_count($content, "\x00\x00\xEE\x03"); // SlidePersistAtom
+            $slideAtomCount = substr_count($content, "\x00\x00\xF0\x03"); // SlideAtom
+
+            // Search OLE2 DocumentSummaryInformation for PID_SLIDES (Property 0x02, type VT_I4 0x03)
+            $oleSlides = 0;
+            $pos = 0;
+            while (($pos = strpos($content, "\x02\x00\x00\x00\x03\x00\x00\x00", $pos)) !== false) {
+                $valOffset = $pos + 8;
+                if ($valOffset + 4 <= strlen($content)) {
+                    $val = unpack('V', substr($content, $valOffset, 4))[1] ?? 0;
+                    if ($val > 0 && $val < 1000) {
+                        $oleSlides = max($oleSlides, (int)$val);
+                    }
+                }
+                $pos += 8;
+            }
+
+            $detected = max($persistCount, $slideAtomCount, $oleSlides);
+            if ($detected > 0) {
+                return $detected;
+            }
         }
     }
 
@@ -669,6 +744,30 @@ if (preg_match('#^/api/users/(\d+)/courses/assign$#', $path, $pm)) {
     $_GET['id'] = (int)$pm[1];
 } elseif (preg_match('#^/api/course-ppts/delete$#', $path, $pm)) {
     $action = 'course-ppts-delete';
+} elseif (preg_match('#^/api/commanders/(\d+)/delete$#', $path, $pm)) {
+    $action = 'commanders-delete';
+    $_GET['id'] = (int)$pm[1];
+} elseif (preg_match('#^/api/commanders/(\d+)$#', $path, $pm) && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    $action = 'commanders-delete';
+    $_GET['id'] = (int)$pm[1];
+} elseif (preg_match('#^/api/commanders/delete$#', $path, $pm)) {
+    $action = 'commanders-delete';
+} elseif (preg_match('#^/api/current-commanders/(\d+)/delete$#', $path, $pm)) {
+    $action = 'current-commanders-delete';
+    $_GET['id'] = (int)$pm[1];
+} elseif (preg_match('#^/api/current-commanders/(\d+)$#', $path, $pm) && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    $action = 'current-commanders-delete';
+    $_GET['id'] = (int)$pm[1];
+} elseif (preg_match('#^/api/current-commanders/delete$#', $path, $pm)) {
+    $action = 'current-commanders-delete';
+} elseif (preg_match('#^/api/current-commanders/update$#', $path, $pm)) {
+    $action = 'current-commanders-update';
+} elseif (preg_match('#^/api/current-commanders/image$#', $path, $pm)) {
+    $action = 'current-commanders-image';
+} elseif (preg_match('#^/api/current-commanders/upload$#', $path, $pm)) {
+    $action = 'current-commanders-upload';
+} elseif (preg_match('#^/api/current-commanders$#', $path, $pm)) {
+    $action = 'current-commanders';
 } elseif (empty($action)) {
     if (preg_match('#/api/([a-zA-Z0-9_/-]+)#', $path, $matches)) {
         $action = trim($matches[1], '/');
@@ -687,7 +786,7 @@ if ($isMutating) {
 }
 
 // 2. Enforce Content-Type and parse request payload (SEC-C03)
-$isUploadRoute = in_array($action, ['course-ppts-upload', 'commanders-upload', 'users-bulk-upload'], true);
+$isUploadRoute = in_array($action, ['course-ppts-upload', 'commanders-upload', 'current-commanders-upload', 'users-bulk-upload', 'users-bulk-preview'], true);
 $rawInput = file_get_contents('php://input');
 $body = [];
 
@@ -1710,6 +1809,13 @@ try {
 
                 $row['role'] = $userRole;
                 $row['role_label'] = $userRoleLabel;
+                $row['roles'] = [
+                    [
+                        'id' => ($userRole === 'instituteadmin' ? 9 : ($userRole === 'courseadmin' ? 10 : 5)),
+                        'shortname' => $userRole,
+                        'name' => $userRoleLabel
+                    ]
+                ];
                 $row['mobile'] = normalize_phone_number($row['mobile'] ?? $row['phone1'] ?? '');
                 $row['phone1'] = $row['mobile'];
                 $row['courses'] = $userCourses;
@@ -1760,7 +1866,7 @@ try {
             $mobile = trim($body['mobile'] ?? $body['phone'] ?? '');
             $password = $body['password'] ?? '';
             $suspended = isset($body['suspended']) ? (int)$body['suspended'] : 0;
-            $role = trim($body['role'] ?? 'student');
+            $role = normalize_user_role($body['role'] ?? 'student');
             $courseIds = is_array($body['course_ids'] ?? null) ? $body['course_ids'] : [];
 
             // All fields are strictly required
@@ -1797,6 +1903,30 @@ try {
                 echo json_encode(['status' => 'error', 'message' => 'Mobile number is required and must contain at least 10 valid digits']);
                 break;
             }
+            $clean10 = substr($cleanMobile, -10);
+            $searchMobLike = '%' . $clean10;
+            $dupMob = $mysqli->prepare("
+                SELECT id, username 
+                FROM mdl_user 
+                WHERE deleted = 0 
+                  AND (
+                      phone1 = ? 
+                      OR phone1 = ? 
+                      OR phone2 = ? 
+                      OR phone2 = ? 
+                      OR REPLACE(REPLACE(REPLACE(REPLACE(phone1, ' ', ''), '-', ''), '+91', ''), '+', '') LIKE ?
+                  ) 
+                LIMIT 1
+            ");
+            $dupMob->bind_param('sssss', $mobile, $cleanMobile, $mobile, $cleanMobile, $searchMobLike);
+            $dupMob->execute();
+            if ($rowMob = $dupMob->get_result()->fetch_assoc()) {
+                $dupMob->close();
+                http_response_code(409);
+                echo json_encode(['status' => 'error', 'message' => "Mobile number '{$mobile}' is already registered to user '{$rowMob['username']}'. Each user must have a unique mobile number."]);
+                break;
+            }
+            $dupMob->close();
 
             $pwdErr = null;
             if (!validate_password_policy($password, $pwdErr)) {
@@ -1845,6 +1975,18 @@ try {
             // Assign role
             if ($role === 'instituteadmin') {
                 $rStmt = $mysqli->prepare("SELECT id FROM mdl_role WHERE shortname = 'instituteadmin' LIMIT 1");
+                $rStmt->execute();
+                $rRes = $rStmt->get_result();
+                if ($rRow = $rRes->fetch_assoc()) {
+                    $rId = (int)$rRow['id'];
+                    $insRa = $mysqli->prepare("INSERT INTO mdl_role_assignments (roleid, contextid, userid, timemodified, modifierid) VALUES (?, 1, ?, UNIX_TIMESTAMP(), 2)");
+                    $insRa->bind_param('ii', $rId, $newUserId);
+                    $insRa->execute();
+                    $insRa->close();
+                }
+                $rStmt->close();
+            } elseif ($role === 'courseadmin') {
+                $rStmt = $mysqli->prepare("SELECT id FROM mdl_role WHERE shortname = 'courseadmin' LIMIT 1");
                 $rStmt->execute();
                 $rRes = $rStmt->get_result();
                 if ($rRow = $rRes->fetch_assoc()) {
@@ -1910,6 +2052,205 @@ try {
                     exit;
                 }
             }
+            break;
+
+        // =====================================================================
+        // USERS: Bulk Upload Preview (for CSV, Excel XLSX, TSV)
+        // =====================================================================
+        case 'users-bulk-preview':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['status' => 'error', 'message' => 'POST required']);
+                break;
+            }
+            $currentUser = require_role(['instituteadmin']);
+            $file = $_FILES['file'] ?? null;
+            if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Valid spreadsheet file is required for preview']);
+                break;
+            }
+            $origName = basename($file['name']);
+            $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+            if (!in_array($ext, ['csv', 'xlsx', 'xls', 'tsv', 'txt'], true)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Unsupported format. Please upload a .csv, .xlsx, or .tsv file.']);
+                break;
+            }
+            $rows = parse_spreadsheet_rows($file['tmp_name'], $ext);
+            if (empty($rows)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'The uploaded file contains no data rows']);
+                break;
+            }
+
+            // Locate header row
+            $headerRowIdx = 0;
+            $hasNamedHeader = false;
+            $colMap = [];
+            for ($rIdx = 0; $rIdx < min(10, count($rows)); $rIdx++) {
+                [$testColMap, $testHasNamed] = map_spreadsheet_columns($rows[$rIdx]);
+                if ($testHasNamed) {
+                    $colMap = $testColMap;
+                    $hasNamedHeader = true;
+                    $headerRowIdx = $rIdx;
+                    break;
+                }
+            }
+            if (!$hasNamedHeader) {
+                [$colMap, $hasNamedHeader] = map_spreadsheet_columns($rows[0]);
+                $headerRowIdx = 0;
+            }
+
+            $startIdx = $hasNamedHeader ? ($headerRowIdx + 1) : 0;
+            $rawHeaders = array_values($hasNamedHeader ? $rows[$headerRowIdx] : array_keys($colMap));
+
+            // Load courses for course code verification
+            $allCourses = [];
+            $cRes = $mysqli->query("SELECT id, shortname, fullname, idnumber FROM mdl_course WHERE id > 1");
+            if ($cRes) {
+                while ($crow = $cRes->fetch_assoc()) {
+                    $allCourses[] = $crow;
+                }
+                $cRes->free();
+            }
+
+            // Pre-scan for duplicate mobiles within the file
+            $mobCounts = [];
+            $mobDetails = [];
+            $dupMobiles = [];
+            $totalDataRows = 0;
+
+            for ($i = $startIdx; $i < count($rows); $i++) {
+                $r = $rows[$i];
+                if (empty($r)) continue;
+                $uIdx = $colMap['username'] ?? -1;
+                $uName = ($uIdx >= 0 && isset($r[$uIdx])) ? trim((string)$r[$uIdx]) : '';
+                if ($uName === '') continue;
+                $totalDataRows++;
+
+                $mIdx = $colMap['mobile'] ?? -1;
+                $rawM = ($mIdx >= 0 && isset($r[$mIdx])) ? trim((string)$r[$mIdx]) : '';
+                $cleanM = preg_replace('/\D/', '', $rawM);
+                if (strlen($cleanM) >= 10) {
+                    $c10 = substr($cleanM, -10);
+                    if (!isset($mobCounts[$c10])) {
+                        $mobCounts[$c10] = 1;
+                        $mobDetails[$c10] = [
+                            'row' => $i + 1,
+                            'username' => $uName,
+                            'mobile' => normalize_phone_number($rawM)
+                        ];
+                    } else {
+                        $mobCounts[$c10]++;
+                        $dupMobiles[$c10] = true;
+                    }
+                }
+            }
+
+            // Check database for existing mobile numbers in mdl_user
+            $dbDuplicateMobiles = []; // clean10 => registered username
+            if (!empty($mobCounts)) {
+                $clean10List = array_keys($mobCounts);
+                foreach ($clean10List as $c10) {
+                    $searchMobLike = '%' . $c10;
+                    $chk = $mysqli->prepare("
+                        SELECT id, username 
+                        FROM mdl_user 
+                        WHERE deleted = 0 
+                          AND (
+                              phone1 LIKE ? 
+                              OR phone2 LIKE ? 
+                              OR REPLACE(REPLACE(REPLACE(REPLACE(phone1, ' ', ''), '-', ''), '+91', ''), '+', '') LIKE ?
+                          ) 
+                        LIMIT 1
+                    ");
+                    $chk->bind_param('sss', $searchMobLike, $searchMobLike, $searchMobLike);
+                    $chk->execute();
+                    $dbRow = $chk->get_result()->fetch_assoc();
+                    $chk->close();
+                    if ($dbRow) {
+                        $dbDuplicateMobiles[$c10] = $dbRow['username'];
+                    }
+                }
+            }
+
+            $sampleRows = [];
+            $rowValidations = [];
+            $totalPreviewErrors = 0;
+            $errorSummaryList = [];
+
+            for ($i = $startIdx; $i < min($startIdx + 10, count($rows)); $i++) {
+                $sampleRow = array_values($rows[$i]);
+                $sampleRows[] = $sampleRow;
+
+                $rErrors = [];
+                $uIdx = $colMap['username'] ?? -1;
+                $uName = ($uIdx >= 0 && isset($sampleRow[$uIdx])) ? trim((string)$sampleRow[$uIdx]) : '';
+
+                // Validate mobile
+                $mIdx = $colMap['mobile'] ?? -1;
+                if ($mIdx >= 0 && isset($sampleRow[$mIdx])) {
+                    $rawM = trim((string)$sampleRow[$mIdx]);
+                    $cleanM = preg_replace('/\D/', '', $rawM);
+                    if (strlen($cleanM) >= 10) {
+                        $c10 = substr($cleanM, -10);
+                        if (isset($dupMobiles[$c10])) {
+                            $rErrors['mobile'] = "Duplicate mobile number '{$rawM}' detected: Identical number is used across multiple rows in this file.";
+                        } elseif (isset($dbDuplicateMobiles[$c10]) && $dbDuplicateMobiles[$c10] !== $uName) {
+                            $rErrors['mobile'] = "Mobile number '{$rawM}' is already registered to user '{$dbDuplicateMobiles[$c10]}' in database.";
+                        }
+                    }
+                }
+
+                // Validate courses
+                $cIdx = $colMap['courses'] ?? -1;
+                $sIdx = $colMap['suspended'] ?? -1;
+                $statusRaw = ($sIdx >= 0 && isset($sampleRow[$sIdx])) ? strtolower(trim((string)$sampleRow[$sIdx])) : '';
+                $isSuspended = in_array($statusRaw, ['no', 'n', 'false', 'suspended', 'inactive', 'permanently suspended', '1'], true);
+
+                if ($cIdx >= 0 && isset($sampleRow[$cIdx])) {
+                    $coursesRaw = trim((string)$sampleRow[$cIdx]);
+                    if ($coursesRaw !== '' && !in_array(strtolower($coursesRaw), ['none', 'n/a', 'na', '-', 'nil'], true)) {
+                        $cIds = resolve_course_tokens_to_ids($coursesRaw, $allCourses);
+                        if (empty($cIds) && !$isSuspended) {
+                            $rErrors['courses'] = "No valid courses found matching '{$coursesRaw}'.";
+                        }
+                    } elseif (!$isSuspended) {
+                        $rErrors['courses'] = "Assigned courses required for active accounts.";
+                    }
+                }
+
+                if (!empty($rErrors)) {
+                    $totalPreviewErrors++;
+                    foreach ($rErrors as $err) {
+                        $errorSummaryList[] = "Row " . ($i + 1) . " ({$uName}): {$err}";
+                    }
+                }
+
+                $rowValidations[] = [
+                    'row' => $i + 1,
+                    'username' => $uName,
+                    'is_valid' => empty($rErrors),
+                    'errors' => $rErrors
+                ];
+            }
+
+            echo json_encode([
+                'status' => 'success',
+                'data' => [
+                    'headers' => $rawHeaders,
+                    'col_map' => $colMap,
+                    'sample_rows' => $sampleRows,
+                    'total_rows' => $totalDataRows,
+                    'duplicate_mobiles' => array_keys($dupMobiles),
+                    'duplicate_details' => $mobDetails,
+                    'db_duplicate_mobiles' => $dbDuplicateMobiles,
+                    'row_validations' => $rowValidations,
+                    'error_count' => $totalPreviewErrors,
+                    'error_summary' => $errorSummaryList
+                ]
+            ]);
             break;
 
         // =====================================================================
@@ -2011,18 +2352,51 @@ try {
             }
 
             $instAdminRoleId = null;
-            $rStmt = $mysqli->prepare("SELECT id FROM mdl_role WHERE shortname = 'instituteadmin' LIMIT 1");
-            $rStmt->execute();
-            $rRes = $rStmt->get_result();
-            if ($rRow = $rRes->fetch_assoc()) {
-                $instAdminRoleId = (int)$rRow['id'];
+            $courseAdminRoleId = null;
+            $studentRoleId = null;
+            $rStmt = $mysqli->query("SELECT id, shortname FROM mdl_role WHERE shortname IN ('instituteadmin', 'courseadmin', 'student')");
+            if ($rStmt) {
+                while ($rRow = $rStmt->fetch_assoc()) {
+                    if ($rRow['shortname'] === 'instituteadmin') $instAdminRoleId = (int)$rRow['id'];
+                    elseif ($rRow['shortname'] === 'courseadmin') $courseAdminRoleId = (int)$rRow['id'];
+                    elseif ($rRow['shortname'] === 'student') $studentRoleId = (int)$rRow['id'];
+                }
+                $rStmt->free();
             }
-            $rStmt->close();
 
             $created = [];
             $skipped = [];
             $errors = [];
             $totalDataRows = 0;
+
+            // Phase 1: Pre-scan spreadsheet for duplicate mobile numbers within the uploaded file
+            $fileMobileOccurrences = []; // clean10 => [ ['row' => rowNum, 'username' => username, 'mobile' => mobile] ]
+            for ($k = $startIdx; $k < count($rows); $k++) {
+                $kRow = $rows[$k];
+                if (empty($kRow)) continue;
+                $uIdx = $colMap['username'] ?? -1;
+                $uName = ($uIdx >= 0 && isset($kRow[$uIdx])) ? trim((string)$kRow[$uIdx]) : '';
+                if ($uName === '') continue;
+
+                $mIdx = $colMap['mobile'] ?? -1;
+                $rMob = ($mIdx >= 0 && isset($kRow[$mIdx])) ? trim((string)$kRow[$mIdx]) : '';
+                $cDigits = preg_replace('/\D/', '', $rMob);
+                if (strlen($cDigits) >= 10) {
+                    $c10 = substr($cDigits, -10);
+                    $fileMobileOccurrences[$c10][] = [
+                        'row' => $k + 1,
+                        'username' => $uName,
+                        'mobile' => normalize_phone_number($rMob)
+                    ];
+                }
+            }
+
+            $duplicateMobilesInFile = [];
+            foreach ($fileMobileOccurrences as $c10 => $occurrences) {
+                if (count($occurrences) > 1) {
+                    $duplicateMobilesInFile[$c10] = $occurrences;
+                }
+            }
 
             for ($i = $startIdx; $i < count($rows); $i++) {
                 $row = $rows[$i];
@@ -2064,14 +2438,62 @@ try {
                     continue;
                 }
 
-                // 5. Validate Mobile (REQUIRED)
+                // 5. Validate Mobile (REQUIRED & UNIQUE)
                 $rawMobile = $getVal('mobile');
                 $cleanMobile = preg_replace('/\D/', '', $rawMobile);
                 if (strlen($cleanMobile) < 10 || strlen($cleanMobile) > 15) {
                     $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => 'Valid mobile number is required (at least 10 digits)'];
                     continue;
                 }
+                $clean10 = substr($cleanMobile, -10);
                 $mobile = normalize_phone_number($rawMobile);
+
+                // Check 5a: Duplicate mobile number within the uploaded spreadsheet
+                if (isset($duplicateMobilesInFile[$clean10])) {
+                    $occurrences = $duplicateMobilesInFile[$clean10];
+                    $otherUsers = [];
+                    foreach ($occurrences as $occ) {
+                        if ($occ['row'] !== ($i + 1)) {
+                            $otherUsers[] = "{$occ['username']} (Row {$occ['row']})";
+                        }
+                    }
+                    $errors[] = [
+                        'row' => $i + 1,
+                        'username' => $username,
+                        'error' => "Duplicate mobile number '{$mobile}'. Identical mobile number is used by multiple users in this file: " . implode(', ', $otherUsers) . ". Each user must have a unique mobile number."
+                    ];
+                    continue;
+                }
+
+                // Check 5b: Mobile number already in use by a different user in the database
+                $searchMobLike = '%' . $clean10;
+                $checkMob = $mysqli->prepare("
+                    SELECT id, username 
+                    FROM mdl_user 
+                    WHERE deleted = 0 
+                      AND username != ? 
+                      AND (
+                          phone1 = ? 
+                          OR phone1 = ? 
+                          OR phone2 = ? 
+                          OR phone2 = ? 
+                          OR REPLACE(REPLACE(REPLACE(REPLACE(phone1, ' ', ''), '-', ''), '+91', ''), '+', '') LIKE ?
+                      ) 
+                    LIMIT 1
+                ");
+                $checkMob->bind_param('ssssss', $username, $mobile, $rawMobile, $mobile, $rawMobile, $searchMobLike);
+                $checkMob->execute();
+                $existingMobUser = $checkMob->get_result()->fetch_assoc();
+                $checkMob->close();
+
+                if ($existingMobUser) {
+                    $errors[] = [
+                        'row' => $i + 1,
+                        'username' => $username,
+                        'error' => "Mobile number '{$mobile}' is already registered to user '{$existingMobUser['username']}'. Each user must have a unique mobile number."
+                    ];
+                    continue;
+                }
 
                 // 6. Validate Active Status (Yes/No or active/suspended) (REQUIRED)
                 $statusRaw = strtolower(trim($getVal('suspended')));
@@ -2089,19 +2511,20 @@ try {
                 }
 
                 // 7. Validate Role (REQUIRED)
-                $roleRaw = strtolower($getVal('role'));
-                if ($roleRaw === '') {
+                $roleRaw = strtolower(trim($getVal('role')));
+                $cleanRole = preg_replace('/[^a-z0-9]/', '', $roleRaw);
+                if ($cleanRole === '') {
                     $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => 'Role is required (student, courseadmin, or instituteadmin)'];
                     continue;
                 }
-                if (strpos($roleRaw, 'inst') !== false || strpos($roleRaw, 'super') !== false) {
+                if (in_array($cleanRole, ['instituteadmin', 'instituteadministrator', 'superadmin', 'superadministrator', 'instadmin'], true) || strpos($cleanRole, 'inst') !== false || strpos($cleanRole, 'super') !== false) {
                     $role = 'instituteadmin';
-                } elseif (strpos($roleRaw, 'course') !== false || strpos($roleRaw, 'teach') !== false || strpos($roleRaw, 'faculty') !== false || strpos($roleRaw, 'admin') !== false) {
+                } elseif (in_array($cleanRole, ['courseadmin', 'courseadministrator', 'course', 'instructor', 'faculty', 'teacher'], true) || strpos($cleanRole, 'course') !== false || strpos($cleanRole, 'teach') !== false || strpos($cleanRole, 'faculty') !== false || strpos($cleanRole, 'admin') !== false) {
                     $role = 'courseadmin';
-                } elseif (strpos($roleRaw, 'student') !== false || strpos($roleRaw, 'officer') !== false) {
+                } elseif (in_array($cleanRole, ['student', 'studentofficer', 'officer', 'cadet', 'trainee'], true) || strpos($cleanRole, 'student') !== false || strpos($cleanRole, 'officer') !== false) {
                     $role = 'student';
                 } else {
-                    $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => "Invalid role '$roleRaw'. Must be student, courseadmin, or instituteadmin."];
+                    $errors[] = ['row' => $i + 1, 'username' => $username, 'error' => "Invalid role '$roleRaw'. Must be student (Student Officer), courseadmin (Course Admin), or instituteadmin (Institute Admin)."];
                     continue;
                 }
 
@@ -2150,9 +2573,20 @@ try {
                     $upStmt->execute();
                     $upStmt->close();
 
+                    // Synchronize system-level role assignments
+                    $delRa = $mysqli->prepare("DELETE FROM mdl_role_assignments WHERE userid = ? AND contextid = 1");
+                    $delRa->bind_param('i', $existingId);
+                    $delRa->execute();
+                    $delRa->close();
+
                     if ($role === 'instituteadmin' && $instAdminRoleId) {
-                        $insRa = $mysqli->prepare("INSERT IGNORE INTO mdl_role_assignments (roleid, contextid, userid, timemodified, modifierid) VALUES (?, 1, ?, UNIX_TIMESTAMP(), 2)");
+                        $insRa = $mysqli->prepare("INSERT INTO mdl_role_assignments (roleid, contextid, userid, timemodified, modifierid) VALUES (?, 1, ?, UNIX_TIMESTAMP(), 2)");
                         $insRa->bind_param('ii', $instAdminRoleId, $existingId);
+                        $insRa->execute();
+                        $insRa->close();
+                    } elseif ($role === 'courseadmin' && $courseAdminRoleId) {
+                        $insRa = $mysqli->prepare("INSERT INTO mdl_role_assignments (roleid, contextid, userid, timemodified, modifierid) VALUES (?, 1, ?, UNIX_TIMESTAMP(), 2)");
+                        $insRa->bind_param('ii', $courseAdminRoleId, $existingId);
                         $insRa->execute();
                         $insRa->close();
                     }
@@ -2207,6 +2641,11 @@ try {
                     $insRa->bind_param('ii', $instAdminRoleId, $newUserId);
                     $insRa->execute();
                     $insRa->close();
+                } elseif ($role === 'courseadmin' && $courseAdminRoleId) {
+                    $insRa = $mysqli->prepare("INSERT INTO mdl_role_assignments (roleid, contextid, userid, timemodified, modifierid) VALUES (?, 1, ?, UNIX_TIMESTAMP(), 2)");
+                    $insRa->bind_param('ii', $courseAdminRoleId, $newUserId);
+                    $insRa->execute();
+                    $insRa->close();
                 }
 
                 foreach ($courseIds as $cId) {
@@ -2231,15 +2670,49 @@ try {
                 'error_count' => count($errors)
             ], 'SUCCESS', $currentUser);
 
-            echo json_encode([
-                'status' => 'success',
-                'message' => sprintf(
-                    'Bulk upload complete: %d user%s added successfully%s%s',
+            if (count($created) === 0 && count($errors) > 0) {
+                http_response_code(400);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => sprintf(
+                        'Import prevented: %d row%s had validation errors (such as duplicate mobile numbers) and no users were imported.',
+                        count($errors),
+                        count($errors) === 1 ? '' : 's'
+                    ),
+                    'data' => [
+                        'total' => $totalDataRows,
+                        'created_count' => 0,
+                        'skipped_count' => count($skipped),
+                        'error_count' => count($errors),
+                        'created' => [],
+                        'skipped' => $skipped,
+                        'errors' => $errors
+                    ]
+                ]);
+                break;
+            }
+
+            $msg = '';
+            if (count($errors) > 0) {
+                $msg = sprintf(
+                    'Bulk upload completed: %d user%s added successfully, %d record%s rejected due to validation errors.',
                     count($created),
                     count($created) === 1 ? '' : 's',
-                    count($skipped) > 0 ? sprintf(', %d skipped (duplicates)', count($skipped)) : '',
-                    count($errors) > 0 ? sprintf(', %d errors', count($errors)) : ''
-                ),
+                    count($errors),
+                    count($errors) === 1 ? '' : 's'
+                );
+            } else {
+                $msg = sprintf(
+                    'Bulk upload complete: All %d user%s added successfully%s.',
+                    count($created),
+                    count($created) === 1 ? '' : 's',
+                    count($skipped) > 0 ? sprintf(' (%d skipped duplicates)', count($skipped)) : ''
+                );
+            }
+
+            echo json_encode([
+                'status' => 'success',
+                'message' => $msg,
                 'data' => [
                     'total' => $totalDataRows,
                     'created_count' => count($created),
@@ -2269,7 +2742,7 @@ try {
             $email = trim($body['email'] ?? '');
             $mobile = trim($body['mobile'] ?? $body['phone'] ?? '');
             $suspended = isset($body['suspended']) ? (int)$body['suspended'] : 0;
-            $role = trim($body['role'] ?? '');
+            $role = !empty($body['role']) ? normalize_user_role($body['role']) : '';
             $password = $body['password'] ?? '';
             $courseIds = isset($body['course_ids']) && is_array($body['course_ids']) ? $body['course_ids'] : null;
 
@@ -2307,6 +2780,33 @@ try {
                 echo json_encode(['status' => 'error', 'message' => 'Mobile number must contain at least 10 valid digits']);
                 break;
             }
+
+            // Check duplicate mobile number for another user
+            $clean10 = substr($cleanMobile, -10);
+            $searchMobLike = '%' . $clean10;
+            $dupMob = $mysqli->prepare("
+                SELECT id, username 
+                FROM mdl_user 
+                WHERE deleted = 0 
+                  AND id != ? 
+                  AND (
+                      phone1 = ? 
+                      OR phone1 = ? 
+                      OR phone2 = ? 
+                      OR phone2 = ? 
+                      OR REPLACE(REPLACE(REPLACE(REPLACE(phone1, ' ', ''), '-', ''), '+91', ''), '+', '') LIKE ?
+                  ) 
+                LIMIT 1
+            ");
+            $dupMob->bind_param('isssss', $userId, $mobile, $cleanMobile, $mobile, $cleanMobile, $searchMobLike);
+            $dupMob->execute();
+            if ($rowMob = $dupMob->get_result()->fetch_assoc()) {
+                $dupMob->close();
+                http_response_code(409);
+                echo json_encode(['status' => 'error', 'message' => "Mobile number '{$mobile}' is already registered to user '{$rowMob['username']}'. Each user must have a unique mobile number."]);
+                break;
+            }
+            $dupMob->close();
 
             // Verify user exists and is not siteadmin
             $chkU = $mysqli->prepare("SELECT id, username FROM mdl_user WHERE id = ? AND deleted = 0 LIMIT 1");
@@ -2877,6 +3377,7 @@ try {
             $res = $stmt->get_result();
 
             $ppts = [];
+            $storageDir = '/var/www/moodledata/course_ppts';
             while ($row = $res->fetch_assoc()) {
                 $ext = strtolower(pathinfo($row['original_filename'], PATHINFO_EXTENSION));
                 $uploaderName = trim(($row['firstname'] ?? '') . ' ' . ($row['lastname'] ?? ''));
@@ -2894,6 +3395,28 @@ try {
                     }
                 }
 
+                // Dynamically sync and correct slide count for stored presentations
+                $currentSlideCount = (int)($row['slide_count'] ?? 1);
+                if (!empty($row['stored_filename']) && in_array($ext, ['ppt', 'pptx'])) {
+                    $fullPath = $storageDir . '/' . basename($row['stored_filename']);
+                    if (file_exists($fullPath)) {
+                        $detectedCount = extract_presentation_slide_count($fullPath, $ext);
+                        if ($detectedCount > 0 && $detectedCount !== $currentSlideCount) {
+                            $currentSlideCount = $detectedCount;
+                            $updStmt = $mysqli->prepare("UPDATE mdl_course_ppts SET slide_count = ? WHERE id = ?");
+                            if ($updStmt) {
+                                $updStmt->bind_param('ii', $currentSlideCount, $row['id']);
+                                $updStmt->execute();
+                                $updStmt->close();
+                            }
+                        }
+                    }
+                }
+
+                $tCreated = (int)$row['timecreated'];
+                $timeFmtPref = $_GET['time_format'] ?? ($_COOKIE['otc_time_format'] ?? '12h');
+                $defaultFormatted = ($timeFmtPref === '24h') ? date('d M Y, H:i', $tCreated) : date('d M Y, h:i A', $tCreated);
+
                 $ppts[] = [
                     'id' => (int)$row['id'],
                     'course_id' => (int)$row['course_id'],
@@ -2903,7 +3426,7 @@ try {
                     'file_size' => (int)$row['file_size'],
                     'file_size_formatted' => format_bytes((int)$row['file_size']),
                     'mime_type' => $row['mime_type'],
-                    'slide_count' => (int)($row['slide_count'] ?? 1),
+                    'slide_count' => $currentSlideCount,
                     'has_media' => $hasMedia,
                     'media_type' => $mediaType,
                     'media_filename' => $row['media_filename'] ?? null,
@@ -2912,8 +3435,10 @@ try {
                     'media_stream_url' => $hasMedia ? ('/api/course-ppts/' . $row['id'] . '/stream') : null,
                     'uploaded_by_id' => (int)$row['uploaded_by'],
                     'uploaded_by_name' => $uploaderName,
-                    'timecreated' => (int)$row['timecreated'],
-                    'timecreated_formatted' => date('d M Y, H:i', (int)$row['timecreated']),
+                    'timecreated' => $tCreated,
+                    'timecreated_formatted' => $defaultFormatted,
+                    'timecreated_formatted_12h' => date('d M Y, h:i A', $tCreated),
+                    'timecreated_formatted_24h' => date('d M Y, H:i', $tCreated),
                     'download_url' => '/api/course-ppts/' . $row['id'] . '/download'
                 ];
             }
@@ -3235,6 +3760,10 @@ try {
                 'media_type' => $mediaType
             ], 'SUCCESS', $currentUser);
 
+            $tNow = time();
+            $timeFmtPref = $_POST['time_format'] ?? ($_COOKIE['otc_time_format'] ?? '12h');
+            $defaultFormatted = ($timeFmtPref === '24h') ? date('d M Y, H:i', $tNow) : date('d M Y, h:i A', $tNow);
+
             echo json_encode([
                 'status' => 'success',
                 'message' => "Presentation '{$title}' uploaded successfully" . ($mediaType ? " with {$mediaType} lecture" : ""),
@@ -3256,8 +3785,10 @@ try {
                     'media_stream_url' => $hasMediaFile ? ('/api/course-ppts/' . $newPptId . '/stream') : null,
                     'uploaded_by_id' => (int)$currentUser['id'],
                     'uploaded_by_name' => $uploaderName,
-                    'timecreated' => time(),
-                    'timecreated_formatted' => date('d M Y, H:i'),
+                    'timecreated' => $tNow,
+                    'timecreated_formatted' => $defaultFormatted,
+                    'timecreated_formatted_12h' => date('d M Y, h:i A', $tNow),
+                    'timecreated_formatted_24h' => date('d M Y, H:i', $tNow),
                     'download_url' => '/api/course-ppts/' . $newPptId . '/download'
                 ]
             ]);
@@ -3518,7 +4049,7 @@ try {
             }
             $currentUser = require_auth();
 
-            // Ensure database table exists
+            // Ensure database tables exist
             $mysqli->query("CREATE TABLE IF NOT EXISTS mdl_otc_commanders (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 title VARCHAR(255) NOT NULL DEFAULT 'Previous Commander of Officers Training College',
@@ -3530,11 +4061,28 @@ try {
                 timecreated BIGINT NOT NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-            // Baseline 31 commanders
+            $mysqli->query("CREATE TABLE IF NOT EXISTS mdl_otc_commanders_hidden (
+                base_id INT PRIMARY KEY,
+                timecreated BIGINT NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $hiddenBaseIds = [];
+            $hRes = $mysqli->query("SELECT base_id FROM mdl_otc_commanders_hidden");
+            if ($hRes) {
+                while ($hRow = $hRes->fetch_assoc()) {
+                    $hiddenBaseIds[] = (int)$hRow['base_id'];
+                }
+            }
+
+            // Baseline 31 commanders (excluding any hidden ones)
             $commandersList = [];
             for ($i = 1; $i <= 31; $i++) {
+                if (in_array($i, $hiddenBaseIds, true)) {
+                    continue;
+                }
                 $commandersList[] = [
                     'id' => $i,
+                    'base_id' => $i,
                     'type' => 'base',
                     'image_url' => "previouscomd/{$i}.jpg",
                     'title' => 'Previous Commander of Officers Training College',
@@ -3747,6 +4295,552 @@ try {
             header('X-Content-Type-Options: nosniff');
             readfile($realPath);
             exit;
+
+        case 'commanders-delete':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+                http_response_code(405);
+                echo json_encode(['status' => 'error', 'message' => 'POST or DELETE required']);
+                break;
+            }
+
+            $currentUser = require_role(['instituteadmin']);
+            $userId = (int)$currentUser['id'];
+
+            $targetId = (int)($body['id'] ?? ($_GET['id'] ?? 0));
+            $targetDbId = (int)($body['db_id'] ?? 0);
+            $targetType = trim($body['type'] ?? '');
+
+            if ($targetId <= 0 && $targetDbId <= 0) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Valid commander ID parameter is required']);
+                break;
+            }
+
+            // Ensure database tables exist
+            $mysqli->query("CREATE TABLE IF NOT EXISTS mdl_otc_commanders (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL DEFAULT 'Previous Commander of Officers Training College',
+                sub_title VARCHAR(255) DEFAULT '',
+                filename VARCHAR(255) NOT NULL,
+                storage_path VARCHAR(255) NOT NULL,
+                mime_type VARCHAR(100) NOT NULL,
+                uploaded_by BIGINT DEFAULT 0,
+                timecreated BIGINT NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $mysqli->query("CREATE TABLE IF NOT EXISTS mdl_otc_commanders_hidden (
+                base_id INT PRIMARY KEY,
+                timecreated BIGINT NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            // Check if it is a custom commander (uploaded portrait)
+            if ($targetType === 'custom' || $targetDbId > 0 || $targetId > 31) {
+                $customDbId = $targetDbId > 0 ? $targetDbId : ($targetId - 31);
+                $stmt = $mysqli->prepare("SELECT filename, storage_path FROM mdl_otc_commanders WHERE id = ? LIMIT 1");
+                $stmt->bind_param('i', $customDbId);
+                $stmt->execute();
+                $cRow = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+
+                if ($cRow) {
+                    $storageDir = realpath('/var/www/moodledata/commanders');
+                    if ($storageDir && !empty($cRow['filename'])) {
+                        $filePath = $storageDir . '/' . basename($cRow['filename']);
+                        if (file_exists($filePath) && is_file($filePath)) {
+                            @unlink($filePath);
+                        }
+                    }
+                    $delStmt = $mysqli->prepare("DELETE FROM mdl_otc_commanders WHERE id = ? LIMIT 1");
+                    $delStmt->bind_param('i', $customDbId);
+                    $delStmt->execute();
+                    $delStmt->close();
+
+                    log_audit_event($mysqli, 'COMMANDER_DELETE', 'commander', (string)$customDbId, [
+                        'deleted_by' => $userId,
+                        'filename' => $cRow['filename']
+                    ], 'SUCCESS', $currentUser);
+
+                    echo json_encode([
+                        'status' => 'success',
+                        'message' => 'Commander portrait deleted successfully'
+                    ]);
+                    break;
+                }
+            }
+
+            // Otherwise, baseline commander portrait (1..31)
+            $baseId = ($targetId >= 1 && $targetId <= 31) ? $targetId : (int)($body['base_id'] ?? 0);
+            if ($baseId >= 1 && $baseId <= 31) {
+                $stmt = $mysqli->prepare("INSERT IGNORE INTO mdl_otc_commanders_hidden (base_id, timecreated) VALUES (?, UNIX_TIMESTAMP())");
+                $stmt->bind_param('i', $baseId);
+                $stmt->execute();
+                $stmt->close();
+
+                log_audit_event($mysqli, 'COMMANDER_BASE_HIDE', 'commander', (string)$baseId, [
+                    'hidden_by' => $userId,
+                    'base_id' => $baseId
+                ], 'SUCCESS', $currentUser);
+
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Commander portrait removed from Roll of Honour'
+                ]);
+                break;
+            }
+
+            http_response_code(404);
+            echo json_encode(['status' => 'error', 'message' => 'Commander record not found']);
+            break;
+
+        // =====================================================================
+        // CURRENT COMMANDERS: Get list, upload new portrait, stream image, delete
+        // =====================================================================
+        case 'current-commanders':
+            if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+                http_response_code(405);
+                echo json_encode(['status' => 'error', 'message' => 'GET required']);
+                break;
+            }
+            $currentUser = require_auth();
+
+            // Ensure database tables exist
+            $mysqli->query("CREATE TABLE IF NOT EXISTS mdl_otc_current_commanders (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL DEFAULT 'Lt Gen Shivinder Singh, AVSM',
+                sub_title VARCHAR(255) DEFAULT 'Comdt AMC C & C & OIC Records',
+                banner_title VARCHAR(255) DEFAULT 'AMC CENTRE & COLLEGE COMMANDANT\'S PAGE',
+                bio_data MEDIUMTEXT NULL,
+                filename VARCHAR(255) NOT NULL,
+                storage_path VARCHAR(255) NOT NULL,
+                mime_type VARCHAR(100) NOT NULL,
+                uploaded_by BIGINT DEFAULT 0,
+                timecreated BIGINT NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            // Ensure columns exist on legacy tables
+            $chkCols = $mysqli->query("SHOW COLUMNS FROM mdl_otc_current_commanders LIKE 'bio_data'");
+            if ($chkCols && $chkCols->num_rows === 0) {
+                @$mysqli->query("ALTER TABLE mdl_otc_current_commanders ADD COLUMN banner_title VARCHAR(255) DEFAULT 'AMC CENTRE & COLLEGE COMMANDANT\'S PAGE' AFTER sub_title");
+                @$mysqli->query("ALTER TABLE mdl_otc_current_commanders ADD COLUMN bio_data MEDIUMTEXT NULL AFTER banner_title");
+            }
+
+            $mysqli->query("CREATE TABLE IF NOT EXISTS mdl_otc_current_commanders_hidden (
+                base_id INT PRIMARY KEY,
+                timecreated BIGINT NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $defaultCommandantName = 'Lt Gen Shivinder Singh, AVSM';
+            $defaultCommandantRole = 'Comdt AMC C & C & OIC Records';
+            $defaultBannerTitle = "AMC CENTRE & COLLEGE COMMANDANT'S PAGE";
+            $defaultBioData = "1.   Lt Gen Shivinder Singh is an alumnus of the prestigious Armed Forces Medical College, Pune and was commissioned in the Army Medical Corps on 25 Dec 1987.\n\n2.   After completion of internship from Army Hosp R&R, during the initial phase of his service, the Gen Offr served with the Indian Peace Keeping Force (IPKF) in Sri Lanka as MO of 336 Fd Hosp, 36 Div deployed there and then 357 Fd Hosp, 57 Inf Div (IPKF & 3 Corps). The Gen Offr thereafter completed post graduation in Anaesthesiology from AFMC Pune in 1995. The Gen offr did Post Doctoral Certificate Course (Cardiac Critical Care) from the Escorts Heart Institute & Research Centre in 2003, Diploma in Critical Care Medicine from Indian Society of Critical Care Medicine in 2004 and Expeditionary Medical Support Course with US AF, from San Antonio, Texas in 2007. He also did Post Graduate Diploma in Healthcare Management from Baba Bhim Rao Ambedkar University in 2010.\n\n3.   In his 37 yrs of distinguished career, the Gen offr served as a Spl (Anaesthesiology) in multiple AFMS establishments first as a Graded Specialist at 181 MH (HQ, 5 Mtn Div), MH Jaipur, MH Ahmedabad and with UN mission at Sierra Leone and then as a Classified Specialist at Base Hospital Delhi Cantt, AFMC Pune and CH(EC). He was also appointed as Senior Advisor (Anaesthesiology) at CH(WC) Chandimandir, Professor & HOD at AFMC Pune and Consultant (Anaesthesiology) at Army Hosp (R&R) Delhi Cantt. Later he was appointed as Dy Comdt & CI at AMC Centre & College, Lucknow.";
+
+            $hiddenBaseIds = [];
+            $hRes = $mysqli->query("SELECT base_id FROM mdl_otc_current_commanders_hidden");
+            if ($hRes) {
+                while ($hRow = $hRes->fetch_assoc()) {
+                    $hiddenBaseIds[] = (int)$hRow['base_id'];
+                }
+            }
+
+            $currentList = [];
+            // Check baseline 1.jpg in frontend/currentcomd/
+            if (!in_array(1, $hiddenBaseIds, true) && (file_exists(__DIR__ . '/../frontend/currentcomd/1.jpg') || file_exists('/var/www/html/frontend/currentcomd/1.jpg') || file_exists('frontend/currentcomd/1.jpg'))) {
+                $currentList[] = [
+                    'id' => 1,
+                    'base_id' => 1,
+                    'type' => 'base',
+                    'image_url' => 'currentcomd/1.jpg',
+                    'title' => $defaultCommandantName,
+                    'sub_title' => $defaultCommandantRole,
+                    'banner_title' => $defaultBannerTitle,
+                    'bio_data' => $defaultBioData
+                ];
+            }
+
+            // Custom uploaded current commanders from database
+            $cRes = $mysqli->query("SELECT * FROM mdl_otc_current_commanders ORDER BY id ASC");
+            if ($cRes) {
+                while ($row = $cRes->fetch_assoc()) {
+                    $customId = 100 + (int)$row['id'];
+                    $bTitle = !empty($row['banner_title']) ? $row['banner_title'] : $defaultBannerTitle;
+                    $bData = !empty($row['bio_data']) ? $row['bio_data'] : $defaultBioData;
+                    $cTitle = (!empty($row['title']) && $row['title'] !== 'Current Commander of Officers Training College') ? $row['title'] : $defaultCommandantName;
+                    $cSub = (!empty($row['sub_title']) && $row['sub_title'] !== 'Officers Training College, AMC Centre and College, Lucknow') ? $row['sub_title'] : $defaultCommandantRole;
+
+                    $currentList[] = [
+                        'id' => $customId,
+                        'db_id' => (int)$row['id'],
+                        'type' => 'custom',
+                        'image_url' => '/api/current-commanders/image?id=' . (int)$row['id'],
+                        'title' => $cTitle,
+                        'sub_title' => $cSub,
+                        'banner_title' => $bTitle,
+                        'bio_data' => $bData,
+                        'timecreated' => (int)$row['timecreated']
+                    ];
+                }
+            }
+
+            echo json_encode([
+                'status' => 'success',
+                'commanders' => $currentList,
+                'total' => count($currentList)
+            ]);
+            break;
+
+        case 'current-commanders-update':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['status' => 'error', 'message' => 'POST required']);
+                break;
+            }
+
+            $currentUser = require_role(['instituteadmin']);
+            $userId = (int)$currentUser['id'];
+
+            $targetId = (int)($body['id'] ?? ($_GET['id'] ?? 0));
+            $targetDbId = (int)($body['db_id'] ?? 0);
+            $newTitle = trim($body['title'] ?? '');
+            $newSubTitle = trim($body['sub_title'] ?? '');
+            $newBanner = trim($body['banner_title'] ?? '');
+            $newBio = trim($body['bio_data'] ?? '');
+
+            if ($targetDbId <= 0 && $targetId > 100) {
+                $targetDbId = $targetId - 100;
+            }
+
+            if ($targetDbId > 0) {
+                $updStmt = $mysqli->prepare("UPDATE mdl_otc_current_commanders SET title = ?, sub_title = ?, banner_title = ?, bio_data = ? WHERE id = ? LIMIT 1");
+                $updStmt->bind_param('ssssi', $newTitle, $newSubTitle, $newBanner, $newBio, $targetDbId);
+                $updStmt->execute();
+                $updStmt->close();
+
+                log_audit_event($mysqli, 'CURRENT_COMMANDER_UPDATE_BIO', 'commander', (string)$targetDbId, [
+                    'title' => $newTitle,
+                    'sub_title' => $newSubTitle
+                ], 'SUCCESS', $currentUser);
+
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Commander profile details and bio-data updated successfully'
+                ]);
+                break;
+            }
+
+            // Baseline commander
+            if ($targetId === 1 || ($body['type'] ?? '') === 'base') {
+                $destPath = realpath(__DIR__ . '/../frontend/currentcomd/1.jpg') ?: 'frontend/currentcomd/1.jpg';
+                $stmt = $mysqli->prepare("INSERT INTO mdl_otc_current_commanders (title, sub_title, banner_title, bio_data, filename, storage_path, mime_type, uploaded_by, timecreated) VALUES (?, ?, ?, ?, '1.jpg', ?, 'image/jpeg', ?, UNIX_TIMESTAMP())");
+                $stmt->bind_param('sssssi', $newTitle, $newSubTitle, $newBanner, $newBio, $destPath, $userId);
+                $stmt->execute();
+                $newId = (int)$stmt->insert_id;
+                $stmt->close();
+
+                // Hide original baseline 1 so overridden row displays
+                $hStmt = $mysqli->prepare("INSERT IGNORE INTO mdl_otc_current_commanders_hidden (base_id, timecreated) VALUES (1, UNIX_TIMESTAMP())");
+                $hStmt->execute();
+                $hStmt->close();
+
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Commandant profile details updated successfully'
+                ]);
+                break;
+            }
+
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Invalid commander ID']);
+            break;
+
+        case 'current-commanders-upload':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['status' => 'error', 'message' => 'POST required']);
+                break;
+            }
+
+            $currentUser = require_role(['instituteadmin']);
+            $userId = (int)$currentUser['id'];
+
+            if (empty($_FILES['image']) || !is_array($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+                http_response_code(400);
+                $err = $_FILES['image']['error'] ?? 'No file provided';
+                echo json_encode(['status' => 'error', 'message' => 'Please select a valid image file to upload (Error: ' . $err . ')']);
+                break;
+            }
+
+            $imgFile = $_FILES['image'];
+            $origName = basename($imgFile['name']);
+            $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+            if (!in_array($ext, $allowedExtensions, true)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Only JPG, PNG and WEBP image files are supported']);
+                break;
+            }
+
+            if ($imgFile['size'] > 15 * 1024 * 1024) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Uploaded portrait exceeds maximum allowable file size (15MB)']);
+                break;
+            }
+
+            $storageDir = '/var/www/moodledata/current_commanders';
+            if (!is_dir($storageDir)) {
+                @mkdir($storageDir, 0775, true);
+            }
+
+            $srcImage = null;
+            if ($ext === 'jpg' || $ext === 'jpeg') {
+                $srcImage = @imagecreatefromjpeg($imgFile['tmp_name']);
+            } elseif ($ext === 'png') {
+                $srcImage = @imagecreatefrompng($imgFile['tmp_name']);
+            } elseif ($ext === 'webp') {
+                $srcImage = @imagecreatefromwebp($imgFile['tmp_name']);
+            }
+
+            if (!$srcImage) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Failed to process and sanitize uploaded image']);
+                break;
+            }
+
+            $uniqueFilename = 'curr_cmd_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . ($ext === 'jpeg' ? 'jpg' : $ext);
+            $destPath = $storageDir . '/' . $uniqueFilename;
+
+            $saved = false;
+            if ($ext === 'jpg' || $ext === 'jpeg') {
+                $saved = imagejpeg($srcImage, $destPath, 90);
+                $mimeType = 'image/jpeg';
+            } elseif ($ext === 'png') {
+                imagealphablending($srcImage, false);
+                imagesavealpha($srcImage, true);
+                $saved = imagepng($srcImage, $destPath, 8);
+                $mimeType = 'image/png';
+            } elseif ($ext === 'webp') {
+                $saved = imagewebp($srcImage, $destPath, 90);
+                $mimeType = 'image/webp';
+            }
+            imagedestroy($srcImage);
+
+            if (!$saved || !file_exists($destPath)) {
+                http_response_code(500);
+                echo json_encode(['status' => 'error', 'message' => 'Failed to sanitize and write image to persistent storage']);
+                break;
+            }
+            @chmod($destPath, 0640);
+
+            $defaultCommandantName = 'Lt Gen Shivinder Singh, AVSM';
+            $defaultCommandantRole = 'Comdt AMC C & C & OIC Records';
+            $defaultBannerTitle = "AMC CENTRE & COLLEGE COMMANDANT'S PAGE";
+            $defaultBioData = "1.   Lt Gen Shivinder Singh is an alumnus of the prestigious Armed Forces Medical College, Pune and was commissioned in the Army Medical Corps on 25 Dec 1987.\n\n2.   After completion of internship from Army Hosp R&R, during the initial phase of his service, the Gen Offr served with the Indian Peace Keeping Force (IPKF) in Sri Lanka as MO of 336 Fd Hosp, 36 Div deployed there and then 357 Fd Hosp, 57 Inf Div (IPKF & 3 Corps). The Gen Offr thereafter completed post graduation in Anaesthesiology from AFMC Pune in 1995. The Gen offr did Post Doctoral Certificate Course (Cardiac Critical Care) from the Escorts Heart Institute & Research Centre in 2003, Diploma in Critical Care Medicine from Indian Society of Critical Care Medicine in 2004 and Expeditionary Medical Support Course with US AF, from San Antonio, Texas in 2007. He also did Post Graduate Diploma in Healthcare Management from Baba Bhim Rao Ambedkar University in 2010.\n\n3.   In his 37 yrs of distinguished career, the Gen offr served as a Spl (Anaesthesiology) in multiple AFMS establishments first as a Graded Specialist at 181 MH (HQ, 5 Mtn Div), MH Jaipur, MH Ahmedabad and with UN mission at Sierra Leone and then as a Classified Specialist at Base Hospital Delhi Cantt, AFMC Pune and CH(EC). He was also appointed as Senior Advisor (Anaesthesiology) at CH(WC) Chandimandir, Professor & HOD at AFMC Pune and Consultant (Anaesthesiology) at Army Hosp (R&R) Delhi Cantt. Later he was appointed as Dy Comdt & CI at AMC Centre & College, Lucknow.";
+
+            $cmdTitle = trim($_POST['title'] ?? '');
+            if (empty($cmdTitle) || $cmdTitle === 'Current Commander of Officers Training College') {
+                $cmdTitle = $defaultCommandantName;
+            }
+            $cmdSub = trim($_POST['sub_title'] ?? '');
+            if (empty($cmdSub) || $cmdSub === 'Officers Training College, AMC Centre and College, Lucknow') {
+                $cmdSub = $defaultCommandantRole;
+            }
+            $cmdBanner = trim($_POST['banner_title'] ?? '');
+            if (empty($cmdBanner)) {
+                $cmdBanner = $defaultBannerTitle;
+            }
+            $cmdBio = trim($_POST['bio_data'] ?? '');
+            if (empty($cmdBio)) {
+                $cmdBio = $defaultBioData;
+            }
+
+            $mysqli->query("CREATE TABLE IF NOT EXISTS mdl_otc_current_commanders (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL DEFAULT 'Lt Gen Shivinder Singh, AVSM',
+                sub_title VARCHAR(255) DEFAULT 'Comdt AMC C & C & OIC Records',
+                banner_title VARCHAR(255) DEFAULT 'AMC CENTRE & COLLEGE COMMANDANT\'S PAGE',
+                bio_data MEDIUMTEXT NULL,
+                filename VARCHAR(255) NOT NULL,
+                storage_path VARCHAR(255) NOT NULL,
+                mime_type VARCHAR(100) NOT NULL,
+                uploaded_by BIGINT DEFAULT 0,
+                timecreated BIGINT NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            // Ensure columns exist on legacy tables
+            $chkCols = $mysqli->query("SHOW COLUMNS FROM mdl_otc_current_commanders LIKE 'bio_data'");
+            if ($chkCols && $chkCols->num_rows === 0) {
+                @$mysqli->query("ALTER TABLE mdl_otc_current_commanders ADD COLUMN banner_title VARCHAR(255) DEFAULT 'AMC CENTRE & COLLEGE COMMANDANT\'S PAGE' AFTER sub_title");
+                @$mysqli->query("ALTER TABLE mdl_otc_current_commanders ADD COLUMN bio_data MEDIUMTEXT NULL AFTER banner_title");
+            }
+
+            $stmt = $mysqli->prepare("INSERT INTO mdl_otc_current_commanders (title, sub_title, banner_title, bio_data, filename, storage_path, mime_type, uploaded_by, timecreated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, UNIX_TIMESTAMP())");
+            $stmt->bind_param('sssssssi', $cmdTitle, $cmdSub, $cmdBanner, $cmdBio, $uniqueFilename, $destPath, $mimeType, $userId);
+            $stmt->execute();
+            $newDbId = (int)$stmt->insert_id;
+            $stmt->close();
+
+            log_audit_event($mysqli, 'CURRENT_COMMANDER_UPLOAD', 'commander', (string)$newDbId, [
+                'title' => $cmdTitle,
+                'sub_title' => $cmdSub,
+                'filename' => $uniqueFilename
+            ], 'SUCCESS', $currentUser);
+
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'Current commander portrait uploaded successfully',
+                'commander' => [
+                    'id' => 100 + $newDbId,
+                    'db_id' => $newDbId,
+                    'type' => 'custom',
+                    'image_url' => '/api/current-commanders/image?id=' . $newDbId,
+                    'title' => $cmdTitle,
+                    'sub_title' => $cmdSub,
+                    'banner_title' => $cmdBanner,
+                    'bio_data' => $cmdBio,
+                    'timecreated' => time()
+                ]
+            ]);
+            break;
+
+        case 'current-commanders-image':
+            $currentUser = require_auth();
+            $dbId = (int)($_GET['id'] ?? 0);
+
+            if ($dbId < 1) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Valid commander ID parameter required']);
+                break;
+            }
+
+            $stmt = $mysqli->prepare("SELECT filename, storage_path, mime_type FROM mdl_otc_current_commanders WHERE id = ? LIMIT 1");
+            $stmt->bind_param('i', $dbId);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+
+            if (!$row) {
+                http_response_code(404);
+                echo json_encode(['status' => 'error', 'message' => 'Commander image record not found']);
+                break;
+            }
+
+            $storageDir = realpath('/var/www/moodledata/current_commanders');
+            $safeFilename = basename($row['filename']);
+            $targetPath = $storageDir ? ($storageDir . '/' . $safeFilename) : '';
+            $realPath = $targetPath ? realpath($targetPath) : false;
+
+            if (!$realPath || !$storageDir || !str_starts_with($realPath, $storageDir) || !is_file($realPath)) {
+                http_response_code(404);
+                echo json_encode(['status' => 'error', 'message' => 'Commander image file missing from storage']);
+                break;
+            }
+
+            $targetMime = !empty($row['mime_type']) ? $row['mime_type'] : 'image/jpeg';
+
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            header('Content-Type: ' . $targetMime, true);
+            header('Content-Length: ' . filesize($realPath));
+            header('Cache-Control: private, max-age=86400');
+            header('X-Content-Type-Options: nosniff');
+            readfile($realPath);
+            exit;
+
+        case 'current-commanders-delete':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+                http_response_code(405);
+                echo json_encode(['status' => 'error', 'message' => 'POST or DELETE required']);
+                break;
+            }
+
+            $currentUser = require_role(['instituteadmin']);
+            $userId = (int)$currentUser['id'];
+
+            $targetId = (int)($body['id'] ?? ($_GET['id'] ?? 0));
+            $targetDbId = (int)($body['db_id'] ?? 0);
+            $targetType = trim($body['type'] ?? '');
+
+            if ($targetId <= 0 && $targetDbId <= 0) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Valid commander ID parameter is required']);
+                break;
+            }
+
+            $mysqli->query("CREATE TABLE IF NOT EXISTS mdl_otc_current_commanders (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL DEFAULT 'Current Commander of Officers Training College',
+                sub_title VARCHAR(255) DEFAULT 'Officers Training College, AMC Centre and College, Lucknow',
+                filename VARCHAR(255) NOT NULL,
+                storage_path VARCHAR(255) NOT NULL,
+                mime_type VARCHAR(100) NOT NULL,
+                uploaded_by BIGINT DEFAULT 0,
+                timecreated BIGINT NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $mysqli->query("CREATE TABLE IF NOT EXISTS mdl_otc_current_commanders_hidden (
+                base_id INT PRIMARY KEY,
+                timecreated BIGINT NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            if ($targetType === 'custom' || $targetDbId > 0 || $targetId > 100) {
+                $customDbId = $targetDbId > 0 ? $targetDbId : ($targetId - 100);
+                $stmt = $mysqli->prepare("SELECT filename, storage_path FROM mdl_otc_current_commanders WHERE id = ? LIMIT 1");
+                $stmt->bind_param('i', $customDbId);
+                $stmt->execute();
+                $cRow = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+
+                if ($cRow) {
+                    $storageDir = realpath('/var/www/moodledata/current_commanders');
+                    if ($storageDir && !empty($cRow['filename'])) {
+                        $filePath = $storageDir . '/' . basename($cRow['filename']);
+                        if (file_exists($filePath) && is_file($filePath)) {
+                            @unlink($filePath);
+                        }
+                    }
+                    $delStmt = $mysqli->prepare("DELETE FROM mdl_otc_current_commanders WHERE id = ? LIMIT 1");
+                    $delStmt->bind_param('i', $customDbId);
+                    $delStmt->execute();
+                    $delStmt->close();
+
+                    log_audit_event($mysqli, 'CURRENT_COMMANDER_DELETE', 'commander', (string)$customDbId, [
+                        'deleted_by' => $userId,
+                        'filename' => $cRow['filename']
+                    ], 'SUCCESS', $currentUser);
+
+                    echo json_encode([
+                        'status' => 'success',
+                        'message' => 'Current commander portrait deleted successfully'
+                    ]);
+                    break;
+                }
+            }
+
+            // Baseline commander (id=1)
+            $baseId = (int)($body['base_id'] ?? $targetId);
+            if ($baseId === 1) {
+                $stmt = $mysqli->prepare("INSERT IGNORE INTO mdl_otc_current_commanders_hidden (base_id, timecreated) VALUES (?, UNIX_TIMESTAMP())");
+                $stmt->bind_param('i', $baseId);
+                $stmt->execute();
+                $stmt->close();
+
+                log_audit_event($mysqli, 'CURRENT_COMMANDER_BASE_HIDE', 'commander', (string)$baseId, [
+                    'hidden_by' => $userId,
+                    'base_id' => $baseId
+                ], 'SUCCESS', $currentUser);
+
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Commander portrait removed from Current Commanders'
+                ]);
+                break;
+            }
+
+            http_response_code(404);
+            echo json_encode(['status' => 'error', 'message' => 'Commander record not found']);
+            break;
 
         default:
             http_response_code(404);
